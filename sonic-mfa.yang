@@ -1,0 +1,179 @@
+module sonic-mfa {
+    namespace "http://github.com/Azure/sonic-mfa";
+    prefix mfa;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-pki {
+        prefix spki;
+    }
+
+    organization "SONiC";
+    contact "SONiC";
+    description "SONiC MFA";
+
+    revision 2024-01-16 {
+        description "Multifactor Authentication Support with RSA SecurID";
+    }
+
+    container sonic-mfa {
+
+        container MFA {
+            container global {
+                description "MFA global configuration";
+
+                leaf client_secret {
+                    type string;
+                    description
+                        "Encrypted Password that can be used as part
+                        of basic authorization header for invoking REST
+                        API of MFA service";
+                }
+
+                leaf key_seed {
+                    type string;
+                    description
+                        "Encrypted Seed for generating the key (secret) that is
+                        used for making the data secure in MFA service";
+                }
+
+                leaf security_profile {
+                    type leafref {
+                        path "/spki:sonic-pki/spki:SECURITY_PROFILES/spki:SECURITY_PROFILES_LIST/spki:profile-name";
+                    }
+                    description
+                        "Security profile contains the certificate for MFA service";
+                }
+            }
+        }
+
+
+        container RSA {
+            container global {
+                description "RSA global configuration";
+
+                leaf security_profile {
+                    type leafref {
+                        path "/spki:sonic-pki/spki:SECURITY_PROFILES/spki:SECURITY_PROFILES_LIST/spki:profile-name";
+                    }
+                    description
+                        "Security profile containing CA-cert for validating RSA
+                        SecurID Server. Security profile can contain CDP URL,
+                        OCSP URL, and CA certificates for validating RSA
+                        SecurID server.";
+                }
+            }
+        }
+
+
+        container RSA_SERVER {
+
+            list RSA_SERVER_LIST {
+                key "hostname";
+                leaf hostname {
+                    type inet:host;
+                    description
+                        "Hostname/ip-address of RSA server";
+                }
+
+                leaf server_port {
+                    type uint16 {
+                        range "1025..49151" {
+                            error-message "Invalid port number (must be in range 1025..49151)";
+                        }
+                    }
+                    default 5555;
+                    description
+                        "Port number of the RSA SecurID server";
+                }
+
+                leaf client_id {
+                    type string;
+                    description
+                        "Unique identifier of the system as a client of 
+                        SecurID service, assigned by SecurID service";
+                }
+
+                leaf client_key {
+                    type string;
+                    description
+                        "Encrypted Key associated with the client-id, assigned by
+                        SecurID service";
+                }
+
+                leaf connection_timeout {
+                    type uint16 {
+                        range "1..30" {
+                            error-message "Invalid timeout value (must be in range 1..30)";
+                        }
+                    }
+                    default 20;
+                    description
+                        "Timeout in seconds for connection to the SecurID 
+                        server";
+                }
+
+                leaf read_timeout {
+                    type uint16 {
+                        range "1..150" {
+                            error-message "Invalid timeout value (must be in range 1..150)";
+                        }
+                    }
+                    default 120;
+                    description
+                        "Timeout in seconds to read from the SecurID
+                        server";
+                }
+
+            }
+
+        }
+
+        container CAC_PIV {
+            container global {
+                description "CAC-PIV Configuration";
+
+                leaf security_profile {
+                    type leafref {
+                        path "/spki:sonic-pki/spki:SECURITY_PROFILES/spki:SECURITY_PROFILES_LIST/spki:profile-name";
+                    }
+                    description
+                        "Configures security profile for verifying SSH.
+                        Security profile contains OCSP URL and CA
+                        certificates for SSH client user certificate";
+                }
+
+                leaf cert_username_field {
+                    type string {
+                        pattern "common-name|common-name-or-user-principal-name|user-principal-name" {
+                            error-message "Invalid username format";
+                            error-app-tag cacpiv-username-pattern-invalid;
+                        }
+                    }
+                    default "common-name-or-user-principal-name";
+                    description
+                        "Certificate field that represents username for matching with SSH login username";
+                }
+
+                leaf cert_username_match {
+                    type string {
+                        pattern "10digit-username|first-name|username-as-is|username-without-domain" {
+                            error-message "Invalid match option";
+                            error-app-tag cacpiv-username-match-invalid;
+                        }
+                    }
+                    default "username-as-is";
+                    description
+                        "Match option to parse the username from respective certificate field";
+                }
+            }
+        }
+    }
+}

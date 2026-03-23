@@ -1,0 +1,114 @@
+module openconfig-mfa-annot {
+
+    yang-version "1.1";
+
+
+    namespace "http://openconfig.net/yang/openconfig-mfa-annot";
+    prefix "oc-mfa-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+
+    import openconfig-mfa   { prefix oc-mfa; }
+
+    deviation /oc-mfa:set-log-level {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_set_log_level_cb";
+            sonic-ext:user-role-priv "rpc:secadmin";
+        }
+    }
+
+    deviation /oc-mfa:mfa {
+        deviate add {
+            sonic-ext:pre-transformer "mfa_pre_xfmr";
+            sonic-ext:user-role-priv "write:secadmin";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:mfa-global {
+        deviate add {
+            sonic-ext:subtree-transformer "mfa_global_config_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:rsa-servers/oc-mfa:rsa-server {
+        deviate add {
+            sonic-ext:subtree-transformer "rsa_server_xfmr";
+            sonic-ext:path-transformer "rsa_server_path_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:rsa-global {
+        deviate add {
+            sonic-ext:table-name "RSA";
+            sonic-ext:key-transformer "rsa_global_key_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:rsa-global/oc-mfa:config/oc-mfa:rsa-security-profile {
+        deviate add {
+            sonic-ext:field-name "security_profile";
+            sonic-ext:field-transformer "rsa_security_profile_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:rsa-global/oc-mfa:state/oc-mfa:rsa-security-profile {
+        deviate add {
+            sonic-ext:field-name "security_profile";
+            sonic-ext:field-transformer "rsa_security_profile_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:config {
+        deviate add {
+            sonic-ext:db-name "CONFIG_DB";
+            sonic-ext:table-name "CAC_PIV";
+            sonic-ext:key-transformer "cac_piv_key_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:config/oc-mfa:cacpiv-security-profile {
+        deviate add {
+            sonic-ext:field-name "security_profile";
+            sonic-ext:field-transformer "cacpiv_security_profile_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:config/oc-mfa:cert-username-field {
+        deviate add {
+            sonic-ext:field-name "cert_username_field";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:config/oc-mfa:cert-username-match {
+        deviate add {
+            sonic-ext:field-name "cert_username_match";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:state {
+        deviate add {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:table-name "CAC_PIV";
+            sonic-ext:key-transformer "cac_piv_key_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:state/oc-mfa:cacpiv-security-profile {
+        deviate add {
+            sonic-ext:field-name "security_profile";
+            sonic-ext:field-transformer "cacpiv_security_profile_xfmr";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:state/oc-mfa:cert-username-field {
+        deviate add {
+            sonic-ext:field-name "cert_username_field";
+        }
+    }
+
+    deviation /oc-mfa:mfa/oc-mfa:cac-piv-global/oc-mfa:state/oc-mfa:cert-username-match {
+        deviate add {
+            sonic-ext:field-name "cert_username_match";
+        }
+    }
+}

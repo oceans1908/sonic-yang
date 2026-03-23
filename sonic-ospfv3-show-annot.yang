@@ -1,0 +1,17 @@
+module sonic-ospfv3-show-annot {
+
+    yang-version "1.1";
+
+    namespace "http://github.com/Azure/sonic-ospfv3-show-annot";
+    prefix "sospfv3show-annot";
+
+    import sonic-ospfv3-show { prefix sn-ospfv3-show; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sn-ospfv3-show:show-ospfv3 {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_show_ospfv3";
+            sonic-ext:user-role-priv "rpc:operator";
+        }
+    }
+}

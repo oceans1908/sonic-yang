@@ -1,0 +1,153 @@
+module sonic-ospfv3-show {
+    namespace "http://github.com/Azure/sonic-ospfv3-show";
+    prefix sospfv3show;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for RPC based OSPFv3 show.";
+
+    revision 2024-04-25 {
+        description
+            "Initial revision for OSPFv3 show .";
+    }
+
+    typedef show-ospfv3-query-type {
+        description "Query type that specifies various different ways to fetch the OSPFv3-protocol information based on various filters";
+
+        type enumeration {
+            enum ALL {
+                description "To fetch all information from OSPFv3 Protocol";
+            }
+            enum BORDER_ROUTERS { 
+                description "To fetch all Border routers information";
+            }
+            enum DATABASE {
+                description "To fetch all LSA information from OSPFv3 Protocol";
+            }
+            enum GRACEFUL_RESTART {
+                description "To fetch all Graceful restart related information";
+            }
+            enum INTERFACE {
+                description "To fetch all the interfaces configured with OSPFv3";
+            }
+            enum NEIGHBOR {
+                description "To fetch all neighbor information from OSPFv3 Protocol";
+            }
+            enum ROUTE {
+                description "To fetch all Route information from OSPFv3 Protocol";
+            }
+        }
+    }
+
+    rpc show-ospfv3 {
+        description "RPC for fetch OSPFv3 Protocol information based on various different options";
+
+        input {
+            leaf vrf-name {
+                type string;
+                default "default";
+                description
+                    "Fetches OSPFv3 Protocol information for a given VRF name. If VRF name is not present, the default VRF is used";
+            }
+
+            leaf query-type {
+                type show-ospfv3-query-type;
+                mandatory true;
+                description
+                    "Query type that specifies various ways to fetch the OSPFv3 Protocol information based on various filters.                    
+                    This is a mandatory parameter.";
+            }
+
+            container all {
+                when "../query-type = ALL";
+                leaf all {
+                    type boolean;
+                    default false;
+                    description "True : to fetch all information from OSPFv3 Protocol";
+                }
+            }
+
+            container border_routers {
+                when "../query-type = BORDER_ROUTERS";
+                leaf border_routers {
+                    type boolean;
+                    default false;
+                    description "True : to fetch Border router information";
+                }
+            }
+
+            container database {
+                when "../query-type = DATABASE";
+                leaf database {
+                    type boolean;
+                    default false;
+                    description "True : to fetch DATABASE information";
+                }
+                leaf advertise-router {
+                    type inet:ip-address;
+                    description "Advertising router id for which the LSA details to
+                                 be fetched";                                 
+                }
+                leaf link-state-id {
+                    type uint32;
+                    description "Link state id for which the LSA details to
+                                 be fetched";                                 
+                }
+            }
+
+            container graceful_restart {
+                when "../query-type = GRACEFUL_RESTART";
+                leaf graceful_restart {
+                    type boolean;
+                    default false;
+                    description "True : to fetch GRACEFUL_RESTART information";
+                }
+            }
+
+            container interface {
+                when "../query-type = INTERFACE";
+                leaf interface {
+                    type boolean;
+                    default false;
+                    description "True : to fetch interface information";
+                }
+            }
+
+            container neighbor {
+                when "../query-type = NEIGHBOR";
+                leaf neighbor {
+                    type boolean;
+                    default false;
+                    description "True : to fetch neighbor information";
+                }
+            }
+
+            container route {
+                when "../query-type = ROUTE";
+                leaf route {
+                    type boolean;
+                    default false;
+                    description "True : to fetch route information";
+                }
+            }
+        }
+
+        output {
+            leaf status {
+                type string;
+                description
+                    "On success, returns OSPFv3 Protocol information in JSON string format.";
+            }
+        }
+    }
+}

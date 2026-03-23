@@ -1,0 +1,111 @@
+module openconfig-system-mgmt-servers {
+
+  yang-version "1.1";
+
+  namespace "http://openconfig.net/yang/system/management-servers";
+
+  prefix "oc-sys-mgmts";
+
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-system { prefix oc-sys; }
+
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "This module defines additional configuration and operational state
+    data related to system management servers.";
+
+  oc-ext:openconfig-version "0.2.0";
+
+  revision "2024-03-11" {
+    description
+      "Introduce gNMI server operational status";
+    reference "0.2.0";
+  }
+
+  revision "2023-10-03" {
+    description
+      "Introduce REST server disable option.";
+    reference "0.1.0";
+  }
+
+  grouping rest-server-ext-config {
+    description
+      "Defines additional configurations for the REST server";
+
+    leaf disable {
+      type boolean;
+      description
+        "Do not start REST server on the tcp port";
+    }
+  }
+
+  grouping rest-server-operational {
+    description
+      "Defines operation state data for the REST server";
+
+    leaf oper-status {
+      type enumeration {
+        enum UP;
+        enum DOWN;
+        enum DISABLED;
+      }
+      description
+        "Operational status of REST server tcp port";
+    }
+
+    uses mgmt-server-status-details;
+  }
+
+
+  grouping gnmi-server-operational {
+    description
+      "Defines operation state data for the gNMI server";
+
+    leaf oper-status {
+      type enumeration {
+        enum UP;
+        enum DOWN;
+      }
+      description
+        "Operational status of gNMI server tcp port";
+    }
+
+    uses mgmt-server-status-details;
+  }
+
+  grouping mgmt-server-status-details {
+    description
+      "Operational status details for the management servers";
+    leaf status-detail {
+      type string;
+      description
+        "Additional details about the oper-status value. Includes the
+        reason for port being down when oper-status is DOWN.";
+    }
+  }
+
+  augment "/oc-sys:system/oc-sys:rest-server/oc-sys:config" {
+    description
+      "Additional configuration data for REST server";
+    uses rest-server-ext-config;
+  }
+
+  augment "/oc-sys:system/oc-sys:rest-server/oc-sys:state" {
+    description
+      "Additional state data for REST server";
+    uses rest-server-ext-config;
+    uses rest-server-operational;
+  }
+
+  augment "/oc-sys:system/oc-sys:telemetry-server/oc-sys:state" {
+    description
+      "Additional state data for gNMI server";
+    uses gnmi-server-operational;
+  }
+
+}

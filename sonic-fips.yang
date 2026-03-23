@@ -1,0 +1,73 @@
+module sonic-fips {
+    namespace "http://github.com/Azure/sonic-fips";
+    prefix fips;
+    yang-version 1.1;
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "This module contains a collection of YANG definitions for FIPS compliant mode";
+
+    revision 2023-12-29 {
+        description "Initial revision.";
+    }
+
+    grouping fips-config {
+        description "FIPS compliant mode configuration";
+
+        leaf fips_mode {
+            type boolean;
+            sonic-ext:custom-validation ValidateFipsMode;
+            description "Enable or Disable FIPS compliant mode of the system";
+        }
+    }
+
+    container sonic-fips {
+        container FIPS {
+            description "FIPS configuration parameters";
+
+            container global {
+                description "FIPS global configuration";
+                uses fips-config;
+            }
+        }
+
+        container FIPS_INFO {
+            description "FIPS compliance related parameters";
+            sonic-ext:db-name "APPL_DB";
+            sonic-ext:key-delim ":";
+            config false;
+
+            container global {
+                description "FIPS compliance global configuration";
+
+                leaf fips_supported {
+                    type boolean;
+                    default false;
+
+                    description "FIPS compliance is supported or not in the system";
+                }
+
+                leaf crypto_lib_version {
+                    type string;
+
+                    description "FIPS compliant crypto library version";
+                }
+
+                leaf fips_module_version {
+                    type string;
+
+                    description "FIPS compliant object module version";
+                }
+            }
+        }
+    }
+}

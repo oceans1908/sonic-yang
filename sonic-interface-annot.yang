@@ -1,0 +1,33 @@
+module sonic-interface-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/sintf-annot";
+    prefix "sintf-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-interface { prefix sintf; }
+
+    deviation /sintf:clear_counters {
+        deviate add {
+	    sonic-ext:rpc-callback "rpc_clear_counters";
+        }
+    }
+    deviation /sintf:clear_ip {
+        deviate add {
+	    sonic-ext:rpc-callback "rpc_clear_ip";
+        }
+    }
+
+    deviation /sintf:sonic-interface/sintf:INTF_TABLE {
+        deviate add {
+            sonic-ext:db-name "APPL_DB";
+        }
+    }
+
+    deviation /sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+}

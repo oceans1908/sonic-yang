@@ -1,0 +1,83 @@
+module sonic-if-down-reason {
+    namespace "http://github.com/Azure/sonic-if-down-reason";
+    prefix if-down-reason;
+    yang-version 1.1;
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC if-down-reason";
+
+    revision 2021-04-22 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-if-down-reason {
+
+        container IF_REASON_EVENT {
+            config false;
+
+            list IF_REASON_EVENT_LIST {
+                sonic-ext:db-name "APPL_DB";
+                key "ifname event";
+
+                leaf ifname {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                    }
+                    description
+                        "Reference to Ethernet interface or PortChannel";
+                }
+
+                leaf event {
+                    type string;
+                    description
+                        "The interface event.";
+                }
+
+                leaf reason {
+                    type cmn:down-reason;
+                    description
+                        "Interface down reason for the event occured";
+                }
+
+                leaf timestamp {
+                    type string;
+                    description
+                        "Timestamp of the occurance of the event";
+                }
+
+            }
+            description
+                "The list of interface events";
+        }
+        description
+            "Interface down reason events";
+    }
+}

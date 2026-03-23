@@ -1,0 +1,252 @@
+module sonic-mld {
+    namespace "http://github.com/Azure/sonic-mld";
+    prefix smld;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vrf {
+        prefix vrf;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-mgmt-port {
+        prefix smt;
+    }
+
+    import sonic-interface {
+        prefix sint;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC MLD";
+
+    revision 2021-10-06 {
+        description
+	        "Initial revision.";
+    }
+
+    container sonic-mld {
+        container MLD_INTERFACE {
+            list MLD_INTERFACE_LIST {
+
+                must "(../../MLD_INTERFACE_QUERY/MLD_INTERFACE_QUERY_LIST/enabled='true')" {
+                    error-message "MLD not enabled on this interface";
+                }
+
+                key "mldintfname mcastgrpaddr srcaddr";
+                leaf mldintfname{
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                        type leafref {
+                            path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+                        }
+                    }
+                } 
+
+                leaf mcastgrpaddr {
+                    description "Multicast Group Address";
+                    type inet:ipv6-address;
+                }
+
+                leaf srcaddr {
+                    description "Source Address";
+                    type inet:ipv6-address;
+                }
+                leaf enable {
+                    type boolean;
+                    description
+                        "Flag to enable or disable mld feature.";
+                }
+            }
+        }
+        container MLD_INTERFACE_QUERY {
+            list MLD_INTERFACE_QUERY_LIST {
+                key "interface-id";
+
+                leaf interface-id{
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                        type leafref {
+                            path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+                        }
+                    }
+                }
+
+                leaf enabled {
+                    type boolean;
+                    description
+                        "Flag to enable or disable mld feature.";
+                }
+
+                leaf version {
+                    must "(../enabled='true')" {
+                         error-message "Conflicting MLD configuration";
+                    }
+                    type uint8 {
+                        range "1..2";
+                    }
+                    default 2;
+                }
+
+                leaf query-interval {
+                    must "(../enabled='true')" {
+                         error-message "Conflicting MLD configuration";
+                    }
+                    type uint32 {
+                        range "1..1024";
+                    }
+                    default 125;
+                }
+				
+                leaf last-member-query-count {
+                    must "(../enabled='true')" {
+                         error-message "Conflicting MLD configuration";
+                    }
+                    type uint32 {
+                        range "1..7";
+                    }
+                    default 2;
+                }
+
+                leaf last-member-query-interval {
+                    must "(../enabled='true')" {
+                         error-message "Conflicting MLD configuration";
+                    }
+                    type uint32 {
+                        range "1..255";
+                    }
+                    default 10;
+                }
+				
+                leaf query-max-response-time {
+                    must "(../enabled='true')" {
+                         error-message "Conflicting MLD configuration";
+                    }
+                    type uint16 {
+                         range "10..250";
+                    }
+                    default 10;
+                }				
+            }
+        }
+   }
+
+   rpc get-mld-join {
+        description "RPC to fetch the MLD join";
+
+        input {
+            leaf vrf-name {
+                type string;
+                default "default";
+                description
+                    "Fetches mld join for  given VRF name. if VRF name is not present, the default VRF is used";
+            }
+        }
+
+        output {
+            leaf status {
+                type string;
+                description
+                    "On success, returns vtysh JSON string format output of all MLD join.";
+            }
+        }
+    }
+
+   rpc clear-mld {
+
+    description "RPC for clearing MLD sessions. Input can be :
+        1. All MLD sessions in an Interface in default VRF
+        2. All MLD sessions in an Interface within a VRF  ";
+
+    input {
+        leaf vrf-name {
+            type union {
+                type string {
+                    pattern "default";
+                }
+                type leafref {
+                    path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+                }
+            }
+            description
+                "MLD VRF name.";
+        }
+
+        leaf interface {
+            type union {
+                type leafref {
+                    path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                }
+                type leafref {
+                    path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                }
+                type leafref {
+                    path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                }
+            }
+            description
+                "Interface name on which the MLD sessions have to be cleared";
+        }
+
+        leaf interface-all {
+            type boolean; 
+            description
+                "MLD have to be cleared for all interfaces";
+        }
+    }
+
+    output {
+        leaf status {
+            type string;
+            description
+                "Success / failure in clearing MLD operation execution request.";
+        }
+    }
+  }
+}

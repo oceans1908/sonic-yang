@@ -1,0 +1,195 @@
+module sonic-system-logging {
+    namespace "http://github.com/Azure/sonic-system-logging";
+    prefix ssys;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+    import sonic-vrf {
+        prefix vrf;
+    }
+
+    import sonic-port {
+        prefix sport;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-loopback {
+        prefix lo;
+    }
+
+    import sonic-mgmt-port {
+        prefix smgmt;
+    }
+
+    import sonic-mgmt-vrf {
+        prefix m-vrf;
+    }
+
+    import sonic-interface {
+      prefix subif;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC LOGGING";
+
+    revision 2020-07-26 {
+        description
+            "Change for sonic-loopback.yang.";
+    }
+
+    revision 2020-04-27 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-system-logging {
+        description
+          "Container for the logging";
+
+        container SYSLOG_SERVER {
+           description
+             "Enclosing container for the list of remote log servers";
+
+            list SYSLOG_SERVER_LIST {
+                key "ipaddress";
+                description
+                  "List of remote log servers";
+
+                max-elements 8;
+
+                leaf ipaddress {
+                    type inet:host;
+                    sonic-ext:custom-validation ValidateIPAddressOrHostname;
+                    description
+                      "Remote syslog server's Domain name or IP address (IPv4 or IPv6)";
+                }
+                leaf message-type {
+                    default "log";
+                    type enumeration{
+                        enum log;
+                        enum event;
+                        enum audit;
+                        enum auditd-system;
+                    }
+                }
+
+                leaf remote-port {
+                    default 514;
+                    type inet:port-number;
+                }
+
+                leaf protocol {
+                    default UDP;
+                    type enumeration{
+                        enum TCP {
+                          description "TCP";
+                        }
+                        enum UDP {
+                          description "UDP";
+                        }
+                        enum TLS {
+                          description "TLS";
+                        }
+                    }
+                    description "send syslog messages over TCP/UDP/TLS";
+                }
+
+                leaf vrf_name {
+                    type union {
+                        type enumeration{
+                            enum mgmt;
+                        }
+                        type leafref {
+                            path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+                       }
+                    }
+                    must "(current() != 'mgmt') or (/m-vrf:sonic-mgmt-vrf/m-vrf:MGMT_VRF_CONFIG/m-vrf:MGMT_VRF_CONFIG_LIST[m-vrf:vrf_global_name='vrf_global']/m-vrf:mgmtVrfEnabled = 'true')" {
+                        error-message "Management VRF not configured";
+                        error-app-tag mgmt-vrf-not-enabled;
+                    }
+                }
+
+                leaf src_intf {
+                    type union {
+                        type leafref {
+                            path "/sport:sonic-port/sport:PORT/sport:PORT_LIST/sport:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/lo:sonic-loopback/lo:LOOPBACK/lo:LOOPBACK_LIST/lo:name";
+                        }
+                        type leafref {
+                            path "/smgmt:sonic-mgmt-port/smgmt:MGMT_PORT/smgmt:MGMT_PORT_LIST/smgmt:ifname";
+                        }
+                        type leafref {
+                            path "/subif:sonic-interface/subif:VLAN_SUB_INTERFACE/subif:VLAN_SUB_INTERFACE_LIST/subif:id";
+                        }
+                    }
+                }
+                leaf severity {
+                  default notice;
+                  type enumeration {
+                    enum emerg {
+                      description
+                        "Emergency";
+                    }
+                    enum alert {
+                      description
+                        "Alert";
+                    }
+                    enum crit {
+                      description
+                        "critical";
+                    }
+                    enum error {
+                      description
+                        "Error";
+                    }
+                    enum warning {
+                      description
+                        "Warning";
+                    }
+                    enum notice {
+                      description
+                        "Notice";
+                    }
+                    enum info {
+                      description
+                        "Info";
+                    }
+                    enum debug {
+                      description
+                        "Debug";
+                    }
+                  }
+                }
+
+            }
+        }
+    }
+}
+

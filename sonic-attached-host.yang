@@ -1,0 +1,105 @@
+module sonic-attached-host {
+    namespace "http://github.com/Azure/sonic-attached-host";
+    prefix satthost;
+    yang-version 1.1;
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-interface {
+        prefix sintf;
+    }
+
+    organization
+        "Broadcom Inc";
+
+    contact
+        "Broadcom Inc
+        www.broadcom.com";
+
+    description
+        "This module contains a collection of yang definitions for 
+        attached host protocol. Attached host protocol distributes
+        ARP/ND learnt routes into routing protocols";
+
+    revision 2024-08-30 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-attached-host {
+        container ATTACHED_HOST_INTERFACE {
+            description
+                "Attached host configuration parameters on an interface";
+
+            list ATTACHED_HOST_INTERFACE_LIST {
+                key "vrf-name interface address-family";
+
+                leaf vrf-name {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                }
+
+                leaf interface {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id";
+                        }
+                    }
+                    description
+                        "Attached host configuration supported on Ethernet,Vlan,Portchannel and Subinterfaces";
+                }
+
+                leaf address-family {
+                    type enumeration {
+                        enum ipv4;
+                        enum ipv6;
+                    }
+                    default "ipv4";
+                    description
+                        "Address family(IPv4/IPv6)";
+                }
+
+                leaf admin-distance {
+                    type uint32 {
+                        range "0..250" {
+                            error-message
+                              "admin distance must be in range of 0-255";
+                        }
+                    }
+                    default 250;
+                    description
+                        "Admin distance value. Default is 250.";
+                }
+            }
+        }
+    }
+}

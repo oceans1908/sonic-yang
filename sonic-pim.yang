@@ -1,0 +1,281 @@
+module sonic-pim {
+    namespace "http://github.com/Azure/sonic-pim";
+    prefix spim;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+    import sonic-routing-policy-sets {
+        prefix srpolsets;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-interface {
+        prefix sintf;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-loopback {
+        prefix lo;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC PIM YANG";
+
+    revision 2021-10-20 {
+        description "Added model support for PIM SM.";
+    }
+
+    revision 2021-10-06 {
+        description "Added support for IPv6 address family.";
+    }
+
+    revision 2021-01-08 {
+        description "Added support for routed vlan-sub-interface.";
+    }
+
+    revision 2020-05-13 {
+        description
+            "Initial revision.";
+    }
+
+    typedef spt-switchover-action-type {
+        description "Defines the different value for configuring the SPT swithover.";
+        type enumeration {
+            enum immediate {
+                description "Immediate switch to SPT Tree.";
+            }
+            enum infinity {
+                 description "Never switch to SPT Tree.";
+            }
+        }
+    }
+
+    container sonic-pim {
+        container PIM_GLOBALS {
+            list PIM_GLOBALS_LIST {
+                key "vrf-name address-family";
+
+                leaf vrf-name {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                }
+
+                leaf address-family {
+                    type enumeration {
+                        enum ipv4;
+                        enum ipv6;
+                    }
+                    default "ipv4";
+                    description
+                        "Address family(IPv4/IPv6)";
+                }
+
+                leaf join-prune-interval {
+                    description "Join prune interval in seconds";
+                    type uint16 {
+                        range "60..600";
+                    }
+                }
+
+                leaf keep-alive-timer {
+                    description "Keep alive timer in seconds";
+                    type uint16 {
+                        range "31..60000";
+                    }
+                }
+
+                leaf ssm-ranges {
+                    description "Configure Source-Specific-Multicast group range using Prefix-list";
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf ecmp-enabled {
+                    description "Enable PIM ECMP";
+                    type boolean;
+                }
+
+                leaf ecmp-rebalance-enabled {
+                    description "Enable PIM ECMP rebalance";
+                    type boolean;
+                    must "../ecmp-enabled = 'true'" {
+                        error-app-tag pim-gbl-ecmp-rebalance-err;
+                        error-message "ECMP-rebalance can enabled/disabled only, when ECMP is enabled";
+                    }
+                }
+
+                leaf spt-action {
+                    type spt-switchover-action-type;
+                    description "SPT-Switchover action";
+                }
+
+                leaf spt-infinity-prefix-list {
+                    description "SPT prefix list";
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                    must "../spt-action = 'infinity'" {
+                        error-app-tag pim-spt-infinity-prefix-err;
+                        error-message "SPT prefix list can only be set when the spt action is PIM_SPT_INFINITY.";
+                    }
+                }
+            }
+        }
+
+        container PIM_GLOBALS_RENDEZVOUS_POINT {
+            list PIM_GLOBALS_RENDEZVOUS_POINT_LIST {
+                key "vrf-name address-family rp-address";
+
+                leaf vrf-name {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                }
+
+                leaf address-family {
+                    type enumeration {
+                        enum ipv4;
+                        enum ipv6;
+                    }
+                    default "ipv4";
+                    description
+                        "Address family(IPv4/IPv6)";
+                }
+
+                leaf rp-address {
+                    description "IP address of rendezvous point.";
+                       type inet:ip-address;
+                }
+
+                leaf prefix-list-name {
+                    description "Configure  group range using Prefix-list for static RP";
+                        type leafref {
+                            path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                    sonic-ext:custom-validation ValidateRPPrefixlist;
+                }
+            }
+        }
+
+        container PIM_INTERFACE {
+            list PIM_INTERFACE_LIST {
+                key "vrf-name address-family interface";
+
+                sonic-ext:custom-validation ValidatePimCfg;
+                leaf vrf-name {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                }
+
+                leaf address-family {
+                    type enumeration {
+                        enum ipv4;
+                        enum ipv6;
+                    }
+                    default "ipv4";
+                    description
+                        "Address family(IPv4/IPv6)";
+                }
+
+                leaf interface {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id";
+                        }
+                        type leafref {
+                            path "/lo:sonic-loopback/lo:LOOPBACK/lo:LOOPBACK_LIST/lo:name";
+                        }
+
+                    }
+                }
+
+                leaf mode {
+                    type enumeration {
+                        enum sm {
+                            description "PIM Sparse-mode";
+                        }
+                    }
+                }
+
+                leaf dr-priority {
+                    type uint32 {
+                        range "1..4294967295";
+                    }
+                }
+
+                leaf hello-interval {
+                    description "Hello interval in seconds";
+                    type uint8 {
+                        range "1..255";
+                    }
+                }
+
+                leaf bfd-enabled {
+                    description "Enable BFD support for PIM on this interface";
+                    type boolean;
+                }
+
+                leaf bfd-profile {
+                    type string {
+                         length "1..64";
+                    }
+                    description "BFD Profile name format";
+                }
+            }
+        }
+    }
+}

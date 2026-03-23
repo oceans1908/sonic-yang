@@ -1,0 +1,36 @@
+module sonic-snmp-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/ssnmp-annot";
+    prefix "ssnmp-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-snmp { prefix ssnmp; }
+
+    deviation /ssnmp:sonic-snmp/ssnmp:SNMP_AGENT_ADDRESS_CONFIG/ssnmp:SNMP_AGENT_ADDRESS_CONFIG_LIST/ssnmp:interface {
+        deviate add {
+            sonic-ext:value-transformer "snmp_alias_value_xfmr";
+        }
+    }
+
+    deviation /ssnmp:sonic-snmp/ssnmp:SNMP_SERVER_TARGET/ssnmp:SNMP_SERVER_TARGET_LIST/ssnmp:tag {
+        deviate add {
+            sonic-ext:value-transformer "snmp_alias_value_xfmr";
+        }
+    }
+
+    deviation /ssnmp:show-counters {
+        deviate add {
+            sonic-ext:rpc-callback "rpcShowCounters";
+            sonic-ext:user-role-priv "rpc:operator";
+       }
+    }
+
+    deviation /ssnmp:clear-counters {
+        deviate add {
+            sonic-ext:rpc-callback "rpcClearCounters";
+            sonic-ext:user-role-priv "rpc:netadmin";
+        }
+    }
+}

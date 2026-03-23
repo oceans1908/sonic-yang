@@ -1,0 +1,149 @@
+module sonic-system-aaa {
+    namespace "http://github.com/Azure/sonic-system-aaa";
+    prefix ssys;
+    yang-version 1.1;
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC System AAA";
+
+    revision 2024-09-27 {
+        description "Multifactor Authentication Support with CAC-PIV";
+    }
+
+    revision 2024-01-16 {
+        description "Multifactor Authentication Support with RSA SecurID";
+    }
+
+    revision 2020-07-30 {
+        description "Adding User container for USERNAME.";
+    }
+
+    revision 2020-06-08 {
+        description "AAA Name Service.";
+    }
+
+    revision 2019-11-13 {
+        description "Initial revision.";
+    }
+
+    container sonic-system-aaa {
+        container AAA {
+            list AAA_LIST {
+                key "type";
+
+                leaf type {
+                    type enumeration {
+                        enum authentication;
+                        enum authorization;
+                        enum nss;
+                    }
+                }
+
+                leaf login {
+                   type string {
+                       pattern '^(local|tacacs\+|radius|ldap|cac-piv)|(local,(tacacs\+|radius|ldap))|(tacacs\+,local)|(radius,local)|(ldap,local)|(cac-piv,local)' {
+                           error-message "Invalid login method";
+                           error-app-tag login-method-invalid;
+                       }
+                   }
+                   must "not(contains(current(), 'cac-piv')) or not(../mfa_authentication_method)" {
+                       error-message "Both CAC-PIV and MFA cannot be configured together";
+                   }
+                }
+
+                leaf mfa_authentication_method {
+                   type string {
+                       pattern '^(rsa-securid)' {
+                           error-message "Invalid login method";
+                       }
+                   }
+                   must "not(contains(../login, 'cac-piv'))" {
+                       error-message "MFA is not applicable when CAC-PIV is configured as first factor for authentication";
+                   }
+                }
+
+                leaf login_mfa_console {
+                   type string {
+                       pattern "enable|disable" {
+                           error-message "Invalid settings";
+                       }
+                   }
+                   default "disable";
+                }
+
+                leaf commands {
+                    type string;
+                }
+
+                leaf passwd {
+                    type string;
+                }
+
+                leaf shadow {
+                    type string;
+                }
+
+                leaf group {
+                    type string;
+                }
+
+                leaf netgroup {
+                    type string;
+                }
+
+                leaf sudoers {
+                    type string;
+                }
+
+                leaf failthrough {
+                    type string {
+                        pattern "True|False" {
+                            error-message "Error: Invalid failthrough setting";
+                        }
+                    }
+                }
+
+                leaf console-authentication-local {
+                    type boolean;
+                    default false;
+                }
+            }
+        }
+        container USER {
+            list USER_LIST {
+                key "username";
+
+                leaf username {
+                    type string {
+                        pattern '[a-z_][a-z0-9_-]*[$]';
+                        length 1..31;
+                    }
+                }
+
+                leaf password {
+                    type string;
+                    description "Hashed password for username.";
+                }
+
+                leaf-list role {
+                    type string;
+                    description "Role of the user [admin/operator].";
+                }
+
+                leaf ssh-key {
+                    type string;
+                    description "SSH public key for the user.";
+                }
+                
+            }
+        }
+    }
+}
+
+

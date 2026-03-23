@@ -1,0 +1,45 @@
+module sonic-image-management {
+  namespace "http://github.com/Azure/sonic-image-management";
+  prefix simg;
+  yang-version 1.1;
+
+  organization "SONiC";
+  contact
+    "SONiC";
+  description
+    "This module contains a collection of YANG definitions for
+       Configuration and Monitoring of System software.";
+
+  revision 2019-09-23 {
+    description
+      "Initial revision.";
+  }
+
+container sonic-image-management {
+
+  container IMAGE_GLOBAL {
+      list IMAGE_GLOBAL_LIST {
+         key "img_key";
+         leaf img_key {
+             type enumeration {
+                 enum "config";
+             }
+         }
+         leaf current {
+             type string;
+         }
+         leaf next-boot {
+             type string; 
+         }
+      }
+    }
+    container IMAGE_TABLE {
+      list IMAGE_TABLE_LIST {
+         key "image";
+         leaf image {
+             type string;
+         }
+      }
+    }
+  }
+}

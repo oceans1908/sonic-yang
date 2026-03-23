@@ -1,0 +1,120 @@
+module sonic-ip-show {
+    namespace "http://github.com/Azure/sonic-ip-show";
+    prefix sipshow;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for RPC based show ip commands.";
+
+    revision 2020-01-27 {
+        description
+            "Initial revision.";
+    }
+
+   rpc show-ip-route {
+
+    description "RPC for showing ip routes. Input can be :
+        1. All routes per VRF.";
+
+    input {
+        leaf vrf-name {
+            type string;
+            description
+                "Shows ip routes for given VRF name. if VRF name is not present, the default VRF is used";
+        }
+
+        leaf family {
+            type enumeration {
+                enum IPv4;
+                enum IPv6;
+            }
+            default "IPv4";
+            description "Address family (IPv4/IPv6)";
+        }
+
+        choice type {
+            case PREFIX {
+                  leaf prefix {
+                          type inet:ip-prefix;
+                          description
+                              "show by prefix.";
+                  }
+            }
+
+            case ADDRESS {
+                  leaf address {
+                          type inet:ip-address;
+                          description
+                              "show by address.";
+                  }
+            }
+
+            case SUMMARY {
+                leaf summary {
+                    type boolean;
+                    default false;
+                    description "True : to fetch counts of different types of routes";
+                }
+            }
+
+            case NOT-INSTALLED {
+                leaf not-installed {
+                    type boolean;
+                    default false;
+                    description "True : to fetch routes not installed in hardware";
+                }
+            }
+
+            case STATIC {
+                leaf static {
+                    type boolean;
+                    default false;
+                    description "True : to fetch static routes";
+                }
+            }
+
+            case CONNECTED {
+                leaf connected {
+                    type boolean;
+                    default false;
+                    description "True : to fetch connected routes";
+                }
+            }
+
+            case BGP {
+                leaf bgp {
+                    type boolean;
+                    default false;
+                    description "True : to fetch BGP routes";
+                }
+            }
+
+            case OSPF {
+                leaf ospf {
+                    type boolean;
+                    default false;
+                    description "True : to fetch OSPF routes";
+                }
+            }
+        }
+    }
+
+    output {
+        leaf status {
+            type string;
+            description
+                "On success, returns ip routes in JSON string format.";
+        }
+    }
+  }
+}

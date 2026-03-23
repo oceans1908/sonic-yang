@@ -1,0 +1,183 @@
+module sonic-sag {
+	namespace "http://github.com/Azure/sonic-sag";
+    prefix ssag;
+		yang-version 1.1;
+
+    import ietf-inet-types {
+		prefix "inet";
+    }
+
+    import ietf-yang-types {
+		prefix "yang";
+    }
+
+	import sonic-vlan {
+        prefix "svlan";
+    }
+
+    import sonic-interface {
+            prefix sint;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+	import sonic-vlan-interface {
+        prefix "svintf";
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+		"SONIC SAG";
+
+	revision 2020-01-15 {
+		description
+			"Initial revision.";
+	}
+
+	container sonic-sag {
+
+    container SAG {
+        description
+           "Configures Static Anycast Gateway for IPv4 and IPv6";
+
+        list SAG_LIST {
+
+			key "ifname table_distinguisher";
+
+			leaf ifname {
+				type union {
+						type leafref {
+								path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+						}
+						type leafref {
+								path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+						}
+				}
+			}
+
+			leaf table_distinguisher {
+				type string {
+					pattern "IPv4|IPv6";
+				}
+			}
+
+		    leaf-list gwip {
+                must "(/cmn:operation/cmn:operation != 'CREATE') or " +
+                     "(count(/svintf:sonic-vlan-interface/svintf:VLAN_INTERFACE/svintf:VLAN_INTERFACE_LIST[svintf:vlanName=current()/../ifname]/svintf:unnumbered) = 0)"
+                {
+                    error-message "Anycast IP configuration is not allowed in presence of IP Unnumbered";
+                    error-app-tag vlan-intf-unnum;
+                }
+
+						type inet:ip-prefix;
+						sonic-ext:custom-validation ValidateNoVlanMapping;
+						sonic-ext:custom-validation ValidateSagIp;
+						sonic-ext:custom-validation ValidateDhcpRelay;
+						sonic-ext:custom-validation ValidateL2PTVlanIntfIp;
+			}
+        }
+    }
+
+    container SAG_GLOBAL {
+        description
+           "Configures MAC for SAG";
+
+        list SAG_GLOBAL_LIST {
+
+            key "table_distinguisher";
+
+            leaf table_distinguisher {
+                type string {
+                    pattern 'IP';
+                }
+            }
+
+            leaf IPv4 {
+                type string {
+                    pattern 'disable|enable';
+                }
+                default "enable";
+            }
+
+            leaf IPv6 {
+                type string {
+                    pattern 'disable|enable';
+                }
+                default "enable";
+            }
+
+            leaf gwmac {
+                type yang:mac-address;
+                sonic-ext:custom-validation ValidateSagMac;
+            }
+
+            leaf rmac-forwarding {
+                type string {
+                    pattern 'disable|enable';
+                }
+                description
+                    "Enable or disable router mac address for forwarding";
+            }
+        }
+    }
+
+    container SAG_INTF {
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+        config false;
+        description
+            "SAG state information";
+
+        list SAG_INTF_LIST {
+            key "ifname";
+
+            leaf ifname {
+                type union {
+                    type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                    }
+                    type leafref {
+                            path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+                    }
+                }
+            }
+
+            leaf vrf {
+                type string;
+            }
+
+            leaf oper {
+                type string;
+            }
+
+            leaf mode {
+                type string;
+            }
+
+            leaf vmac {
+                type string;
+            }
+
+            leaf-list v4GwIp {
+                type string;
+            }
+
+            leaf-list v6GwIp {
+                type string;
+            }
+        }
+
+    }
+}
+}

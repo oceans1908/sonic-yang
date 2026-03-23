@@ -1,0 +1,208 @@
+module sonic-bgp-clear {
+    namespace "http://github.com/Azure/sonic-bgp-clear";
+    prefix sbgpclear;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for BGP clear options";
+
+    revision 2021-12-24 {
+        description
+            "Added clear evpn dup-addr support";
+    }
+
+    revision 2020-12-01 {
+        description
+            "Initial revision.";
+    }
+
+    revision 2020-08-01 {
+        description
+            "Added clear dampening support";
+    }
+
+   rpc clear-bgp {
+
+    description "RPC for clearing BGP. Input can be :
+        1. All BGP sessions.
+        2. interface to clear interface and in,out,soft are optional.
+        3. address to clear ipv4 or ipv6 address.
+        4. prefix to clear ipv4 or ipv6 prefix.
+        5. external with in,out,soft as optional.
+        6. asn to clear an AS and in,out,soft as optional.
+        7. Peer-group with name and in,out,soft are optional.
+        8. dampening with address,prefix,in,out,soft are optional.";
+
+    input {
+        leaf clear-all {
+            type boolean;
+            description
+                "Clear all BGP peers.";
+        }
+
+        leaf vrf-name {
+            type string;
+            default "default";
+            description
+                "Clear BGP by VRF name.";
+        }
+
+        leaf family {
+            type enumeration {
+                enum IPv4;
+                enum IPv6;
+                enum EVPN;
+            }
+            default "IPv4";
+            description "Address family (IPv4/IPv6/EVPN)";
+        }
+
+        choice option {
+
+            leaf all {
+                type boolean;
+                description
+                    "Clear all BGP peers.";
+            }
+            leaf external {
+                type boolean;
+                description
+                    "Clear all BGP external peers.";
+            }
+
+            leaf address {
+                type inet:ip-address;
+                description
+                    "Clear BGP by address.";
+            }
+
+            leaf interface {
+                type union {
+                    type leafref {
+                        path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                    }
+                    type leafref {
+                        path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                    }
+                    type leafref {
+                        path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                    }
+                }
+                description
+                    "Interface name: Parameter for deleting BGP entries
+                    related to the given inteface name Valid inputs are:
+                    Ethernet<port-number>/Vlan<Vlan ID>/PortChannel<port-channel ID>>.
+                    For example: Ethernet0, Vlan100, PortChannel10";
+            }
+
+            leaf asn {
+                type union {
+                    type uint32 {
+                        range "1..4294967295";
+                    }
+                    type string {
+                        pattern '((6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}'      +
+                                '|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[1-9]).'      +
+                                '(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}'       +
+                                '|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[0-9]))|'     +
+                                '((6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}'      +
+                                '|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[0-9]).'      +
+                                '(6553[0-5]|655[0-2][0-9]|654[0-9]{2}|65[0-4][0-9]{2}'       +
+                                '|6[0-4][0-9]{3}|[1-5][0-9]{4}|[1-9][0-9]{1,3}|[1-9]))';
+                    }
+                }
+                description
+                    "Clear BGP by AS number.";
+            }
+
+            leaf prefix {
+                type inet:ip-prefix;
+                description
+                    "Clear BGP by prefix.";
+            }
+
+            leaf peer-group {
+                type string;
+                description
+                    "Clear BGP by peer-group.";
+            }
+
+            leaf dampening {
+                type boolean;
+                description
+                    "Clear BGP dampening.";
+            }
+
+        }
+
+        leaf in {
+            type boolean;
+            description
+                "Send route-refresh unless using 'soft-reconfiguration inbound";
+        }
+
+        leaf out {
+            type boolean;
+            description
+                "Resend all outbound updates";
+        }
+
+        leaf soft {
+            type boolean;
+            description
+                "Soft reconfig inbound and outbound updates. i.e Initiates a soft reset. Does not tear down the session";
+        }
+    }
+
+    output {
+        leaf status {
+            type string;
+            description
+                "Success / failure in clearing BGP operation execution request.";
+        }
+    }
+  }
+    
+   rpc clear-bgp-evpn {
+
+       description "RPC to clear EVPN info";
+
+       input {
+           leaf clearcmd {
+               type string;
+               description
+                   "Clear EVPN info";
+           }
+       }
+
+       output {
+           leaf status {
+               type string;
+               description
+                   "On success, clears EVPN info ";
+           }
+       }
+   }
+}

@@ -1,0 +1,1193 @@
+module openconfig-pim {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/pim";
+
+  prefix "oc-pim";
+
+  // import some basic types/interfaces
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-pim-types { prefix oc-pim-types; }
+  import openconfig-interfaces { prefix oc-if; }
+  import openconfig-acl { prefix oc-acl; }
+  import openconfig-types { prefix "oc-types"; }
+  import openconfig-extensions { prefix "oc-ext"; }
+  import ietf-inet-types { prefix "inet"; }
+  import openconfig-bfd { prefix "oc-bfd"; }
+
+  // meta
+  organization
+    "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "An OpenConfig model for Protocol Independent Multicast (PIM).";
+
+  oc-ext:openconfig-version "0.8.0";
+
+  revision "2022-12-21" {
+    description
+      "Enhanced PIM models to display information for PIM interface traffic";
+    reference "0.8.0";
+  }  
+
+  revision "2022-09-22" {
+    description
+      "Enhanced PIM models to display detailed information for PIM neighbors and interfaces";
+    reference "0.7.0";
+  }
+
+  revision "2021-10-20" {
+    description
+      "Add models for PIM-SM Static RP and SPT switchover features";
+    reference "0.6.0";
+  }
+
+  revision "2021-06-04" {
+    description
+      "Enhanced PIM models for additional features";
+    reference "0.5.0";
+  }
+
+  revision "2021-04-21" {
+    description
+      "Reindent to two spaces and remove trailing whitespace ";
+    reference "0.4.1";
+  }
+
+  revision "2021-04-21" {
+    description
+      "Allow to limit the maximum number of groups to join 
+      via PIM protocol. It can be configured at two levels,
+      depending on hardware implementation:
+      1. Network-instance level, the limit will apply 
+      to all PIM sessions/joins ending in that network-instance.
+      2. Interface level, the limit would be discriminated per interface.";
+    reference "0.4.0";
+  }
+
+  revision "2021-03-17" {
+    description
+      "Add bfd support without augmentation.";
+    reference "0.3.0";
+  }
+
+  revision "2019-07-09" {
+    description
+      "Reindent to two spaces.
+      Ensure that timeticks64 is consistently expressed in nanoseconds.";
+    reference "0.2.0";
+  }
+
+  revision "2018-11-21" {
+    description
+      "Add OpenConfig module metadata extensions.";
+    reference "0.1.1";
+  }
+
+  revision "2018-02-09" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  grouping admin-config {
+    description
+      "Re-usable grouping to enable or disable a particular feature.";
+
+    leaf enabled {
+      type boolean;
+      default false;
+      description
+        "When set to true, the functionality within which this
+        leaf is defined is enabled, when set to false it is
+        explicitly disabled.";
+    }
+  }
+
+  grouping pim-counters-state {
+    description
+      "Counters related to PIM messages.";
+
+    leaf hello-messages-sent {
+      type uint32;
+      description
+        "Number of hello messages sent.";
+      reference "RFC7761 4.9.2 page 108";
+    }
+
+    leaf hello-messages-recvd {
+      type uint32;
+      description
+        "Number of hello messages received.";
+      reference "RFC7761 4.9.2 page 108";
+    }
+
+    leaf join-messages-sent {
+      type uint32;
+      description
+        "Number of join messages sent.";
+      reference "RFC7761 4.5 page 44";
+    }
+
+    leaf join-messages-recvd {
+      type uint32;
+      description
+        "Number of join messages received.";
+      reference "RFC7761 4.5 page 44";
+    }
+
+   leaf prune-messages-sent {
+      type uint32;
+      description
+        "Number of prune messages sent.";
+      reference "RFC7761 4.5 page 44";
+    }
+
+   leaf prune-messages-recvd {
+      type uint32;
+      description
+        "Number of prune messages received.";
+      reference "RFC7761 4.5 page 44";
+    }
+
+   leaf register-messages-sent {
+      type uint32;
+      description
+        "Number of register messages sent.";
+      reference "RFC7761 4.9.3 page 111";
+    }
+
+   leaf register-messages-recvd {
+      type uint32;
+      description
+        "Number of register messages received.";
+      reference "RFC7761 4.9.3 page 111";
+    }
+
+   leaf register-stop-messages-sent {
+      type uint32;
+      description
+        "Number of register stop messages sent.";
+      reference "RFC7761 4.9.4 page 113";
+    }
+
+   leaf register-stop-messages-recvd {
+      type uint32;
+      description
+        "Number of register stop messages received.";
+      reference "RFC7761 4.9.4 page 113";
+    }
+
+   leaf assert-messages-sent {
+      type uint32;
+      description
+        "Number of assert messages sent.";
+      reference "RFC7761 4.6 page 76";
+    }
+
+   leaf assert-messages-recvd {
+      type uint32;
+      description
+        "Number of assert messages received.";
+      reference "RFC7761 4.6 page 76";
+    }
+
+   leaf bootstrap-messages-sent {
+      type uint32;
+      description
+        "Number of bootstrap router messages sent.";
+      reference "RFC7761 4.7 page 98";
+    }
+
+    leaf bootstrap-messages-recvd {
+      type uint32;
+      description
+        "Number of bootstrap router messages received.";
+      reference "RFC7761 4.7 page 98";
+    }
+  }
+
+  grouping pim-interface-config {
+    description
+      "Configuration data for PIM on each interface.";
+
+    uses admin-config;
+
+    leaf interface-id {
+      type oc-if:interface-id;
+      description
+        "Reference to an interface on which PIM is enabled.";
+    }
+
+    leaf mode {
+      type identityref {
+        base oc-pim-types:PIM_MODE;
+      }
+      description
+        "PIM mode to use when delivering multicast traffic via this
+        interface.";
+    }
+
+    leaf bsr-border {
+      type boolean;
+      default false;
+      description
+        "When set to true the device will not send bootstrap router
+        messages over this interface. By default these are transmitted
+        over all PIM sparse mode (PIM-SM) enabled interfaces.";
+    }
+
+    leaf border-router {
+      type boolean;
+      default false;
+      description
+        "When set to true the interface is set as MBR (multicast border
+        router) and allows multicast traffic from sources that are
+        outside of the PIM domain.";
+    }
+
+    leaf dr-priority {
+      type oc-pim-types:dr-priority-type;
+      description
+        "The designated router priority of this interface. Larger always
+        preferred.";
+    }
+
+    leaf join-prune-interval {
+      type oc-pim-types:pim-interval-type;
+      description
+        "Interval at which the router sends the PIM join/prune messages
+        toward the upstream RPF neighbor.";
+    }
+
+    leaf hello-interval {
+      type oc-pim-types:pim-interval-type;
+      description
+        "Interval at which the router sends the PIM hello messages.";
+    }
+
+    leaf dead-timer {
+      type uint16 {
+        range 1..65535;
+      }
+      description
+        "Number of missed hello messages after which a neighbor is
+        expired.";
+    }
+
+    leaf maximum-groups {
+      type uint32;
+      description
+        "Limit the number of (S, G) and (*, G) PIM 
+        entries accepted on the interface. 
+        This feature depends on hardware implementation.";
+    }
+  }
+
+  grouping pim-interface-state {
+    description
+      "Operational state information of PIM interface.";
+
+    leaf nbrs-count {
+      type uint16;
+      description
+        "Number of PIM neighbors on this interface.";
+    }
+
+    leaf local-address {
+      type oc-inet:ip-address;
+      description
+        "Local IP address of this interface.";
+    }
+
+    leaf dr-address {
+      type oc-inet:ip-address;
+      description
+        "IP address of designated router on this interface.";
+    }
+
+    leaf hold-timer {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the amount of time a receiver must keep the neighbor reachable.
+         The value is expressed relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).";
+    }
+
+    leaf hello-timer {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time since the last hello message was received.
+		 The value is expressed relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).";
+    }
+
+    leaf hello-recvd {
+      type uint32;
+      description
+        "Number of Hello messages received on this interface.";
+    }
+
+    leaf hello-sent {
+      type uint32;
+      description
+        "Number of Hello messages sent on this interface.";
+    }
+
+    leaf hello-sent-failed {
+      type uint32;
+      description
+        "Number of Hello messages failed to send on this interface.";
+    }
+
+    leaf hello-recvd-failed {
+      type uint32;
+      description
+        "Number of Hello messages failed to receive on this interface.";
+    }
+
+    leaf dr-uptime {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time since the DR change was detected in the hello messages.
+        The value is expressed relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).";
+    }
+
+    leaf dr-elections-count {
+      type uint16;
+      description
+        "value representing the number of times the DR election has happened.";
+    }
+
+    leaf dr-elections-changes {
+      type uint16;
+      description
+        "value representing the number of times the DR has changed.";
+    }
+
+    leaf lan-prune-override-interval {
+      type uint32;
+      units milliseconds;
+      description
+        "Denotes the time in milliseconds to wait for a PIM-SM join after receiving a Prune Packet from down stream."; 
+    }
+
+    leaf join-prune-override-interval {
+      type uint32;
+      units milliseconds;
+      description
+        "Denotes the time in milliseconds to override the Prune message."; 
+    }
+
+    leaf lan-prune-propagation-delay {
+      type uint32;
+      units milliseconds;
+      description
+        "The propagation delay expresses the expected message propagation delay on the interface.";
+    }
+
+    leaf flag-multicast {
+      type boolean;
+      description
+        "Flag used to denote if multicast is enabled on the interface";
+    }
+
+    leaf flag-broadcast {
+      type boolean;
+      description
+        "Flag used to denote if broadcast is enabled on the interface";
+    }
+
+    leaf flag-all-multicast {
+      type boolean;
+      description
+        "Flag denotes if the interface can receive all the multicast packets.";
+    }
+
+    leaf flag-lan-delay-enabled {
+      type boolean;
+      description
+        "Flag denotes if the lan delay option is enabled on the interface.";
+    }
+
+    leaf flag-bsm-enabled {
+      type boolean;
+      description
+        "Flag denotes if BSM is enabled on the interface.";
+    }
+
+    leaf flag-ucast-bsm-enabled {
+      type boolean;
+      description
+        "Flag denotes if Unicast BSM is enabled on the interface.";
+    }
+
+    leaf-list secondary-address {
+      type inet:ipv4-address;
+      description
+        "A list of the secondary address configured in the PIM enabled interface";
+    }
+    
+    leaf hold-time {
+      type uint32;
+      description
+         "The time after which the neighbors will time out their neighbor entries for the router. 
+          This should be set to 3.5 * [Hello-Period].";
+    }
+    
+    leaf nbr-not-advertised-dr-prio {
+      type uint32;
+      description
+         "This leaf denotes the count of nbrs that did not advertised DR
+          priority on this interface";
+    }
+  }
+
+  grouping pim-neighbor-state {
+    description
+      "PIM neighbor state.";
+
+    leaf neighbor-address {
+      type inet:ip-address;
+      description
+        "IP address of neighbor router.";
+    }
+
+    leaf dr-address {
+      type inet:ip-address;
+      description
+         "IP address of designated router.";
+    }
+
+    leaf dr-priority {
+      type oc-pim-types:dr-priority-type;
+      description
+        "Designated router priority value.";
+    }
+
+    leaf neighbor-established {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time that the
+        PIM neighbor adjacency established. It is expressed
+        relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).
+
+        The PIM session uptime can be computed by clients
+        as the difference between this value and the
+        current time in UTC.";
+    }
+
+    leaf neighbor-expires {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time that the
+        PIM neighbor adjacency will expire should hello
+        messages fail to arrive from the neighbor. The value
+        is expressed relative to the Unix Epoch (Jan 1, 1970
+        00:00:00 UTC).";
+    }
+
+    leaf mode {
+      type identityref {
+        base oc-pim-types:PIM_MODE;
+      }
+      description
+        "PIM mode in use when delivering multicast traffic
+        via this neighbor.";
+    }
+
+    leaf bfd-session-status {
+      type oc-bfd:bfd-session-state;
+      description
+        "BFD session status of PIM neighbor.";
+    }
+
+    leaf gen-id {
+      type uint32;
+      description
+        "A random value for the interface on which the Hello message is sent.
+         The Generation ID is regenerated when PIM forwarding is started or restarted 
+         on the interface. ";
+    }
+
+    leaf hello-option-dr-priority {
+      type boolean;
+      description
+        "Flag used to denote if the DR priority is received in Hello message.";
+    }
+
+    leaf hello-option-gen-id {
+      type boolean;
+      description
+        "Flag used to denote if the generation-id is received in Hello message.";
+    }
+
+
+    leaf hello-option-hold-timer {
+      type boolean;
+      description
+        "Flag used to denote if the hold timer is received in Hello message.";
+    }
+
+    leaf hello-option-lan-prune-delay {
+      type boolean;
+      description
+        "Flag used to denote if the lan prune delay is received in Hello message.";
+    }
+
+    leaf hello-option-t-bit {
+      type boolean;
+      description
+        "Flag used to denote if the T bit is received in LAN Prune Delay Hello option.";
+    }
+
+    leaf hello-option-address-list {
+      type boolean;
+      description
+      "Flag used to denote if the address list is received in Hello option.";
+    }
+  }
+
+  grouping pim-neighbors-top {
+    description
+      "Details about PIM neighbors.";
+
+    container neighbors {
+      config false;
+      description
+        "Details about PIM neighbors.";
+
+      list neighbor {
+        key "neighbor-address";
+        description
+          "Details about a specific PIM neighbor.";
+
+        leaf neighbor-address {
+          type leafref {
+            path "../state/neighbor-address";
+          }
+          description
+            "IP address of neighbor router.";
+        }
+
+        container state {
+          config false;
+          description
+            "Details about a specific PIM neighbor.";
+
+          uses pim-neighbor-state;
+        }
+      }
+    }
+  }
+
+  grouping pim-interfaces-top {
+    description
+      "Configuration and state data for PIM on each interface.";
+
+    container interfaces {
+      description
+        "Configuration and state data for PIM on each interface.";
+
+      list interface {
+        key "interface-id";
+        description
+          "This container defines interface PIM configuration and
+          state information.";
+
+        leaf interface-id {
+          type leafref {
+            path "../config/interface-id";
+          }
+          description
+            "Reference to an interface on which PIM is enabled.";
+        }
+
+        container config {
+          description
+            "PIM interface configuration.";
+
+          uses pim-interface-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State information for PIM interfaces.";
+
+          uses pim-interface-config;
+          uses pim-interface-state;
+          container counters {
+            description
+              "PIM counters for each interface.";
+
+            uses pim-counters-state;
+          }
+        }
+
+        uses pim-neighbors-top;
+        uses oc-if:interface-ref;
+        uses oc-bfd:bfd-enable;
+      }
+    }
+  }
+
+  
+  grouping pim-global-config {
+    description
+      "Configuration data for PIM.";
+    leaf maximum-groups {
+      type uint32;
+      description
+         "Limit the number of accepted (S, G) and (*, G) 
+         PIM join states on the network-instance.";
+    }   
+
+    leaf join-prune-interval {
+      type uint16 {
+        range 60..600;
+      }
+      description
+        "Interval at which the router sends the PIM join/prune messages
+        toward the upstream RPF neighbor.";
+    }
+
+    leaf keep-alive-timer {
+      type uint16 {
+        range 31..60000;
+      }
+      description
+        "Time after which router invalidates the multicast route entry.";
+    }
+
+    leaf ecmp-enabled {
+      type boolean;
+      description
+        "When set to TRUE, PIM ECMP will be enabled.";
+    }
+
+    leaf ecmp-rebalance-enabled {
+      type boolean;
+      description
+        "When set to TRUE, PIM ECMP rebalance will be enabled.";
+    }
+  }
+
+  grouping pim-global-state {
+    description
+      "State and session data for PIM on each interface.";
+    leaf neighbor-count {
+      type uint8;
+      description
+        "Number of adjacent PIM neighbors.";
+    }
+
+    container counters {
+      description
+        "Global PIM counters.";
+
+      uses pim-counters-state;
+    }
+  }
+
+  grouping pim-sources-joined-top {
+    description
+     "List of multicast sources joined.";
+
+    container sources-joined {
+      config false;
+      description
+        "List of multicast sources joined.";
+
+      list source {
+        key "address";
+        description
+          "A multicast source that has been joined.";
+
+        leaf address {
+          type leafref {
+            path "../state/address";
+          }
+          description
+            "Source address of multicast.";
+        }
+
+        container state {
+          config false;
+          description
+            "State for a multicast source that has been joined.";
+
+          leaf address {
+            type inet:ip-address;
+            description
+              "Source address of multicast.";
+          }
+
+          leaf group {
+            type inet:ip-address;
+            description
+              "Multicast address.";
+          }
+
+          leaf upstream-interface-id {
+            type oc-if:interface-id;
+            description
+              "The upstream interface for this multicast source.";
+          }
+        }
+      }
+    }
+  }
+
+  grouping pim-global-ssm-config {
+    description
+      "Source specific multicast (SSM) configuration.";
+
+    leaf ssm-ranges {
+      type leafref {
+        path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/" +
+        "oc-acl:config/oc-acl:name";
+      }
+      description
+        "List of accepted source specific multicast (SSM) address
+        ranges.";
+    }
+  }
+
+  grouping pim-global-rp-addresses-config {
+    description
+      "Defines rendezvous points for sparse mode multicast.";
+
+    leaf address {
+      type inet:ip-address;
+      description
+        "IP address of rendezvous point.";
+    }
+
+    leaf multicast-groups {
+      type leafref {
+        path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/" +
+        "oc-acl:config/oc-acl:name";
+      }
+
+      description
+        "List of multicast groups (multicast IP address ranges) for which
+        this entry will be used as a rendezvous point. When not
+        present the default is equivalent to all valid IP multicast
+        addresses.";
+    }
+  }
+
+  grouping pim-global-spt-switchover-config {
+    description
+      "Defines spt switchover config for PIM SM.";
+
+    leaf spt-action {
+      type enumeration {
+        enum "PIM_SPT_IMMEDIATE" {
+          description "Immediate switch to SPT Tree.";
+        }
+        enum "PIM_SPT_INFINITY" {
+          description "Never switch to SPT Tree.";
+        }
+      }
+      description "SPT-Switchover action";
+    }
+
+    leaf spt-infinity-prefix-list {
+      when "../spt-action = 'PIM_SPT_INFINITY'" {
+        description "This leaf is only valid when the spt action is PIM_SPT_INFINITY.";
+      }
+      type leafref {
+        path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/" +
+        "oc-acl:config/oc-acl:name";
+      }
+      description
+        "List of (S,G) routes for which SPT switchover would be applied.";
+
+    }
+  }
+
+  grouping pim-gbl-tib-oil-cmn-info-state {
+    description
+      "Common Operational state information of an outgoing interface present in PIM TIB.";
+
+    leaf outgoing-interface {
+      type leafref {
+        path "../state/outgoing-interface";
+      }
+      description
+        "Reference to the outgoing-interface key";
+    }
+
+    container state {
+      description
+        "Common Operational state information of an outgoing interface present in PIM TIB.";
+
+      leaf outgoing-interface {
+        type oc-if:interface-id;
+        description
+          "Outgoing interface for this multicast entry.";
+      }
+
+      leaf uptime {
+        type oc-types:timeticks64;
+        description
+          "This timestamp indicates the time, since this particular outgoing interface is present in this multicast entry.
+          The value is the timestamp in seconds relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).
+          It can be computed by clients as the difference between this value and the current time in UTC.";
+      }
+
+      leaf expiry {
+        type oc-types:timeticks64;
+        description
+          "This timestamp indicates the time, when this particular outgoing interface will expire from this multicast entry.
+          The value is the timestamp in seconds relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).
+          It can be computed by clients as the difference between this value and the current time in UTC.";
+      }
+    }
+  }
+
+  grouping pim-gbl-tib-src-entry-cmn-info-state {
+    description
+      "Common Operational state information of particular multicast source present in PIM TIB.";
+
+    leaf incoming-interface {
+      type oc-if:interface-id;
+      description
+        "Incoming interface for this multicast entry.";
+    }
+
+    leaf uptime {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time, since this particular multicast entry is learnt.
+        The value is the timestamp in seconds relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).
+        It can be computed by clients as the difference between this value and the current time in UTC.";
+    }
+
+    leaf expiry {
+      type oc-types:timeticks64;
+      description
+        "This timestamp indicates the time, when this particular multicast entry will expire.
+        The value is the timestamp in seconds relative to the Unix Epoch (Jan 1, 1970 00:00:00 UTC).
+        It can be computed by clients as the difference between this value and the current time in UTC.";
+    }
+
+    leaf flags {
+      type string;
+      description
+        "To present the various other states of this entry and the information will be represented in a
+        concatenated string format. The following alphabets represents a state as explained below.
+
+        S - Sparse, C - Connected, L - Local, P - Pruned, R - RP-bit set,
+        F - Register Flag, T - SPT-bit set, J - Join SPT, K - Ack-Pending state
+
+        For e.g. This attribute can represent a state like this ==> SJT, which means these following flags are set
+        in this multicast entry as per PIM-TIB
+        * S - Sparse
+        * J - Join SPT
+        * T - SPT-bit set";
+    }
+  }
+
+  grouping pim-gbl-tib-oil-cmn-info-top {
+    description
+      "Details about all outgoing interfaces of multicast entry.";
+
+    container oil-info-entries {
+      description
+        "Details about all outgoing interfaces of multicast entry.";
+
+      list oil-info-entry {
+        key "outgoing-interface";
+
+        description
+          "Details about outgoing interface for this multicast entry.";
+
+        uses pim-gbl-tib-oil-cmn-info-state;
+      }
+    }
+  }
+
+  grouping pim-gbl-tib-ip-src-entry-rpf-info-top {
+    description
+      "Details about RPF-neighbor for a particular multicast source present in PIM protocol TIB.";
+
+    container rpf-info {
+      description
+        "Details about RPF-neighbor for a particular multicast source present in PIM protocol TIB.";
+
+      container state {
+        description "Operational state information.";
+
+        leaf rpf-neighbor-address {
+          type oc-inet:ip-address;
+          description
+            "IP Unicast address of the RPF-neighbor for the multicast source-address.";
+        }
+
+        leaf metric {
+          type uint32;
+          description
+            "Distance metric of the route for this RPF-neighbor";
+        }
+
+        leaf preference {
+          type uint32;
+          description
+            "Preference of the route for this RPF-neighbor";
+        }
+      }
+    }
+  }
+
+  grouping pim-gbl-tib-ip-src-entry-cmn-info-top {
+    description
+      "Common IP Operational state information of particular multicast source present in PIM TIB.";
+
+    uses pim-gbl-tib-oil-cmn-info-top;
+    uses pim-gbl-tib-ip-src-entry-rpf-info-top;
+  }
+
+  grouping pim-gbl-ip-entry-key-refs-state {
+    description
+      "Common PIM TIB IP multicast group entries keys refereneces.";
+
+    leaf group-address {
+      type leafref {
+        path "../state/group-address";
+      }
+      description
+        "Reference to the group-address key";
+    }
+  }
+
+  grouping pim-gbl-tib-src-entry-key-refs-state {
+    description
+      "Common PIM TIB IP multicast group's source entries keys refereneces.";
+
+    leaf source-address {
+      type leafref {
+        path "../state/source-address";
+      }
+      description
+        "Reference to the source-address key";
+    }
+
+    leaf route-type {
+      type leafref {
+        path "../state/route-type";
+      }
+      description
+        "Reference to the route-type key";
+    }
+  }
+
+  grouping pim-gbl-ip-src-entries-top {
+    description
+      "Details about all multicast-source information of this particular multicast group-address entry.";
+
+    container src-entries {
+      description
+        "Details about all multicast-source information of this particular multicast group-address entry.";
+
+      list src-entry {
+        key "source-address route-type";
+
+        description
+          "List of different source-address entries within this particular multicast group-address entry.";
+
+        uses pim-gbl-tib-src-entry-key-refs-state;
+
+        container state {
+          description
+            "Operational state information of particular multicast source present in PIM TIB.";
+
+          leaf source-address {
+            type oc-inet:ip-address;
+            description
+              "IP Unicast source-address of the device, which originates this particular multicast group traffic.
+              This address can be 0.0.0.0 in case of *,G multicast group entry.";
+          }
+
+          leaf route-type {
+            type oc-pim-types:route-type;
+            description
+              "Route-type of multicast entry.";
+          }
+
+          uses pim-gbl-tib-src-entry-cmn-info-state;
+        }
+
+        uses pim-gbl-tib-ip-src-entry-cmn-info-top;
+      }
+    }
+  }
+
+  grouping pim-gbl-ipv4-tib-state {
+    description
+      "Operational state IPv4 information of PIM TIB.";
+
+    container ipv4-entries {
+      description
+        "Details about all IPv4 multicast entries present in PIM protocol TIB.";
+
+      list ipv4-entry {
+        key "group-address";
+
+        description
+          "List of the IPv4 multicast entries present in PIM protocol TIB.";
+
+        uses pim-gbl-ip-entry-key-refs-state;
+
+        container state {
+          description "Operational state information.";
+
+          leaf group-address {
+            type oc-inet:ipv4-address;
+            description
+              "IPv4 Multicast group-address";
+          }
+        }
+
+        uses pim-gbl-ip-src-entries-top;
+      }
+    }
+  }
+
+  grouping pim-gbl-tib-state {
+    description
+      "Operational state information of PIM TIB.";
+
+    container tib {
+      config false;
+      description
+        "PIM Protocol TIB state information.";
+
+      uses pim-gbl-ipv4-tib-state;
+    }
+  }
+
+  grouping pim-global-cmn {
+    description
+      "Top level grouping for global PIM configuration.";
+
+    container config {
+      description
+        "Configuration for global PIM parameters";
+      uses pim-global-config;
+    }
+
+    container state {
+      config false;
+      description
+        "Global PIM state.";
+      uses pim-global-config;
+      uses pim-global-state;
+    }
+    
+    container ssm {
+      description
+        "Source specific multicast (SSM).";
+
+      container config {
+        description
+          "Configuration for source specific multicast (SSM).";
+        uses pim-global-ssm-config;
+      }
+      container state {
+        config false;
+        description
+          "State for source specific multicast (SSM).";
+        uses pim-global-ssm-config;
+      }
+    }
+
+    container rendezvous-points {
+      description
+        "Defines rendezvous points for sparse mode multicast.";
+
+      list rendezvous-point {
+        key "address";
+        description
+          "Defines a rendezvous point (RP) for sparse mode multicast.";
+
+        leaf address {
+          type leafref {
+            path "../config/address";
+          }
+          description
+            "IP address of rendezvous point.";
+        }
+
+        container config {
+          description
+            "Rendezvous point configuration.";
+          uses pim-global-rp-addresses-config;
+        }
+        container state {
+          config false;
+          description
+            "Rendezvous point state.";
+          uses pim-global-rp-addresses-config;
+        }
+      }
+    }
+
+    container spt-switchover {
+       description   "SPT-Switchover.";
+       container config {
+         description
+           "SPT switchover configuration.";
+           uses pim-global-spt-switchover-config;
+       }
+       container state {
+         config false;
+         description
+            "SPT switchover state.";
+          uses pim-global-spt-switchover-config;
+        }
+    }
+
+    uses pim-sources-joined-top;
+  }
+
+  grouping pim-global-top {
+    description
+      "Top level grouping for global PIM configuration.";
+
+    uses pim-global-cmn;
+    uses pim-gbl-tib-state;
+  }
+
+  grouping pim-top {
+    description
+      "Top-level grouping for PIM.";
+
+    container pim {
+      description
+        "Top-level PIM configuration and operational state.";
+
+      container global {
+        description
+          "This container defines global PIM configuration and state
+          information.";
+        uses pim-global-top;
+      }
+
+      uses pim-interfaces-top;
+    }
+  }
+
+  // data definition statements
+}

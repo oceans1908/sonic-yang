@@ -1,0 +1,77 @@
+module sonic-ospfv3-clear {
+   namespace "http://github.com/Azure/sonic-ospfv3-clear";
+    prefix sospfv3clear;
+    yang-version 1.1;
+
+    import sonic-vrf {
+        prefix "sonic-vrf";
+    }
+
+    import sonic-ospf-common {
+        prefix "sonic-ospf-cmn";
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for OSPFv3 clear options";
+
+    revision 2024-04-02 {
+        description
+            "Initial revision.";
+    }
+
+   rpc clear-ospfv3 {
+
+    description "RPC for clearing OSPFv3 sessions. Input can be :
+        1. All OSPFv3 sessions in an Interface in default VRF
+        2. All OSPFv3 sessions in an Interface within a VRF
+        3. All OSPFv3 sessions in default VRF
+        4. All OSPFv3 sessions in a VRF ";
+
+    input {
+        leaf vrf-name {
+            type union {
+                type string {
+                    pattern "default";
+                }
+                type leafref {
+                    path "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:vrf_name";
+                }
+            }
+            description
+                "OSPFv3 VRF name.";
+        }
+
+        leaf interface {
+            type sonic-ospf-cmn:ospf-interface;
+            description
+                "Interface name on which the OSPFv3 sessions have to be cleared";
+        }
+
+        leaf interface-all {
+            type boolean; 
+            description
+                "OSPFv3 sessions have to be cleared for all interfaces";
+        }
+
+        leaf process {
+            type boolean; 
+            description
+                "OSPFv3 sessions have to be cleared for process";
+        }
+    }
+
+    output {
+        leaf status {
+            type string;
+            description
+                "Success / failure in clearing OSPFv3 operation execution request.";
+        }
+    }
+  }
+}

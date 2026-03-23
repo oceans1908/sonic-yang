@@ -1,0 +1,465 @@
+module openconfig-if-poe-ext {
+
+  yang-version "1.1";
+
+  namespace "http://openconfig.net/yang/if-poe-ext/extension";
+
+  prefix "oc-if-poe-ext";
+
+  import openconfig-if-ethernet { prefix oc-eth; }
+  import openconfig-interfaces { prefix oc-if; }
+  import openconfig-if-poe { prefix oc-poe; }
+  import openconfig-extensions { prefix oc-ext; }
+
+  organization "SONiC";
+
+  contact "SONiC";
+
+  description
+    "This module defines extended configuration and state data for
+    Power over Ethernet (PoE) model";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2021-05-21" {
+    description
+      "Initial revision";
+    reference "0.1.0";
+  }
+
+  grouping if-poe-ext-poe-ethernet-config {
+    description
+      "PoE ethernet config grouping";
+
+    leaf priority {
+      type enumeration {
+        enum INVALID {
+          description "PoE Priority INVALID";
+        }
+        enum LOW {
+          description "PoE Priority LOW";
+        }
+        enum MEDIUM {
+          description "PoE Priority MEDIUM";
+        }
+        enum HIGH {
+          description "PoE Priority HIGH";
+        }
+        enum CRITICAL {
+          description "PoE Priority CRITICAL";
+        }
+      }
+      description "This object controls the priority of the port from the point
+         of view of a power management algorithm.  The priority that
+         is set by this variable could be used by a control mechanism
+         that prevents over current situations by disconnecting first
+         ports with lower power priority.  Ports that connect devices
+         critical to the operation of the network - like the E911
+         telephones ports - should be set to higher priority.";
+    }
+
+    leaf detection-mode {
+      type enumeration {
+        enum NONE {
+          description "Detection Mode NONE";
+        }
+        enum LEGACY {
+          description "Detection Mode LEGACY";
+        }
+        enum FOUR_PT_DOT3AF {
+          description "Detection Mode 4PT_DOT3AF";
+        }
+        enum FOUR_PT_DOT3AF_LEG {
+          description "Detection Mode 4PT_DOT3AF_LEG";
+        }
+        enum TWO_PT_DOT3AF {
+          description "Detection Mode 2PT_DOT3AF";
+        }
+        enum TWO_PT_DOT3AF_LEG {
+          description "Detection Mode 2PT_DOT3AF_LEG";
+        }
+        enum DOT3BT {
+          description "Detection Mode DOT3BT";
+        }
+        enum DOT3BT_LEG {
+          description "Detection Mode DOT3BT_LEG";
+        }
+        enum INVALID {
+          description "Detection Mode INVALID";
+        }
+      }
+      description "Describes PD detection mechanism performed by the PSE port.
+         A value of none(0) means no detection is done.
+         A value of dot3btonly(4) means that IEEE 802.3bt detection scheme is used.
+         A value of dot3btandlegacy(5) means that IEEE 802.3bt detection scheme
+         is used and when that fails to detect a connected PD, legacity capacitive detection
+         is used.
+         A value of legacy(1) means only legacy capacitive detection scheme is
+         used.
+         A value of 4ptdot3afonly(2) means that IEEE 802.3af 4point detection scheme
+         is used.
+         A value of 4ptdot3afandlegacy(3) means that IEEE 802.3af 4point detection scheme
+         is used and when that fails to detect a connected PD, legacity capacitive detection
+         is used.
+         A value of 2ptdot3afonly(4) means that IEEE 802.3af 2point detection scheme
+         is used.
+         A value of 2ptdot3afandlegacy(5)means that IEEE 802.3af 2point detection scheme
+         is used and when that fails to detect a connected PD, legacity capacitive detection
+         is used.
+         A value of dot3btonly(6) means that IEEE 802.3bt detection scheme is used.
+         A value of dot3btandlegacy(7) means that IEEE 802.3bt detection scheme
+         is used and when that fails to detect a connected PD, legacity capacitive detection
+         is used.
+         A value of invalid(8) means invalid detection.
+         The value 'none' can not be forcibly set by the administrator.";
+    }
+
+    leaf powerup-mode {
+      type enumeration {
+        enum INVALID {
+          description "Powerup Mode INVALID";
+        }
+        enum IEEE_8023AF {
+          description "Powerup Mode IEEE_8023AF";
+        }
+        enum HIGH_INRUSH {
+          description "Powerup Mode HIGH_INRUSH";
+        }
+        enum PRE_8023AT {
+          description "Powerup Mode PRE_8023AT";
+        }
+        enum IEEE_8023AT {
+          description "Powerup Mode IEEE_8023AT";
+        }
+        enum PRE_8023BT {
+          description "Powerup Mode PRE_8023BT";
+        }
+        enum IEEE_8023BT_TYPE3 {
+          description "Powerup Mode IEEE_8023BT_TYPE3";
+        }
+        enum IEEE_8023BT_TYPE4 {
+          description "Powerup Mode IEEE_8023BT_TYPE4";
+        }
+        enum IEEE_8023BT {
+          description "Powerup Mode IEEE_8023BT";
+        }
+      }
+      description "The mode configured for a PSE port to deliver high power. 'disable' means that
+              a port is powered in the IEEE 802.3af mode. 'legacy' means that a port is
+              powered using high-inrush current. 'pre-dot3at' means that a port is powered
+              in the IEEE 802.3af mode initially, switched to the high-power IEEE 802.3at mode
+              before 75msec. 'dot3at' means that a port is powered in the IEEE 802.3at mode.
+              'dot3bt', type3 and 'pre-dot3bt' are to support 802.3bt interfaces.";
+    }
+
+    leaf power-pairs {
+      type enumeration {
+        enum SIGNAL {
+          description "signal pairs only are in use";
+        }
+        enum SPARE {
+          description "spare pairs only are in use";
+        }
+        enum INVALID {
+          description "invalid pairs";
+        }
+      }
+      description "Describes or controls the pairs in use.  If the value of
+         pethPsePortPowerPairsControl is true, this object is
+         writable.
+         A value of invalid(0) means that the invlaid power pairs
+         A value of signal(1) means that the signal pairs
+         only are in use.
+         A value of spare(2) means that the spare pairs
+         only are in use.";
+    }
+
+    leaf power-limit-type {
+      type enumeration {
+        enum NONE {
+          description "Power limit type is set to none";
+        }
+        enum CLASS_BASED {
+          description "Class based  means that the port power limit is as per
+         the dot3af class of the PD attached";
+        }
+        enum USER {
+          description "user means that the port power limit is equal to the value
+         specified by power-limit";
+        }
+        enum INVALID {
+          description "Power limit type is set to invalid";
+        }
+      }
+      description "Describes or controls the maximum power that a port can deliver.
+         A value of class based(1) means that the port power limit is as per
+         the dot3af class of the PD attached.
+         A value of user(2) means that the port power limit is equal to the value
+         specified by agentPethPowerLimit";
+    }
+
+    leaf power-limit {
+      type uint32 {
+        range "0..99900";
+      }
+      description "The configured maximum power this port can provide to an
+             attached device measured in Milliwatts.";
+    }
+
+    leaf high-power-mode {
+      type boolean;
+        description
+          "Enable or disable high power mode for a PSE port
+          to deliver high power.";
+    }
+
+    leaf disconnect-type {
+      type enumeration {
+        enum NONE {
+          description "Disconnect Type NONE";
+        }
+        enum AC {
+          description "Disconnect Type AC";
+        }
+        enum DC {
+          description "Disconnect Type DC";
+        }
+      }
+      description "Disconnect Type";
+    }
+
+    leaf four-pair-mode {
+      type boolean;
+      description "Enable Four Pair Mode";
+    }
+
+    leaf use-spare-pair {
+      type boolean;
+      description "Enable Spare Pair";
+    }
+
+    leaf power-classification-mode {
+      type enumeration {
+        enum NORMAL {
+          description "Power Classification NORMAL";
+        }
+        enum BYPASS {
+          description "Power Classification BYPASS";
+        }
+        enum INVALID {
+          description "Power Classification INVALID";
+        }
+      }
+      description "Power Classification TYPE";
+    }
+  }
+
+  grouping if-poe-ext-poe-ethernet-state-counters {
+    description
+    "PoE ethernet state counters";
+
+    leaf overload-counter {
+      type uint32;
+      description "This counter is incremented when the pd connected to the pse port had tried
+         to draw more power than permissible by the hardware.";
+    }
+
+    leaf short-counter {
+      type uint32;
+      description "This counter is incremented when the pse port has detected a short circuit
+         condition.";
+    }
+
+    leaf power-denied-counter {
+      type uint32;
+      description "This counter is incremented when the pse port has been denied power
+         because of shortage of power or due to administrative action.";
+    }
+
+    leaf absent-counter {
+      type uint32;
+      description "This counter is incremented when the pse port has detected and absence
+         of main power supply.";
+    }
+
+    leaf invalid-signature-counter {
+      type uint32;
+      description "This counter is incremented when the PSE state diagram
+         enters the state SIGNATURE_INVALID.";
+    }
+  }
+
+  grouping if-poe-ext-poe-ethernet-state-diagnostics {
+    description
+    "PoE ethernet state diagnostics";
+
+    leaf temperature {
+      type decimal64 {
+        fraction-digits 8;
+      }
+      units celsius;
+      description "The temperature measured at this port of the PoE Controller. It is
+              measured in degree celcius.";
+    }
+  }
+
+  grouping if-poe-ext-poe-ethernet-state {
+    description
+      "PoE ethernet state grouping";
+
+    leaf power-class-requested {
+      type uint32 {
+        range "0..8";
+      }
+      description "Power Class requested by the PD";
+    }
+
+    leaf status {
+      type enumeration {
+        enum DISABLED {
+          description "A value of disabled indicates that the PSE State diagram
+         is in the state DISABLED";
+        }
+        enum SEARCHING {
+          description "A value of searching- indicates the PSE State diagram is
+         in a state other than those listed above.";
+        }
+        enum DELIVERING_POWER {
+          description "A value of deliveringPower - indicates that the PSE State
+         diagram is in the state POWER_ON for a duration greater than
+         tlim max (see IEEE Std 802.3af Table 33-5 tlim).";
+        }
+        enum TEST {
+          description "A value of test - indicates that the PSE State diagram is
+         in the state TEST_MODE.";
+        }
+        enum FAULT {
+          description "A value of fault - indicates that the PSE State diagram is
+         in the state TEST_ERROR.";
+        }
+        enum OTHER_FAULT {
+          description "A value of otherFault - indicates that the PSE State
+         diagram is in the state IDLE due to the variable
+         error_conditions.";
+        }
+        enum REQUESTING_POWER {
+          description "A value of REQUESTING_POWER - indicates that the PSE State diagram is
+         in the state REQUESTING_POWER.";
+        }
+        enum OVERLOAD {
+          description "A value of OVERLOAD - indicates that the PSE State diagram is
+         in the state OVERLOAD.";
+        }
+      }
+      description "Describes the operational status of the port PD detection.";
+    }
+
+    leaf output-current {
+      type uint32;
+      description "The current this port is supplying to an attached device measured
+             in Milliamps.";
+    }
+
+    leaf output-voltage {
+      type decimal64 { fraction-digits 8; }
+      description "The voltage this port is supplying to an attached device measured
+             in Volts.";
+    }
+
+    leaf fault-code {
+      type enumeration {
+        enum NO_ERROR {
+          description "A value of no error specifies that the pse port is not in any error state.";
+        }
+        enum OVLO {
+          description "A value of OVLO as fault status indicates that the port has detected over voltage lockout.";
+        }
+        enum MPS_ABSENT {
+          description "A value of mpsAbsent specifies that the pse port has detected and absence
+         of main power supply.";
+        }
+        enum SHORT {
+          description "A value of short specifies that the pse port has detected a short circuit
+         condition.";
+        }
+        enum OVERLOAD {
+          description "A value of overload specifies that the pd connected to the pse port had tried
+         to draw more power than permissible by the hardware";
+        }
+        enum POWER_DENIED {
+          description "A value of powerDenied specifies that the pse port has been denied power
+         because of shortage of power or due to administrative action.";
+        }
+        enum THERMAL_SHUTDOWN {
+          description "A value of thermalShutdown specifies that the thermal threshold has exceeded
+         for the pse port.";
+        }
+        enum STARTUP_FAILURE {
+          description "A value of startupFailure as fault status indicates that the port does not have
+         sufficient voltage.";
+        }
+        enum UVLO {
+          description "A value of UVLO as fault status indicates that the port has detected under voltage lockout.";
+        }
+        enum HW_PIN_DISABLE {
+          description "A value of hwPinDisable as fault status indicates that disable all ports pin is active.";
+        }
+        enum PORT_UNDEFINED {
+          description "A value of portUndefined as fault status indicates that port is not mapped to physical port,
+         port is in unknown state.";
+        }
+        enum INTERNAL_HW_FAULT {
+          description "A value of internalHwFault as fault status indicates that port does not respond,
+         communication failure.";
+        }
+        enum USER_SETTING {
+          description "A value of userSetting indicates that user command to set the port off.";
+        }
+        enum NON_STANDARD_PD {
+          description "A value of nonStandardPd indicates that non-802.3AF/AT powered device connected.";
+        }
+        enum UNDERLOAD {
+          description "A value of underload specifies that the pd connected to the pse port had tried
+         to draw less power than permissible by the hardware.";
+        }
+        enum PWR_BUDGET_EXCEEDED {
+          description "A value of pwrBudgetExceeded indicates that power management function shuts down
+         the port due to lack of power.";
+        }
+        enum OOR_CAPACITOR_VALUE {
+          description "A value of oorCapacitorValue indicates that port failed due to out-of-range
+         capacitor value.";
+        }
+        enum CLASS_ERROR {
+          description "A value of classError as fault status indicates the illegal class.";
+        }
+      }
+      description "Describes the error description when the pse port is in fault status.";
+    }
+
+    container diagnostics {
+      description "PoE interface diagnostics";
+      uses if-poe-ext-poe-ethernet-state-diagnostics;
+    }
+
+    container counters {
+      description "PoE interface counters";
+      uses if-poe-ext-poe-ethernet-state-counters;
+    }
+  }
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet/oc-poe:poe/oc-poe:config" {
+    description
+    "Adds configuration data for Ethernet PoE model.";
+    uses if-poe-ext-poe-ethernet-config;
+  }
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet/oc-poe:poe/oc-poe:state" {
+    description
+    "Adds state data for Ethernet PoE model.";
+    uses if-poe-ext-poe-ethernet-config;
+    uses if-poe-ext-poe-ethernet-state;
+  }
+
+}
+

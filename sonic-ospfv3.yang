@@ -1,0 +1,651 @@
+module sonic-ospfv3 {
+  namespace "http://github.com/Azure/sonic-ospfv3";
+  prefix sn-ospfv3;
+  yang-version 1.1;
+
+  import ietf-yang-types { 
+    prefix "ietf-yang"; 
+  }
+
+  import ietf-inet-types { 
+    prefix "ietf-inet"; 
+  }
+
+  import sonic-ospf-common { 
+    prefix "sonic-ospf-cmn"; 
+  }
+
+  import sonic-routing-policy-sets {
+      prefix "sonic-rpolicy";
+  }
+
+  import sonic-acl {
+      prefix sonic-acl;
+  }
+
+  import sonic-vrf {
+      prefix "sonic-vrf";
+  }
+
+  import sonic-extension {
+      prefix sonic-ext;
+  }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+     "SONIC ospfv3 Global YANG";
+
+  revision "2025-01-30" {
+    description
+      "Added Area policy range metric and not-advertise validation";
+  }
+
+  revision 2024-03-21 {
+    description
+      "Added Yang definition for OSPFv3 features.";
+  }
+
+  container sonic-ospfv3 { 
+
+    container OSPFV3_ROUTER {
+      description
+        "OSPFv3 router global configuration Table.";
+
+      list OSPFV3_ROUTER_LIST {
+        key "vrf_name";
+
+        leaf vrf_name {
+          type union {
+            type string {
+              pattern "default";
+            }
+            type leafref {
+              path "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:vrf_name";
+            }
+          }          
+          description
+            "OSPF router VRF name";
+        }
+ 
+        uses ospfv3_router_config;
+
+      } //OSPFV3_ROUTER_LIST
+    } //OSPFV3_ROUTER
+
+    container OSPFV3_ROUTER_AREA {
+      description
+        "OSPFv3 Area configuration table.";
+
+      list OSPFV3_ROUTER_AREA_LIST {
+
+        key "vrf_name area-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV3_ROUTER/OSPFV3_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Network Address Area Id";
+        }
+
+        leaf enable {
+          type boolean;
+          description
+            "Enable/Disable area";
+        }
+
+        leaf nssa {
+          type boolean;
+          sonic-ext:custom-validation ValidateOspfv3CheckStub;
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          sonic-ext:custom-validation ValidateOspfv3CheckNssaRange;
+          description
+             "OSPF area NSSA configuration.";
+        }
+
+        leaf nssa-no-summary {
+          type boolean;
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          must "not(current()/../nssa-default-route-originate)" {
+             error-message "Configuring NSSA no-summary and default-route-originate in the same area is not allowed.";
+          }
+          description
+             "OSPF area NSSA no summary configuration.";
+        }
+
+        leaf nssa-default-route-originate {
+          type boolean;
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          must "not(current()/../nssa-no-summary)" {
+             error-message "Configuring NSSA no-summary and default-route-originate in the same area is not allowed.";
+          }
+          description
+            "Originate default route into NSSA area.";
+        }
+
+        leaf nssa-default-route-metric-type {
+          type sonic-ospf-cmn:ospf-metric-type;
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          description
+            "Metric type for route distribution";
+        }
+
+        leaf nssa-default-route-metric {
+          type uint32 {
+            range 0..16777215;
+          }
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          description
+            "Metric value for the prefix";
+        }
+
+        uses ospfv3_router_area_config;     
+
+      } //OSPFV3_ROUTER_AREA_LIST
+    } //OSPFV3_ROUTER_AREA    
+
+    container OSPFV3_ROUTER_AREA_NSSA_ADDRESS_RANGE {
+      description
+        "OSPFv3 inter area NSSA address range configuartion
+         Table.";
+
+      list OSPFV3_ROUTER_AREA_NSSA_ADDRESS_RANGE_LIST {
+
+        key "vrf_name area-id prefix";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV3_ROUTER/OSPFV3_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          sonic-ext:custom-validation ValidateOspfv3NssaAreaBackbone;
+          description
+             "Policy address range Area Id";
+        }
+
+        leaf prefix {
+          type ietf-inet:ipv6-prefix;
+          description
+            "Address prefix for the OSPF address";
+        }       
+        uses ospfv3_router_area_nssa_address_config;
+      } //OSPFV3_ROUTER_AREA_NSSA_ADDRESS_RANGE_LIST
+    } //OSPFV3_ROUTER_AREA_NSSA_ADDRESS_RANGE
+
+    container OSPFV3_ROUTER_AREA_POLICY_ADDRESS_RANGE {
+      description
+        "OSPFv3 inter area policy address range configuartion
+         Table.";
+
+      list OSPFV3_ROUTER_AREA_POLICY_ADDRESS_RANGE_LIST {
+
+        key "vrf_name area-id prefix";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV3_ROUTER/OSPFV3_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Policy address range Area Id";
+        }
+
+        uses ospfv3_router_area_policy_address_config;
+
+        leaf prefix {
+          type ietf-inet:ipv6-prefix;
+          sonic-ext:custom-validation ValidateOspfv3AreaRange;
+          description
+            "Address prefix for the OSPF address";
+        }       
+
+      } //OSPFV3_ROUTER_AREA_POLICY_ADDRESS_RANGE_LIST
+    } //OSPFV3_ROUTER_AREA_POLICY_ADDRESS_RANGE
+
+
+    container OSPFV3_ROUTER_DISTRIBUTE_ROUTE {
+      description
+        "OSPFv3 policy route distribution Table.";
+
+      list OSPFV3_ROUTER_DISTRIBUTE_ROUTE_LIST {
+
+        key "vrf_name protocol direction";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV3_ROUTER/OSPFV3_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf protocol {
+          type sonic-ospf-cmn:ospf-policy-protocol;
+          description
+            "Distribute routes to or from protocol";
+        }
+
+        leaf direction {
+          type sonic-ospf-cmn:ospf-policy-direction;
+          description
+            "Ditribute type or direction IMPORT or EXPORT";
+        }
+
+        uses sonic-ospf-cmn:ospf_router_distribution_list_config;        
+      } //OSPFV3_ROUTER_DISTRIBUTE_ROUTE_LIST
+    } //OSPFV3_ROUTER_DISTRIBUTE_ROUTE
+
+    container OSPFV3_ROUTER_GR_NEIGHBOUR_HELPER {
+      description
+        "OSPFv3 Graceful restart helper neighbor configuration table.";
+
+      list OSPFV3_ROUTER_GR_NEIGHBOUR_HELPER_LIST {
+
+        key "vrf_name neighbour-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV3_ROUTER/OSPFV3_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf neighbour-id {
+          type ietf-yang:dotted-quad;
+          description
+            "The Neighbor ID of the remote OSPFv3 neighbor.";
+          sonic-ext:custom-validation ValidateOspfv3NeighborIp;
+        }
+      } //OSPFV3_ROUTER_GR_NEIGHBOUR_HELPER_LIST
+    }//OSPFV3_ROUTER_GR_NEIGHBOUR_HELPER
+
+    container OSPFV3_INTERFACE {
+       description
+         "OSPFv3 Interface Table.";
+
+       list OSPFV3_INTERFACE_LIST {
+
+         key "name";
+
+         leaf name {
+           type sonic-ospf-cmn:ospf-interface;
+           description
+             "OSPF interface";
+         }
+
+         uses ospfv3_interface_config;
+
+       } //OSPFV3_INTERFACE_LIST
+     } //OSPFV3_INTERFACE
+
+  } //sonic-ospfv3
+
+  grouping ospfv3_router_config {
+    leaf router-id {
+      type ietf-yang:dotted-quad;
+      description
+        "OSPF router Id";
+    }
+  
+    leaf enable {
+      type boolean;
+      description
+        "OSPFv3 router is enabled in this VRF";
+    }
+
+    leaf auto-cost-reference-bandwidth {
+      type uint32 {
+        range "1..4294967";
+      }
+      description
+        "Refrence Bandwidth for auto calculating OSPFv3 interface cost.";
+    }
+
+    leaf log-adjacency-changes {
+      type sonic-ospf-cmn:ospf-log-type;
+      description
+        "OSPFv3 adjacency event logging";
+        default LOG_NONE;
+    }
+
+    leaf write-multiplier {
+      type uint8 {
+        range "0..100";
+      }
+      description
+        "OSPF write multiplier";
+    }
+
+    leaf spf-initial-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF initial Delay";
+    }
+
+    leaf spf-maximum-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF maximum Delay";
+    }
+
+    leaf spf-throttle-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF throttle Delay";
+    }
+
+    leaf lsa-min-arrival-timer {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "LSA minimum arrival timer";
+    }
+
+
+    leaf distance-all {
+      type sonic-ospf-cmn:ospf-distance;
+      description
+        "Distribute distance for all routes ";
+    }
+
+    leaf distance-intra-area {
+      type sonic-ospf-cmn:ospf-distance;
+      description
+        "Distribute distance for intra area routes";
+    }
+
+    leaf distance-inter-area {
+      type sonic-ospf-cmn:ospf-distance;
+      description
+        "Distribute distance for inter area routes";
+    }
+
+    leaf distance-external {
+      type sonic-ospf-cmn:ospf-distance;
+      description
+        "Distribute distance for external routes";
+    }
+
+    leaf gr-enabled {
+      type boolean;
+      description
+        "When the value of this leaf is set to true, graceful restart
+        is enabled on the local system. In this case, the system will
+        use Grace-LSAs to signal that it is restarting to its
+        neighbors.";
+    }
+
+    leaf gr-grace-period {
+      type uint32 {
+        range "1..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+        
+    leaf gr-helper-only {
+      type boolean;
+      description
+        "Operate graceful-restart only in helper mode. When this leaf
+        is set to true, the local system does not use Grace-LSAs to
+        indicate that it is restarting, but will accept Grace-LSAs
+        from remote systems, and suppress withdrawl of adjacencies
+        of the system for the grace period specified";
+    }
+
+    leaf gr-helper-strict-lsa-checking {
+      type boolean;
+      description
+        "Enable or disable Strict LSA checking";
+    }
+
+    leaf gr-helper-planned-only {
+      type boolean;
+      description
+        "Enable or disable Planned only graceful restart";
+    }
+
+    leaf gr-helper-supported-grace-time {
+      type uint32 {
+        range "10..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+
+    leaf maximum-paths {
+      type uint16 {
+        range "1..256";
+      }
+      description
+        "Max no of multiple paths for ECMP support.";
+    }    
+  }
+
+  grouping ospfv3_router_area_config {     
+
+    leaf stub {
+      type boolean;
+      description
+        "OSPFv3 stub configuration.";
+      sonic-ext:custom-validation ValidateOspfStubAreaBackbone;
+      sonic-ext:custom-validation ValidateOspfv3CheckNssa;
+    }
+
+    leaf stub-no-summary {
+      type boolean;
+      description
+        "OSPFv3 stub no summary.";
+      sonic-ext:custom-validation ValidateOspfStubAreaSummaryBackbone;
+    }   
+
+    leaf filter-list-in {
+      type leafref {
+        path "/sonic-rpolicy:sonic-routing-policy-sets/sonic-rpolicy:PREFIX_SET" +
+             "/sonic-rpolicy:PREFIX_SET_LIST/sonic-rpolicy:name";
+      }
+      description
+        "OSPF Area policy import filter list name.";
+    }
+
+    leaf filter-list-out {
+      type leafref {
+        path "/sonic-rpolicy:sonic-routing-policy-sets/sonic-rpolicy:PREFIX_SET" +
+             "/sonic-rpolicy:PREFIX_SET_LIST/sonic-rpolicy:name";
+      }
+      description
+        "OSPF Area policy export filter list name.";
+    }
+  }
+
+  grouping ospfv3_router_area_policy_address_config {   
+
+        leaf advertise {
+          type boolean;
+          description
+            "Advertise or no-adverise configuration for prefix";
+          default true;
+        }
+
+        leaf metric {
+          must "(../advertise = 'true')" {
+              error-message "metric/cost can be set only when advertise is true.";
+          }
+          type uint32 {
+            range 0..16777215;
+          }
+          description
+            "Metric value for the prefix";
+        }
+
+        leaf enable {
+          type boolean;
+          description
+            "Enable/Disable area address range";
+        }
+  }
+
+  grouping ospfv3_router_area_nssa_address_config {
+
+        leaf advertise {
+          type boolean;
+          description
+            "Advertise or no-adverise configuration for prefix";
+          default true;
+        }
+
+        leaf cost {
+          must "(../advertise = 'true')" {
+              error-message "metric/cost can be set only when advertise is true.";
+          }
+          type uint32 {
+            range 0..16777215;
+          }
+          description
+            "Metric value for the prefix";
+        }
+  }
+
+  grouping ospfv3_interface_config {
+
+    leaf area-id {
+      type sonic-ospf-cmn:ospf-area-identifier;
+      description
+        "An identifier for the OSPFv3 area - described as either a
+        32-bit unsigned integer, or a dotted-quad";
+    }
+
+    leaf enable {
+      type boolean;
+      description
+        "Interface OSPFv3 is enabled.";
+    }
+
+    leaf network-type {
+      type sonic-ospf-cmn:ospf-network-type;
+      description
+        "Network type for the interface";
+    }
+
+    leaf metric {
+      type uint32 {
+        range "1..65535";
+      }
+      description
+        "The metric for the interface";
+    }
+
+    leaf priority {
+      type uint8;
+      description
+        "The local system's priority to become the designated router";
+    }
+
+    leaf mtu-ignore {
+      type boolean;
+      description
+        "OSPF interface MTU ignore configuration.";
+    }
+
+    leaf bfd-enable {
+      type boolean;
+      description
+        "OSPF interface BFD configuration.";
+    }
+
+    leaf bfd-profile {
+      type string {
+        length "1..64";
+      }
+      description
+        "BFD Profile name";
+    }
+
+    leaf dead-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      sonic-ext:custom-validation ValidateOspfv3CheckHelloInterval;
+      units seconds;
+      description
+        "The number of seconds that the local system should let
+        elapse before declaring a silent router down";
+      default 40;
+    }
+
+    leaf hello-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      sonic-ext:custom-validation ValidateOspfv3CheckDeadInterval;
+      units seconds;
+      description
+        "The number of seconds the local system waits between the
+        transmission of subsequent Hello packets";
+      default 10;
+    }
+
+    leaf retransmission-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      units seconds;
+      description
+        "The number of seconds that the local system waits before
+        retransmitting an unacknowledged LSA.";
+      default 5;
+    }
+
+    leaf transmit-delay {
+      type uint32 {
+        range 1..65535;
+      }
+      units seconds;
+      description
+        "The number of seconds that the local system waits before
+        retransmitting an unacknowledged LSA.";
+    }
+
+    leaf passive {
+      type boolean;
+      description
+        "Passive mode enbaled/disabled";
+    }
+
+    leaf advertise-prefix-list {
+      type string;
+      description
+        "Advertise Prefix list for interface";
+    }
+  }
+}
+

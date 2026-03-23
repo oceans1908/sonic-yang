@@ -1,0 +1,203 @@
+module sonic-mgmt-interface {
+    namespace "http://github.com/Azure/sonic-mgmt-interface";
+    prefix smgmtint;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+    import sonic-mgmt-vrf {
+        prefix mvrf;
+    }
+
+    import sonic-mgmt-port {
+        prefix mgmtprt;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC MANAGEMENT INTERFACE";
+
+    revision 2024-10-23 {
+        description
+            "Add validation for secondary IP.";
+    }
+
+    revision 2024-10-17 {
+        description
+            "Add validation for IP prefix attribute.";
+    }
+
+    revision 2023-03-07 {
+        description
+            "Add origin for MGMT_INTF_TABLE.";
+    }
+
+    revision 2021-02-17 {
+        description
+            "Add validation for default gateway IP.";
+    }
+
+    revision 2019-11-13 {
+        description
+            "Initial revision.";
+    }
+
+    /*
+     * RPC for renewing DHCP lease
+     */
+    rpc renew_dhcp_lease {
+        description "RPC for renew DHCP lease of an interface.";
+        input {
+            leaf portname{
+                type leafref {
+                    path "/mgmtprt:sonic-mgmt-port/mgmtprt:MGMT_PORT/mgmtprt:MGMT_PORT_LIST/mgmtprt:ifname";
+                }
+            }
+        }
+        output {
+            leaf status {
+                type int32;
+                description
+                    "The status of the operation execution request.";
+            }
+            leaf status-detail {
+                type string;
+                description
+                    "The detailed status of the operation execution request.";
+            }
+        }
+    }
+
+    typedef ip_origin_type {
+        type enumeration {
+            enum OTHER;
+            enum STATIC;
+            enum DHCP;
+            enum LINK_LAYER;
+            enum RANDOM;
+        }
+    }
+
+    container sonic-mgmt-interface {
+
+        container MGMT_INTERFACE {
+
+            list MGMT_INTERFACE_LIST {
+
+                key "portname";
+
+                leaf portname{
+                    type leafref {
+                        path "/mgmtprt:sonic-mgmt-port/mgmtprt:MGMT_PORT/mgmtprt:MGMT_PORT_LIST/mgmtprt:ifname";
+                    }
+                }
+
+                leaf vrf-name {
+                    type leafref {
+                        path "/mvrf:sonic-mgmt-vrf/mvrf:MGMT_VRF_CONFIG/mvrf:MGMT_VRF_CONFIG_LIST/mvrf:vrf_global_name";
+                    }
+                }
+
+                leaf ipv6_autoconfig {
+                    type cmn:mode-enable;
+                    default disable;
+                    description
+                        "Enable IPv6 stateless auto-configuration on interface";
+                }
+
+                leaf ipv6_use_link_local_only {
+                    type cmn:mode-enable;
+                    default enable;
+                    description
+                        "Enable IPv6 link local address on interface";
+                }
+
+                leaf ipv6_dad {
+                    type cmn:dad-mode;
+                    default disable;
+                    description
+                           "Enable/Disable IPv6 DAD on the interface";
+                }
+            }
+
+            list MGMT_INTERFACE_IPADDR_LIST {
+
+                key "portname ip_prefix";
+
+                leaf portname{
+                    type leafref {
+                        path "../../MGMT_INTERFACE_LIST/portname";
+                    }
+                }
+
+                leaf ip_prefix {
+                    type inet:ip-prefix;
+                    sonic-ext:custom-validation ValidateMgmtIntfIp;
+                }
+
+                leaf gwaddr {
+                    type inet:ip-address;
+                    sonic-ext:custom-validation ValidateMgmtIntfGwAddr;
+                }
+
+                leaf eui64 {
+                    type cmn:mode-enable;
+                    default disable;
+                    description
+                      "Controls the IPv6 Eui-64 identifier flag.";
+                }
+
+                leaf secondary {
+                    type boolean;
+                    sonic-ext:custom-validation ValidateMgmtIntfSecondaryAddr;
+                }
+            }
+
+        }
+
+        container MGMT_INTF_TABLE {
+            config false;
+
+            list MGMT_INTF_TABLE_LIST {
+                key "ifName";
+
+                leaf ifName {
+                    type string;
+                }
+            }
+
+            list MGMT_INTF_TABLE_IPADDR_LIST {
+                key "ifName ipPrefix";
+
+                leaf ifName {
+                   type string;
+                }
+
+                leaf ipPrefix {
+                    type inet:ip-prefix;
+                }
+                leaf secondary {
+                    type boolean;
+                }
+                leaf origin {
+                    type ip_origin_type;
+                }
+             }
+        }
+
+    }
+
+}

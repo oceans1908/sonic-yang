@@ -1,0 +1,34 @@
+module sonic-config-mgmt-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/cmgmt-annot";
+    prefix "cmgmt-annot"; 
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-config-mgmt { prefix cmgmt; }
+
+    deviation /cmgmt:write-erase {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_write_erase";
+        }
+    }
+
+    deviation /cmgmt:sonic-config-mgmt/cmgmt:DEFAULT_CONFIG_PROFILES/cmgmt:DEFAULT_CONFIG_PROFILES_LIST {
+      deviate add {
+        sonic-ext:db-name "STATE_DB";
+      }
+    }
+
+    deviation /cmgmt:factory-default-profile {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_factory_default_profile";
+        }
+    }
+
+    deviation /cmgmt:default-port-config {
+      deviate add {
+          sonic-ext:rpc-callback "rpc_default_port_config";
+      }
+    }
+}

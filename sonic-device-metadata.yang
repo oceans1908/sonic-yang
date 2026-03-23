@@ -1,0 +1,177 @@
+module sonic-device-metadata {
+	yang-version 1.1;
+	namespace "http://github.com/Azure/sonic-device-metadata";
+	prefix sdm;
+
+	import ietf-yang-types {
+		prefix yang;
+	}
+
+	import sonic-common {
+		prefix scommon;
+	}
+
+	import sonic-bgp-global {
+		prefix sbg;
+	}
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+	organization
+		"SONiC";
+
+	contact
+		"SONiC";
+
+	description
+		"SONIC DEVICE METADATA";
+
+	revision 2023-12-19 {
+		description
+			"Adding auto-breakout enable/disable status attribute";
+	}
+
+        revision 2023-06-19 {
+            description "Add support for resource_stats_polling_interval.";
+        }
+
+	revision 2019-07-02 {
+		description
+			"Initial revision.";
+	}
+
+	container sonic-device-metadata {
+
+		container DEVICE_METADATA {
+
+			list DEVICE_METADATA_LIST {
+				key "name";
+				max-elements 1;
+
+				leaf name{
+					type string;
+				}
+
+				leaf vrf_name {
+					type enumeration {
+						enum default;
+					}
+					default default;
+				}
+
+				leaf hwsku {
+					type string;
+				}
+
+				leaf hostname {
+					type string {
+						pattern "([0-9a-zA-z]|[0-9a-zA-z][0-9a-zA-z-]){0,61}[.a-zA-Z0-9]([.0-9a-zA-z]|[.a-zA-Z0-9][a-zA-Z0-9-]){0,61}[a-zA-Z0-9]" {
+						error-message "Invalid hostname";
+						}
+					}
+				}
+
+                                leaf resource_stats_polling_interval {
+                                        type uint32 {
+                                            range "120..3600";
+                                        }
+                                        default 120;
+                                        units "seconds";
+                                        description "Polling interval to retrieve system resource utilization metrics like CPU, Memory etc., valid range is 120 to 3600 seconds.";
+                                }
+
+				leaf platform {
+					type string;
+				}
+
+				leaf mac {
+					type yang:mac-address;
+				}
+
+				leaf bgp_asn {
+					type leafref {
+						path "/sbg:sonic-bgp-global/sbg:BGP_GLOBALS/sbg:BGP_GLOBALS_LIST[sbg:vrf_name=current()/../vrf_name]/sbg:local_asn";
+					}
+				}
+
+				leaf default_pfcwd_status {
+					type enumeration {
+						enum enable;
+						enum disable;
+					}
+				}
+
+				leaf default_bgp_status {
+					type scommon:admin-status;
+				}
+
+				leaf docker_routing_config_mode {
+					type enumeration {
+						enum unified;
+						enum separated;
+						enum split;
+					}
+				}
+
+				leaf deployment_id {
+					type uint8 {
+						range "0..255";
+					}
+				}
+
+				leaf type {
+					type enumeration {
+						enum ToRRouter;
+						enum LeafRouter;
+					}
+				}
+
+				leaf intf_naming_mode {
+					type enumeration {
+						enum standard;
+						enum standard-ext;
+						enum native;
+					}
+					default "native";
+				}
+
+				leaf default_config_profile {
+					type string;
+					description "Configuration profile being used as the factory default configuration";
+				}
+
+				leaf suppress-fib-pending {
+                    description "Enable suppress pending FIB feature. BGP will wait for route
+                                 FIB installation before announcing routes.";
+                    type enumeration {
+                        enum ENABLED {
+                            description "Enable suppress pending FIB feature"; 
+                        }
+                        enum DISABLED {
+                            description "Disable suppress pending FIB feature"; 
+                        }
+                    }
+                    default DISABLED;
+				}
+
+				leaf auto-breakout {
+					sonic-ext:custom-validation IsAutoBreakoutConfigurable;
+                    description "Enable or disable auto-breakout feature.
+                                 Upon transceiver plugin event breakout will be applied
+                                 based on transceiver capability. Disabled by default.";
+                    type enumeration {
+                        enum ENABLE {
+                            description "Enable auto-breakout feature";
+                        }
+                        enum DISABLE {
+                            description "Disable auto-breakout feature";
+                        }
+                    }
+                    default DISABLE;
+                }
+			}
+		}
+	}
+}

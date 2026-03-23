@@ -1,0 +1,149 @@
+module openconfig-if-debugcounter-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/debugcounter/extension";
+
+  prefix "oc-if-debugcounter";
+
+  // import some basic types
+  import openconfig-yang-types { prefix oc-yang; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-interfaces { prefix "oc-if"; }
+  import openconfig-if-ethernet { prefix oc-eth; }
+
+
+  organization
+      "SONiC";
+
+  contact
+      "SONiC";
+
+  description
+    "This module defines debugcounter statistics.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2021-10-10" {
+    description
+      "Initial public revision";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  grouping if-debugcounter-ext-top {
+    description
+      "Configured debug counter per physical interface";
+
+    container debugcounter-drops {
+      config false;
+      description 
+        "List of debug counters configured";
+
+      list drop-counters {
+        description
+          "List of debugcounters configured";
+
+        container state {
+          description
+            "Port drop counter data.";
+
+          leaf counter0-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter0-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+
+          leaf counter1-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter1-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+
+          leaf counter2-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter2-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+          leaf counter3-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter3-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+          leaf counter4-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter4-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+          leaf counter5-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter5-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+          leaf counter6-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter6-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+          leaf counter7-name {
+            type string;
+              description
+                "Configured drop counter name";
+          }
+          leaf counter7-value {
+            type oc-yang:counter64;
+            description 
+              "Counter value";
+          }
+        }
+      }
+    }
+  }
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet" {
+    description
+    "Adds debugcounter to the ethernet model.";
+
+    uses if-debugcounter-ext-top;
+  }
+}

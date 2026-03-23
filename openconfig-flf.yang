@@ -1,0 +1,73 @@
+module openconfig-flf {
+
+  yang-version "1.1";
+  // namespace
+  namespace "http://openconfig.net/yang/flf/extension";
+  prefix "oc-flf";
+
+  import openconfig-extensions { prefix oc-ext; }
+
+  // meta
+  organization "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module defines configuration and operational state data for various Fast Link Failover attributes .";
+
+
+  revision "2024-11-24" {
+  description
+    "Initial revision";
+    reference "1.0.2";
+  }
+
+  oc-ext:openconfig-version "1.0.2";
+
+  grouping flf-global-config {
+    description
+      "Fast Link Failover global config";
+
+        leaf flf-dscp {
+            type uint8 {
+                range "0..63" {
+                    error-message "dscp value out of range";
+                }
+            }
+            description "FLF DSCP Value for deflection marking";
+        }
+
+        leaf flf-supported {
+            type string;
+            description
+                "Fast Link Failover feature support status check.";
+        }
+  }
+
+  grouping flf-globals-top {
+    description
+       "Fast Link Failover global variables top level container";
+
+  container flf-globals {
+    description
+      "Fast Link Failover global entries variables enclosing container";
+
+        container config {
+          description
+            "The configuration and information table for Fast Link Failover global";
+          uses oc-flf:flf-global-config;
+
+        }
+
+        container state {
+          config false;
+          description
+            "Fast Link Failover global state table information";
+          uses oc-flf:flf-global-config;
+        }
+    }
+  }
+
+  uses flf-globals-top;
+}

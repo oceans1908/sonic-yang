@@ -1,0 +1,242 @@
+module openconfig-if-ethernet-ext2 {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/ethernet-ext2/extension";
+
+  prefix "oc-eth-ext2";
+
+  // import some basic types
+  import openconfig-if-ethernet { prefix oc-eth; }
+  import openconfig-interfaces { prefix oc-if; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-platform-types { prefix oc-platform-types; }
+  import openconfig-yang-types { prefix oc-yang; }
+
+  // meta
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "This module adds extensions to the base ethernet configuration
+    and operational state model to support additional use cases.";
+
+  oc-ext:openconfig-version "0.1.1";
+
+  revision "2020-08-31" {
+    description
+      "Added port-unreliable-los extensions.";
+    reference "0.1.3";
+  }
+
+  revision "2020-08-04" {
+    description
+      "Added port-fec extension.";
+    reference "0.1.2";
+  }
+
+  revision "2020-05-04" {
+    description
+      "Add OpenConfig module metadata extensions.";
+    reference "0.1.1";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  identity INTERFACE_FEC {
+    description
+      "Base type to specify FEC modes that can be configured on the interface.
+       These are FEC modes defined for applying to logical interfaces and their
+       underlying electrical channels.";
+  }
+
+  identity FEC_FC {
+    base INTERFACE_FEC;
+    description
+      "Firecode is used for channels with NRZ modulation and speeds less than 100G.
+      This FEC is designed to comply with the IEEE 802.3, Clause 74.";
+  }
+
+  identity FEC_RS528 {
+    base INTERFACE_FEC;
+    description
+      "RS528 is used for channels with NRZ modulation. This FEC is designed to
+      comply with IEEE 802.3, Clause 91.";
+  }
+
+  identity FEC_RS544 {
+    base INTERFACE_FEC;
+    description
+      "RS544 is used for channels with PAM4 modulation.";
+  }
+
+  identity FEC_RS544_2X_INTERLEAVE {
+    base INTERFACE_FEC;
+    description
+      "RS544-2x-interleave is used for channels with PAM4 modulation.";
+  }
+
+  identity FEC_DISABLED {
+    base INTERFACE_FEC;
+    description
+      "FEC is administratively disabled.";
+  }
+
+  identity UNRELIABLE_LOS_MODE_TYPE {
+    description
+      "Base identity for unreliable LOS modes.";
+  }
+
+  identity UNRELIABLE_LOS_MODE_AUTO {
+    base UNRELIABLE_LOS_MODE_TYPE;
+    description
+      "Enable Unreliable LOS automatic configuration.";
+  }
+
+  identity UNRELIABLE_LOS_MODE_OFF {
+    base UNRELIABLE_LOS_MODE_TYPE;
+    description
+      "Force Unreliable LOS to be disabled.";
+  }
+
+  identity UNRELIABLE_LOS_MODE_ON {
+    base UNRELIABLE_LOS_MODE_TYPE;
+    description
+      "Force Unreliable LOS to be enabled.";
+  }
+
+  identity DIAG_MODE_TYPE {
+    description
+      "Base identity for diag modes.";
+  }
+
+  identity DIAG_MODE_OFF {
+    base DIAG_MODE_TYPE;
+    description
+      "Disables the diag mode, port back to normal state.";
+  }
+
+  identity DIAG_MODE_ON {
+    base DIAG_MODE_TYPE;
+    description
+      "Enables the diag mode, physical level details can be fetched.";
+  }
+
+  grouping oc-if-ethernet-ext2-config {
+    description "Extended configuration items for Ethernet interfaces";
+
+    leaf port-fec {
+      type identityref {
+        base oc-platform-types:FEC_MODE_TYPE;
+      }
+      description "FEC mode configured on the port.";
+    }
+
+    leaf standalone-link-training {
+      type boolean;
+      default false;
+      description
+        "Link training is automatic tuning of the SerDes transmit and
+        receive parameters to ensure an optimal connection over copper
+        links. It is normally run as part of the auto negotiation
+        sequence as specified in IEEE 802.3 Clause 73.
+
+        Standalone link training is used when full auto negotiation is
+        not desired on an Ethernet link but link training is needed.
+        It is configured by setting the standalone-link-training leaf
+        to TRUE and augo-negotiate leaf to FALSE.
+
+        Note: If auto-negotiate is true, then the value of standalone
+        link training leaf will be ignored.";
+    }
+
+    leaf advertised-speed {
+        type string;
+        description "Advertised speed on a port.";
+    }
+
+    leaf diag-mode {
+      type identityref {
+        base oc-eth-ext2:DIAG_MODE_TYPE;
+      }
+      description 
+        "Put port in diag-mode. This mode is used to fetch extensive physical 
+        level status.  The physical level details used to derive the port 
+        link state which cant be fetched under normal condition.";
+    }
+    leaf unreliable-los {
+      type identityref {
+        base oc-eth-ext2:UNRELIABLE_LOS_MODE_TYPE;
+      }
+      description "Unreliable LOS admin config.";
+    }
+
+    leaf ecd-mode {
+      type string;
+      description "ECD mode configuration.";
+    }
+
+    leaf precoding {
+      type string;
+      description "Precoding config.";
+    }
+
+  }
+
+  // augment statements
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet/" +
+    "oc-eth:state" {
+      description "Extended configuration data for ethernet interfaces";
+
+      uses oc-if-ethernet-ext2-config;
+
+      leaf oper-fec {
+        type identityref {
+          base oc-platform-types:FEC_MODE_TYPE;
+        }
+        description "Operational FEC mode on a port.";
+      }
+
+      leaf link-training-status {
+        type string;
+        description "Operational link-training status on a port.";
+      }
+
+      leaf oper-advertised-speed {
+        type string;
+        description "Operational advertised speed on a port.";
+      }
+
+      leaf remote-advertised-speed {
+        type string;
+        description "Remote advertised speed on a port.";
+      }
+
+      leaf oper-unreliable-los {
+        type identityref {
+          base oc-eth-ext2:UNRELIABLE_LOS_MODE_TYPE;
+        }
+        description "Unreliable LOS operational state.";
+      }
+
+      leaf supported-features {
+        type string;
+        description "Supported features on a port.";
+      }
+  }
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet/" +
+    "oc-eth:config" {
+      description "Extended state variables for Ethernet interfaces";
+
+      uses oc-if-ethernet-ext2-config;
+  }
+}

@@ -1,0 +1,52 @@
+module openconfig-flf-annot {
+
+    yang-version "1";
+
+    namespace "http://openconfig.net/yang/annotation/oc-flf-annot";
+    prefix "oc-flf-annot";
+
+    import openconfig-flf { prefix oc-flf; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /oc-flf:flf-globals/oc-flf:config {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+            sonic-ext:table-owner "false";
+            sonic-ext:table-name "SWITCH";
+            sonic-ext:key-transformer "switch_key_xfmr";
+        }
+    }
+
+    deviation /oc-flf:flf-globals/oc-flf:state {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+            sonic-ext:table-owner "false";
+            sonic-ext:db-name "APPL_DB";
+            sonic-ext:table-name "SWITCH_TABLE";
+            sonic-ext:key-transformer "switch_key_xfmr";
+        }
+    }
+
+    deviation /oc-flf:flf-globals/oc-flf:config/oc-flf:flf-dscp {
+        deviate add {
+            sonic-ext:field-name "flf_dscp";
+        }
+    }
+
+    deviation /oc-flf:flf-globals/oc-flf:state/oc-flf:flf-dscp {
+        deviate add {
+            sonic-ext:field-name "flf_dscp";
+        }
+    }
+
+    deviation /oc-flf:flf-globals/oc-flf:state/oc-flf:flf-supported {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+            sonic-ext:table-owner "false";
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:table-name "SWITCH_CAPABILITY";
+            sonic-ext:key-transformer "switch_key_xfmr";
+            sonic-ext:field-name "flf_supported";
+        }
+    }
+}

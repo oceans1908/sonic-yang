@@ -1,0 +1,192 @@
+module openconfig-if-ethernet-phy-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/phy/extension";
+
+  prefix "oc-if-phy";
+
+  // import some basic types
+  import openconfig-yang-types { prefix oc-yang; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-interfaces { prefix "oc-if"; }
+  import openconfig-if-ethernet { prefix oc-eth; }
+
+
+  organization
+      "SONiC";
+
+  contact
+      "SONiC";
+
+  description
+    "This module defines physical layer phy monitoring
+    status and statistics. These objects applicable based on phy
+    type and speed.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2021-09-16" {
+    description
+      "Initial public revision";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  grouping if-ethernet-phy-ext-top {
+    description
+      "Different phy states at physical layer.";
+
+    container phy-mon-status {
+      config false;
+      description 
+        "List of phy states to monitor port health.
+         Not all the states can be fetched when port is in operation.
+         Need to put port into diag mode to fetch all updates.";
+
+      list phy-mon-fields {
+        description
+          "list of phy monitored status.";
+
+        container state {
+          description
+            "Phy port state data.";
+
+          leaf phy-mon-field {
+            type enumeration {
+              enum SYNC {
+                description 
+                  "Sync status at PCS lavel.";
+              }
+              enum LINK {
+                description 
+                  "Link status at PCS lavel.";
+              }
+              enum LOCAL_FAULT {
+                description 
+                  "Local fault status at PCS lavel.";
+              }
+              enum REMOTE_FAULT {
+                description 
+                  "Remote fault status at PCS lavel.";
+              }
+              enum AM_LOCK {
+                description 
+                  "Alignment Marker lock at PCS lavel.";
+              }
+              enum AMPS_LOCK {
+                description 
+                  "Alignment Marker Payload Sequence lock at PCS lavel.";
+              }
+              enum DESKEW {
+                description 
+                  "Deskew status at PCS lavel.";
+              }
+              enum HI_BER {
+                description 
+                  "HiBer status at PCS lavel.";
+              }
+              enum BLOCK_LOCK {
+                description 
+                  "Block Lock status at PCS lavel.";
+              }
+              enum SIGNAL_DETECT {
+                description 
+                  "Signal detect status at PMD lavel.";
+              }
+              enum CDR {
+                description 
+                "Clock discovery status at PMD lavel.";
+              }
+            }
+            description
+              "Monitor status name for the port.";
+          }
+
+          leaf last-status {
+            type string;
+            description 
+              "Last transitioned state since time-stamp.";
+          }
+
+          leaf last-change {
+            type oc-yang:date-and-time;
+            description
+              "The time the status entered its current state.";
+          }
+        }
+      }
+    }
+
+    container phy-mon-counters {
+      config false;
+      description 
+        "List of phy counters to monitor port health.";
+
+      list phy-counters {
+        description
+          "List of phy monitored counters.";
+
+        container state {
+          description
+            "Phy port counter data.";
+
+          leaf phy-counter {
+            type enumeration {
+              enum FEC_CORR {
+                description 
+                  "FEC correctable frames.";
+              }
+              enum FEC_NON_CORR {
+                description 
+                  "FEC non correctable frames.";
+              }
+              enum FEC_SYM_ERR {
+                description 
+                  "FEC symbol errors.";
+              }
+              enum BER {
+                description 
+                  "Bit Error Rate at PCS lavel.";
+              }
+              enum ERROR_BLOCK {
+                description 
+                  "Error Block at PCS lavel.";
+              }
+              enum BIP {
+                description 
+                  "Bit Interleaved parity at PCS lavel.";
+              }
+            }
+            description
+              "Monitor phy counter data of the port.";
+          }
+
+          leaf last-nz-count {
+            type oc-yang:counter64;
+            description 
+              "Last non zero value.";
+          }
+
+          leaf last-change {
+            type oc-yang:date-and-time;
+            description
+              "Last non zero time stamp.";
+          }
+        }
+      }
+    }
+  }
+
+  augment "/oc-if:interfaces/oc-if:interface/oc-eth:ethernet" {
+    description
+    "Adds phy to the ethernet model.";
+
+    uses if-ethernet-phy-ext-top;
+  }
+}

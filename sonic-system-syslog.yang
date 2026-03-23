@@ -1,0 +1,44 @@
+module sonic-system-syslog {
+    namespace "http://github.com/Azure/sonic-system-syslog";
+    prefix system-syslog;
+    yang-version 1.1;
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-pki {
+      prefix spki;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC SYSLOG";
+
+    revision 2024-08-21 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-system-syslog {
+
+        container SYSLOG {
+
+            container global {
+                leaf security_profile {
+                   description
+                        "Security Profile for Syslog";
+                    type leafref {
+                        path "/spki:sonic-pki/spki:SECURITY_PROFILES/spki:SECURITY_PROFILES_LIST/spki:profile-name";
+                    }
+                    sonic-ext:custom-validation ValidateSecurityProfile;
+                }
+            }
+        }
+    }
+}

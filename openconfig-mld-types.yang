@@ -1,0 +1,58 @@
+module openconfig-mld-types {
+
+    yang-version "1";
+
+    // namespace
+    namespace "http://openconfig.net/yang/mld/types";
+
+    prefix "oc-mld-types";
+
+    // import some basic types
+    import openconfig-extensions { prefix "oc-ext"; }
+
+    // meta
+    organization
+      "OpenConfig working group";
+
+    contact
+      "OpenConfig working group
+      www.openconfig.net";
+
+    description
+      "This module defines types related to the MLD protocol model.";
+
+    oc-ext:openconfig-version "0.1.0";
+
+    revision "2021-09-13" {
+        description
+          "Initial revision.";
+        reference "0.1.0";
+    }
+
+    // OpenConfig specific extensions for module metadata.
+    oc-ext:regexp-posix;
+    oc-ext:catalog-organization "openconfig";
+    oc-ext:origin "openconfig";
+
+    // typedef statements
+
+    typedef mld-version {
+        type uint8 {
+            range 1..2;
+        }
+        description
+          "MLD Version.";
+        reference "RFC3810";
+    }
+
+    typedef mld-interval-type {
+        type uint16 {
+          range 1..1024;
+        }
+        units "seconds";
+        description
+          "Interval at which the router sends the MLD query message toward
+          the upstream neighbor.";
+        reference "RFC3810 9.2 Page 51";
+    }
+}

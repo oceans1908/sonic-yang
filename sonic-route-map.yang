@@ -1,0 +1,451 @@
+module sonic-route-map {
+    namespace "http://github.com/Azure/sonic-route-map";
+    prefix srmap;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+    
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+    
+    import sonic-loopback {
+        prefix lp;
+    }
+
+    import sonic-routing-policy-sets {
+        prefix srpolsets;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+    import sonic-interface {
+        prefix sintf;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-ars {
+        prefix sn-ars;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC Route map YANG";
+
+    revision 2024-08-30 {
+        description
+            "Added attached-host as source protocol.";
+    }
+
+    revision 2024-02-14 {
+        description
+            "Added set ars object for Adaptive Routing and Switching.";
+    }
+
+    revision 2021-01-08 {
+        description
+            "Added support for routed vlan-sub-interface.";
+    }
+
+    revision 2020-09-02 {
+        description
+            "Added the field for IPv6 prefix set match.";
+    }
+
+    revision 2020-04-08 {
+        description
+            "Added the fields for IPv6 next hop.";
+    }
+
+    revision 2019-09-15 {
+        description
+            "Initial revision.";
+    }
+
+    typedef route-map-intf {
+        type union {
+            type leafref {
+                path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+            }
+            type leafref {
+                path "/lp:sonic-loopback/lp:LOOPBACK/lp:LOOPBACK_LIST/lp:name";
+            }
+            type leafref {
+                path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+            }
+            type leafref {
+                path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+            }
+            type leafref {
+                path "/sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id";
+            }
+        }
+    }
+
+    typedef bgp-origin-attr-type {
+        type enumeration {
+            enum IGP {
+                description
+                "Origin of the NLRI is internal";
+            }
+            enum EGP {
+                description
+                "Origin of the NLRI is EGP";
+            }
+            enum INCOMPLETE {
+                description
+                "Origin of the NLRI is neither IGP or EGP";
+            }
+        }
+        description
+            "Type definition for standard BGP origin attribute";
+              reference "RFC 4271 - A Border Gateway Protocol 4 (BGP-4),
+              Sec 4.3";
+    }
+
+    typedef metric-action-type {
+        type enumeration {
+            enum METRIC_SET_VALUE {
+                description "Set a specified metric value.";
+            }
+            enum METRIC_ADD_VALUE {
+                description
+                  "Add a specified metric value from current
+                   set value of metric.";
+            }
+            enum METRIC_SUBTRACT_VALUE {
+               description
+                   "Subtract a specified metric value from current
+                   set value of metric.";
+            }
+            enum METRIC_SET_RTT {
+                description "Add round trip time value as metric." ;
+            }
+            enum METRIC_ADD_RTT {
+                description
+                    "Add round trip time value from current
+                     set value of metric.";
+            }
+            enum METRIC_SUBTRACT_RTT {
+                description
+                    "Subtract round trip time value from current
+                    set value of metric.";
+            }
+        }
+        description
+            "Type used to specify type of route metric value
+             to be set in a policy chain.";
+    }
+
+    container sonic-route-map {
+        container ROUTE_MAP_SET {
+            list ROUTE_MAP_SET_LIST {
+                key "name";
+
+                leaf name {
+                    type string;
+                }
+            }
+        }
+
+        container ROUTE_MAP {
+            list ROUTE_MAP_LIST {
+                key "route_map_name stmt_name";
+
+                sonic-ext:dependent-on "ARS_SWITCH_BIND_LIST";
+
+                leaf route_map_name {
+                    type string;
+                }
+
+                leaf stmt_name {
+                    type uint16 {
+                        range 1..65535;
+                    }
+                }
+
+                leaf route_operation {
+                    type srpolsets:routing-policy-action-type;
+                }
+
+                leaf match_interface{
+                    type route-map-intf;
+                }
+
+                leaf match_prefix_set{
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                    description
+                        "Match a prefix list name that contains IPv4 prefixes.";
+                }
+
+                leaf match_ipv6_prefix_set{
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                    description
+                        "Match a prefix list name that contains IPv6 prefixes.";
+                }
+
+                leaf match_protocol {
+                    type string {
+                            pattern "ospf|static|connected|bgp|attached-host" {
+                            error-message "Unsupported Protocol ";
+                            error-app-tag unsupported-protocol;
+                        }
+                    }
+                }
+
+                leaf match_next_hop_set {
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:PREFIX_SET/srpolsets:PREFIX_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf match_src_vrf {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                }
+
+                leaf-list match_neighbor {
+                    type union {
+                        type inet:ip-address;
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id";
+                        }
+                    }
+                    description
+                        "IP addresse or interface for match operation.";
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or (count(current()) = 1)" {
+                        error-app-tag "max-allowed-neighbor-reached";
+                        error-message "Only one neighbor or interface can be configured.";
+                    }
+                }
+
+                leaf-list match_tag {
+                    type uint32;
+                    description
+                        "Value of the tag match member";
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or (count(current()) = 1)" {
+                        error-app-tag "max-allowed-tag-reached";
+                        error-message "Only one tag value can be configured.";
+                    }
+                }
+
+                leaf match_med{
+                    type uint32;
+                }
+
+                leaf match_origin{
+                    type string;
+                }
+
+                leaf match_evpn_default_type5_route { 
+                    type boolean;
+                }
+
+                leaf match_evpn_advertise_route_type { 
+                    type string;
+                }
+
+                leaf match_evpn_vni_number { 
+                    type uint32;
+                }
+
+                leaf match_local_pref{
+                    type uint32;
+                }
+
+                leaf match_community{
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:COMMUNITY_SET/srpolsets:COMMUNITY_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf match_ext_community{
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:EXTENDED_COMMUNITY_SET/srpolsets:EXTENDED_COMMUNITY_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf match_as_path{
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:AS_PATH_SET/srpolsets:AS_PATH_SET_LIST/srpolsets:name";
+                    }
+                }
+                leaf call_route_map {
+                    type leafref {
+                        path "../../../ROUTE_MAP_SET/ROUTE_MAP_SET_LIST/name";
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or not(../route_map_name = current())" {
+                        error-app-tag "Invalid-call-route-map";
+                        error-message "Route-map cannot call to itself";
+                    }
+                }
+
+                leaf set_origin{
+                    type string;
+                }
+
+                leaf set_local_pref{
+                    type uint32;
+                }
+
+                leaf set_med {
+                    type uint32;
+                }
+
+                leaf set_metric_action {
+                    type metric-action-type;
+                }
+
+                leaf set_metric {
+                    /*
+                    when "../set_metric_action = 'METRIC_SET_VALUE' " +
+                         "or ../set_metric_action = 'METRIC_ADD_VALUE' " +
+                         "or ../set_metric_action = 'METRIC_SUBTRACT_VALUE'";
+                    */
+                    type uint32;
+                }
+
+                leaf set_next_hop{
+                    type string;
+                }
+
+                leaf set_ipv6_next_hop_global {
+                    type string;
+                }
+
+                leaf set_ipv6_next_hop_prefer_global { 
+                    type boolean;
+                }
+
+                leaf set_next_hop_native { 
+                    type boolean;
+                }
+
+                leaf set_ipv6_next_hop_native { 
+                    type boolean;
+                }                                
+
+                leaf set_repeat_asn{
+                    type uint8;
+                }
+
+                leaf set_asn{
+                    type uint32 {
+                         range "1..4294967295";
+                    }
+                }
+ 
+                leaf set_asn_list{
+                    type string {
+                        pattern "(([1-9][0-9]{0,8}|[1-3][0-9]{9}|4[0-1][0-9]{8}|42[0-8][0-9]{7}|429[0-3][0-9]{6}|4294[0-8][0-9]{5}|42949[0-5][0-9]{4}|429496[0-6][0-9]{3}|4294967[0-1][0-9]{2}|42949672[0-8][0-9]|429496729[0-5]),)*" +
+                        "([1-9][0-9]{0,8}|[1-3][0-9]{9}|4[0-1][0-9]{8}|42[0-8][0-9]{7}|429[0-3][0-9]{6}|4294[0-8][0-9]{5}|42949[0-5][0-9]{4}|429496[0-6][0-9]{3}|4294967[0-1][0-9]{2}|42949672[0-8][0-9]|429496729[0-5])" {
+                            error-message "Invalid asn in asn-list";
+                            error-app-tag asn-list-invalid;
+                        }
+                    }
+                }
+
+                leaf-list set_community_inline {
+                    type string;
+                }
+
+                leaf set_community_ref {
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:COMMUNITY_SET/srpolsets:COMMUNITY_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf-list set_ext_community_inline {
+                    type string;
+                }
+
+                leaf set_community_delete_ref {
+
+                    description 
+                      "This field remove communities value from BGP communities attribute.
+                      When BGP routes communities value matches to the community list word,
+                      the communities value is removed. When all of communities value is removed eventually,
+                      the BGP updates communities attribute is completely removed";
+
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:COMMUNITY_SET/srpolsets:COMMUNITY_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf set_ext_community_ref {
+                    type leafref {
+                        path "/srpolsets:sonic-routing-policy-sets/srpolsets:EXTENDED_COMMUNITY_SET/srpolsets:EXTENDED_COMMUNITY_SET_LIST/srpolsets:name";
+                    }
+                }
+
+                leaf set_tag {
+                    type uint32 {
+                         range "1..4294967295";
+                    }
+                    description
+                        "Value of the tag set member";
+                }
+
+                leaf set_weight{
+                    type uint32;
+                }
+
+                leaf set_ars_object{
+                    must "count(/sn-ars:sonic-ars/sn-ars:ARS_SWITCH_BIND/sn-ars:ARS_SWITCH_BIND_LIST[sn-ars:name='SWITCH']) > 0" {
+                        error-message "Please bind ars profile for the switch to proceed";
+                        error-app-tag ars-invalid;
+                    }
+
+                    type leafref {
+                        path "/sn-ars:sonic-ars/sn-ars:ARS_OBJECT/sn-ars:ARS_OBJECT_LIST/sn-ars:name";
+                    }
+                    description
+                        "Adaptive Routing and Switching Object name";
+                }
+            }
+        }
+    }
+}

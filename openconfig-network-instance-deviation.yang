@@ -1,0 +1,488 @@
+module openconfig-network-instance-deviation {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/oc-netinst-deviation/extension";
+
+  prefix "oc-netinst-deviation";
+
+  // import some basic types/interfaces
+  import ietf-inet-types { prefix "inet"; }
+  import openconfig-extensions { prefix "oc-ext"; }
+  import openconfig-policy-types { prefix "oc-pol-types"; }
+  import openconfig-network-instance { prefix "oc-netinst"; }
+  import openconfig-interfaces { prefix "oc-if"; }
+
+  // include submodules
+  include openconfig-attached-host;
+  
+  // meta
+  organization
+    "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "Deviation for the Network Instance model to add Internet Group 
+    Management Protocol (IGMP) Snooping.";
+
+  oc-ext:openconfig-version "0.1.3";
+
+  revision "2024-08-30" {
+    description
+      "Added support for attached host protocol.";
+     reference "0.1.3";
+  }
+
+  revision "2023-03-14" {
+    description
+      "Added OpenConfig unsupported config and state attributes.";
+     reference "0.1.2";
+  }
+
+  revision "2021-06-04" {
+    description
+      "Added OpenConfig unsupported attributes.";
+     reference "0.1.1";
+  }
+
+  revision "2019-09-15" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+  
+  identity IGMP_SNOOPING {
+    base oc-pol-types:INSTALL_PROTOCOL_TYPE;
+    description
+      "Locally defined IGMP snooping instance";
+  }
+  
+	typedef igmp-snooping-version {
+		type uint8 {
+		    range 1..3;
+		}
+		description
+		  "IGMP Snooping Version.";
+	}
+	
+	typedef igmp-snooping-query-interval-type {
+		type uint16 {
+		  range 1..18000;
+		}
+		units "seconds";
+		default 125;
+		description
+		  "Interval at which the router sends the IGMP Snooping query message toward
+		  the upstream neighbor.";
+	}
+	
+	typedef igmp-snooping-last-member-query-interval-type {
+		type uint32 {
+			range "100..25500";
+		}
+		units milliseconds;
+		description
+		  "Interval at which the router sends the IGMP Snooping last member query message toward
+		  the upstream neighbor.";
+	}
+	
+	typedef igmp-snooping-query-max-response-time-type {
+		type uint16 {
+			range "1..25";
+		}
+		units "seconds";
+		description
+		  "IGMP Snooping Query Max Response Time.";
+	}  
+
+	grouping network-instance-deviation-igmps-interface-base-config {
+    description
+     "Grouping IGMP Snooping configuration attributes";
+    
+        leaf name {
+            type oc-if:base-interface-ref;
+            description
+             "Reference to the IGMP Snooping VLAN interface";
+        }
+
+		leaf enabled {
+		    type boolean;
+		    description
+		      "IGMP Snooping Enabled / Disabled.";
+		}
+	
+		leaf version {
+		    type igmp-snooping-version;
+		    description
+		      "IGMP Snooping Version.";
+		}
+		  
+		leaf query-interval {
+		  type igmp-snooping-query-interval-type;
+		  description
+		    "Interval at which the router sends the IGMP Snooping
+		    queries.";
+		}
+		
+		leaf query-max-response-time {
+			type igmp-snooping-query-max-response-time-type;
+			default 10;
+			description
+		    "Max response time for the IGMP Snooping queries.";
+		}
+		
+		leaf last-member-query-interval {
+			type igmp-snooping-last-member-query-interval-type;
+			default 1000;
+		  description	  	
+				"IGMP Snooping Last Member Query Interval";
+		}
+		
+		leaf querier {
+		  type boolean;
+		  description
+		    "When set to true, the functionality within which this
+		    leaf is defined is enabled, when set to false it is
+		    explicitly disabled.";      
+		}
+		
+		leaf fast-leave {
+		  type boolean;
+		  description
+		    "When set to true, the functionality within which this
+		    leaf is defined is enabled, when set to false it is
+		    explicitly disabled.";      
+		}
+		
+		leaf-list mrouter-interface {
+			type oc-if:base-interface-ref;		
+			description
+				"Multicast Router ports.";	
+		}	
+	}
+	
+	grouping network-instance-deviation-igmps-interface-config {
+	description
+        "Grouping IGMP Snooping configuration per interface";
+        uses network-instance-deviation-igmps-interface-base-config;
+
+    }
+
+    grouping network-instance-deviation-igmps-interface-top {
+        description
+         "Grouping IGMP Snooping configuration and operation state";
+        container interfaces {
+            description
+             "Container for IGMP snooping interface list";
+            list interface {
+                key "name";
+                description
+                 "List of IGMP Snooping interfaces";
+                
+                leaf name {
+                    type leafref {
+                        path "../config/name";
+                    }
+			    description
+			      "A reference to an identifier for this interface which
+			      acts as a key for this list";
+			  }
+				container config {
+				  description
+				    "Configuration parameters relating to the associated
+				    interface";
+				  uses network-instance-deviation-igmps-interface-config;
+				}
+				
+      	container state {
+      	  config false;
+
+      	  description
+      	    "Operational state data for IGMP Snooping on each interface";
+
+      	  uses network-instance-deviation-igmps-interface-base-config;
+
+        }
+        container staticgrps {
+            description
+             "Container for groups";
+                  list static-multicast-group {
+              key "group source-addr";
+              description
+                  "A Static Multicast group.";
+
+              leaf group {
+                  type leafref {
+                      path "../config/group";
+                  }
+                  description
+                      "Multicast group IPv4 address.";
+              }
+
+              leaf source-addr {
+                  type leafref {
+                      path "../config/source-addr";
+                  }
+                  description
+                      "Multicast source IPv4 address.";
+              }
+
+              container config {
+                  description
+                   "Container for static groups";
+              leaf group {
+                  type inet:ipv4-address;
+                  description
+                      "Multicast group IPv4 address.";
+              }
+
+              leaf source-addr {
+                  type inet:ipv4-address;
+                  description
+                      "Multicast source IPv4 address.";
+              }
+
+              leaf-list outgoing-interface {
+                  type oc-if:base-interface-ref;
+                  description
+                      "Outgoing interfaces.";
+              }
+              }
+              container state {
+                  config false;
+                description
+                 " Container for multicast groups";
+              leaf group {
+                  type inet:ipv4-address;
+                  description
+                      "Multicast group IPv4 address.";
+              }
+
+              leaf source-addr {
+                  type inet:ipv4-address;
+                  description
+                      "Multicast source IPv4 address.";
+              }
+              leaf-list outgoing-interface {
+                  type oc-if:base-interface-ref;
+                  description
+                      "Outgoing interfaces.";
+              }
+
+              }
+          }
+        }
+
+            }        
+		}
+	}
+	
+	grouping network-instance-deviation-igmps-top {
+		description
+      "Top-level grouping for IGMP Snooping.";
+      
+		container igmp-snooping {
+			description
+				"Top-level IGMP Snooping configuration and operational state.";
+				
+			uses network-instance-deviation-igmps-interface-top;
+		}
+	}
+		
+	augment "/oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol" {
+    description
+     "Adds top level IGMP Snooping container";
+    uses network-instance-deviation-igmps-top {
+      when "/oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/config/identifier = 'IGMP_SNOOPING'" {
+        description
+          "Include IGMP Snooping parameters only when the
+          protocol is set to IGMP_SNOOPING";
+      }
+      description
+        "Configuration and state parameters relating to
+        IGMP Snooping";
+    }
+	}
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:config/oc-netinst:router-id {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:state/oc-netinst:router-id {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:config/oc-netinst:route-distinguisher {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:state/oc-netinst:route-distinguisher {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:config/oc-netinst:enabled-address-families {
+       deviate not-supported;
+
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:state/oc-netinst:enabled-address-families {
+       deviate not-supported;
+
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:config/oc-netinst:mtu {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:state/oc-netinst:mtu {
+       deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:inter-instance-policies {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:route-limits {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:connection-points {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:mpls {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:segment-routing {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:policy-forwarding {
+          deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:isis {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:local-aggregates {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:config/oc-netinst:enabled {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:state/oc-netinst:enabled {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:config/oc-netinst:default-metric {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:state/oc-netinst:default-metric {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:encapsulation {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:table-connections/oc-netinst:table-connection/oc-netinst:config/oc-netinst:disable-metric-propagation {
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:table-connections/oc-netinst:table-connection/oc-netinst:state/oc-netinst:disable-metric-propagation {
+      deviate not-supported;
+  }
+
+   deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:evpn-instances {
+      deviate not-supported;
+   }
+
+   deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:mld {
+      deviate not-supported;
+   }
+
+   deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:pimv6 {
+      deviate not-supported;
+   }
+
+   deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:interfaces/oc-netinst:interface/oc-netinst:config/oc-netinst:associated-address-families {
+      deviate not-supported;
+   }
+
+   deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:interfaces/oc-netinst:interface/oc-netinst:state/oc-netinst:associated-address-families {
+      deviate not-supported;
+   }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:config/oc-netinst:redundancy-mode{
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:state/oc-netinst:redundancy-mode{
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:config/oc-netinst:subinterface{
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:state/oc-netinst:subinterface{
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:config/oc-netinst:df-election-method {
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:state/oc-netinst:df-election-method {
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:config/oc-netinst:revertive {
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:state/oc-netinst:revertive {
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:config/oc-netinst:election-wait-time {
+      deviate not-supported;
+    }
+
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:evpn/oc-netinst:ethernet-segments/oc-netinst:ethernet-segment/oc-netinst:df-election/oc-netinst:state/oc-netinst:election-wait-time {
+      deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:vlans/oc-netinst:vlan/oc-netinst:config/oc-netinst:status {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:vlans/oc-netinst:vlan/oc-netinst:state/oc-netinst:status {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:config/oc-netinst:mac-learning {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:state/oc-netinst:mac-learning {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:config/oc-netinst:dynamic-count {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:config/oc-netinst:static-count {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:config/oc-netinst:maximum-entries {
+        deviate not-supported;
+    }
+    deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:state/oc-netinst:maximum-entries {
+        deviate not-supported;
+    }
+}

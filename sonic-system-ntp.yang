@@ -1,0 +1,269 @@
+module sonic-system-ntp {
+    namespace "http://github.com/Azure/sonic-system-ntp";
+    prefix system-ntp;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-loopback {
+        prefix lo;
+    }
+
+    import sonic-interface {
+        prefix sintf;
+    }
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+    import sonic-mgmt-port {
+        prefix smt;
+    }
+    
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC NTP";
+
+    revision 2022-06-15 {
+        description "Add custom validation for NTP server address.";
+    }
+
+    revision 2021-01-08 {
+        description "Added support for routed vlan-sub-interface.";
+    }
+
+    revision 2020-12-07 {
+        description
+            "Add per NTP server minpoll and maxpoll.";
+    }
+
+    revision 2020-11-24 {
+        description
+            "Add maximum NTP server number and validation function for NTP vrf configuration.";
+    }
+
+    revision 2020-10-29 {
+        description
+            "Add NTP authentication.";
+    }
+
+    revision 2020-07-26 {
+        description
+            "Change for sonic-loopback.yang.";
+    }
+
+    revision 2020-04-25 {
+        description
+            "Initial revision.";
+    }
+
+    typedef ntp-key-type {
+        description "NTP authentication key type";
+        type enumeration {
+            enum MD5; 
+            enum SHA1; 
+            enum SHA2_256;
+        }
+    }
+
+    container sonic-system-ntp {
+
+        container NTP {
+
+            list NTP_LIST {
+                
+                key "global_key";
+
+                leaf global_key {
+                    type enumeration {
+                        enum global;
+                    }
+                    description
+                        "NTP global key";
+                }
+
+                leaf-list src_intf {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/lo:sonic-loopback/lo:LOOPBACK/lo:LOOPBACK_LIST/lo:name";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                        type leafref {
+                            path "/sintf:sonic-interface/sintf:VLAN_SUB_INTERFACE/sintf:VLAN_SUB_INTERFACE_LIST/sintf:id";
+                        }
+                    }
+                }
+
+                leaf vrf {
+                    type union {
+                        type string {
+                            pattern "mgmt|default";
+                        }
+
+                        type leafref {
+                                path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+
+                    sonic-ext:custom-validation ValidateNtpVrf;
+
+                    description
+                        "The VRF instance NTP is running in.";
+                }
+
+                leaf auth_enabled {
+                    type boolean;
+                    description
+                        "Indicate if NTP authentication is enabled if set to true.";                 
+                }
+               
+                leaf-list trusted_key {
+                    type leafref {
+                        path "/sonic-system-ntp/NTP_AUTHENTICATION_KEY/NTP_AUTHENTICATION_KEY_LIST/id";
+                    }
+
+                    description
+                        "Trusted key list";
+                }       
+            }
+        }
+
+        container NTP_AUTHENTICATION_KEY {
+            list NTP_AUTHENTICATION_KEY_LIST {
+                key "id";
+
+                leaf id {
+                    type uint16 {
+                        range "1..65535"{ 
+                            error-message "key id out of range";
+                            error-app-tag key_id-invalid;
+                        }
+                    }
+                    description
+                        "Integer identifier used by the client and server to
+                         designate a secret key.  The client and server must use
+                         the same key id.";
+                }
+
+                leaf type {
+                    mandatory true;
+                    type ntp-key-type;
+                    description
+                        "NTP authentication key type";
+                }
+
+                leaf value {
+                    sonic-ext:custom-validation ValidateEncryptedKey;
+                    mandatory true;
+                    type string;
+                    description
+                        "NTP authentication key value";
+                }
+
+                leaf encrypted {
+                    type boolean;
+                    default true;
+                    description
+                        "NTP authentication key value is encrypted";
+                }
+            }
+        }
+
+        container NTP_SERVER {
+            
+            list NTP_SERVER_LIST {
+                max-elements 10;
+                key "server_address";
+
+                leaf server_address {
+                    type inet:host;
+                    sonic-ext:custom-validation ValidateIPAddressOrHostname;
+                }
+
+                leaf key_id {
+                    type leafref { 
+                        path "/sonic-system-ntp/NTP_AUTHENTICATION_KEY/NTP_AUTHENTICATION_KEY_LIST/id";
+                    }
+
+                    description
+                        "Integer identifier used by the client and server to
+                         designate a secret key.  The client and server must use
+                         the same key id.";
+                }
+
+                leaf minpoll {
+                    default 6;
+                    type uint8 {
+                        range "3..17";
+                    }
+                    must "((current()/../maxpoll) and (current()/../maxpoll > current()))" {
+                        error-message "minpoll and maxpoll must be both configured, and maxpoll has to be larger than minpoll";
+                    }
+                    description
+                        "The minimum poll interval used in this association.";
+                    reference
+                        "RFC 5905: Network Time Protocol Version 4: Protocol and
+                        Algorithms Specification";
+                    }
+
+                leaf maxpoll {
+                    default 10;
+                    type uint8 {
+                        range "3..17";
+                    }
+                    must "((current()/../minpoll) and (current()/../minpoll < current()))" {
+                        error-message "minpoll and maxpoll must be both configured, and maxpoll has to be larger than minpoll.";
+                    }
+                    description
+                        "The maximum poll interval used in this association.";
+                    reference
+                        "RFC 5905: Network Time Protocol Version 4: Protocol and
+                        Algorithms Specification";
+                }
+
+                leaf prefer {
+                    type boolean;
+                    default false;
+                    description
+                      "Indicates whether this server should be preferred
+                      or not.";
+                }
+            }
+        }
+    }
+}

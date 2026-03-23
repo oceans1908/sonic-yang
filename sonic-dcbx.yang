@@ -1,0 +1,550 @@
+module sonic-dcbx {
+    namespace "http://github.com/Azure/sonic-dcbx";
+    prefix sdcbx;
+    yang-version 1.1;
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import ietf-yang-types {
+        prefix ietf-yang;
+    }
+
+    import sonic-common {
+        prefix scommon;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "This module defines configuration and operational state data for DCBX.
+         DCBX: Data Center Bridging Capability Exchange
+         PFC: Prioity Flow Control
+         ETS: Enhanced Transmission Selection";
+
+    revision 2024-01-01 {
+        description
+            "Initial revision.";
+    }
+
+    typedef dcbx_feature_state_machine_type {
+        type enumeration {
+            enum ASYM;
+            enum SYMM;
+        }
+        description
+            "State machine options.";
+    }
+
+    container sonic-dcbx {
+
+    container DCBX {
+        description
+            "DCBX global configuration";
+
+        container global {
+            description "DCBX global configuration";
+
+            leaf enabled {
+                type boolean;
+                default false;
+                description
+                  "Global DCBx enabled/disabled";
+            }
+       }
+   }
+ 
+    container DCBX_INTERFACE {
+        description
+            "Information related to DCBx configuration on each port";
+
+        list DCBX_INTERFACE_LIST {
+            description
+                "Information related to DCBx configuration on each port";
+
+            key "ifname";
+
+            leaf ifname {
+                type leafref {
+                    path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                }
+                description
+                    "Reference of port on which dcbx lldp tlv  to be configured.";
+             }
+
+             leaf dcbx_enabled {
+                 type boolean;
+                 default true;
+                 description
+                     "DCBx enabled/disabled on given port";
+             }
+
+             leaf supp_pfc_tlv {
+                 type boolean;
+                 default true;
+                 description
+                     "PFC TLV supported or not supported on given port";
+             }
+
+             leaf supp_ets_conf_tlv {
+                 type boolean;
+                 default true;
+                 description
+                     "ETS configuration TLV supported or not supported on given port";
+             }
+
+             leaf supp_ets_reco_tlv {
+                 type boolean;
+                 default true;
+                 description
+                    "ETS recommendation TLV supported or not supported on given port";
+             }
+         }
+     }
+
+    container DCBX_PORT_TABLE {
+        description
+            "Information related to TLV statistics for given port";
+
+        sonic-ext:db-name "APPL_DB";
+        sonic-ext:key-delim ":";
+
+        config false;
+
+        list DCBX_PORT_TABLE_LIST {
+            description
+                "Information related to TLV statistics for given port";
+
+            key "ifname";
+
+            leaf ifname {
+                type leafref {
+                    path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                }
+                description
+                    "Reference of port on which dcbx LLDP tlv is configured.";
+            }
+
+            leaf rx_pfc_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of PFC lldp tlv frames received";
+            }
+
+            leaf rx_pfc_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of error PFC lldp tlv frames received";
+            }
+
+            leaf rx_pfc_last_received {
+                type uint64; 
+                description
+                    "Time since last received PFC tlv";
+            }
+
+            leaf tx_pfc_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of PFC lldp tlv frames transmitted";
+            }
+
+            leaf tx_pfc_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of error PFC lldp tlv frames transmitted";
+            }
+
+            leaf tx_pfc_last_transmitted {
+                type uint64;
+                description
+                    "Time since last PFC tlv transmitted";
+            }
+
+            leaf rx_ets_conf_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS config lldp tlv frames received";
+            }
+
+            leaf rx_ets_conf_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS config lldp tlv error frames received";
+            }
+
+            leaf rx_ets_conf_last_received {
+                type uint64;
+                description
+                    "Time since last received ETS configration TLV";
+            }
+
+            leaf tx_ets_conf_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS config lldp tlv frames transmitted";
+            }
+
+            leaf tx_ets_conf_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS config lldp tlv error frames transmitted";
+            }
+
+             leaf tx_ets_conf_last_transmitted {
+                type uint64;
+                description
+                    "Time since last ETS confiuration TLV transmitted";
+            }
+
+            leaf rx_ets_reco_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS reco lldp tlv frames received";
+            }
+
+            leaf rx_ets_reco_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS reco lldp tlv frames received";
+            }
+
+            leaf rx_ets_reco_last_received {
+                type uint64;
+                description
+                    "Time since last received ETS recommendation TLV";
+            }
+
+            leaf tx_ets_reco_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS reco lldp tlv error frames transmitted";
+            }
+        
+            leaf tx_ets_reco_err_cnt {
+                type ietf-yang:counter64;
+                description
+                    "The number of ETS reco lldp tlv error frames transmitted";
+            }
+    
+            leaf tx_ets_reco_last_transmitted {
+                type uint64;
+                description
+                    "Time since last transmitted ETS recommendation TLV ";
+            }
+        }
+    }
+
+    container DCBX_STATE_TABLE {
+        description
+            "Information related to DCBX and TLV operational status for given port";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list DCBX_STATE_TABLE_LIST {
+            description
+                "Information related to DCBX and TLV operational status for given port";
+
+            key "ifname";
+ 
+            leaf ifname {
+                type string;
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            leaf pfc_sm_type {
+                type dcbx_feature_state_machine_type;
+                description
+                    "Type of state machine";
+            }
+
+            leaf ets_sm_type {
+                type dcbx_feature_state_machine_type;
+                description
+                    "Type of state machine";
+            }
+
+            leaf dcbx_oper_status {
+                type scommon:oper-status;
+                description
+                    "Operational state of DCBx";
+            }
+
+            leaf dcbx_down_reason {
+                    type string;
+                    description
+                        "Down reason for DCBx";
+            }
+
+            leaf pfc_oper_status {
+                type scommon:oper-status;
+                description
+                    "PFC operational state";
+            }
+
+            leaf pfc_down_reason {
+                    type string;
+                    description
+                        "Down reason for PFC";
+            }
+
+            leaf ets_oper_status {
+                type scommon:oper-status;
+                description
+                    "ETS operational state";
+            }
+
+            leaf ets_down_reason {
+                    type string;  // version mismatch,
+                    description
+                        "Down reason for ETS";
+            }
+        }
+    }
+
+    grouping PFC_TLV_INFO {    
+        leaf willing {
+            type boolean;
+            description
+                "Willing bit indicates that is willing to accept configurations from the peer";
+        }
+
+        leaf mbc {
+            type boolean;
+            description
+                "MACsec Bypass Capability Bit";
+        }
+
+        leaf capability {
+            type uint8;
+            description
+                "Maximum traffic classes that supports PFC";
+        }
+
+        leaf-list lossless_priority_vector {
+            type uint8;
+            description
+                "List representing if priority is configured as lossless";
+        }
+    }
+
+    container LOCAL_DCBX_PFC_TLV_TABLE {
+        description
+            "Information related to transmitted PFC TLV";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+        
+        list LOCAL_DCBX_PFC_TLV_TABLE_LIST {
+            description
+                "Information related to transmitted PFC TLV";
+
+            key "ifname";
+
+            leaf ifname {
+                type string;
+
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses PFC_TLV_INFO;
+        }
+    }
+
+    container REMOTE_DCBX_PFC_TLV_TABLE {
+        description
+            "Information related to received PFC TLV";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list REMOTE_DCBX_PFC_TLV_TABLE_LIST {
+            description
+                "Information related to received PFC TLV";
+
+            sonic-ext:db-name "STATE_DB";
+            key "ifname";
+
+            leaf ifname {
+                type string;
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses PFC_TLV_INFO;
+        }
+    }
+
+    grouping common_ets_conf_tlv_info {
+        leaf willing {
+            type boolean;
+            description
+                "Willing bit indicates that is willing to accept configurations from the peer";
+        }
+
+        leaf cbs {
+           type boolean;
+           description
+               "Credit-based Shaper bit";
+        }
+
+        leaf max_tcs {
+            type uint8;
+            description
+                "maximum number of traffic classes that is supported";
+        }
+    }
+
+    grouping common_ets_tlv_info {
+        leaf-list priority_tc_table {
+            type uint8;
+            description
+                "Mapping of priority to traffic class";
+        }
+
+        leaf-list tc_bandwidth_table {
+            type scommon:percentage;
+            description
+                "Mapping of traffic class to bandwidth";
+        }
+
+        leaf-list tc_tsa_table {
+            type uint8;
+            description
+                "Mapping of traffic class to traffic selection algorithm
+                0: Strict Priority
+                1: Credit-based shaper
+                2: Enhanced transmission selection
+                3-254: Reserved for future standardization
+                252: Vendor specific
+                ";
+        }
+    }
+
+    container LOCAL_DCBX_ETS_CONF_TLV_TABLE {
+        description
+            "Information related to transmitted ETS Configuration TLV";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list LOCAL_DCBX_ETS_CONF_TLV_TABLE_LIST {
+            description
+                "Information related to transmitted ETS Configuration TLV";
+
+            key "ifname";
+
+            leaf ifname {
+                type string;
+
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses common_ets_conf_tlv_info;
+
+            uses common_ets_tlv_info;
+        }
+    }
+
+    container REMOTE_DCBX_ETS_CONF_TLV_TABLE {
+        description
+            "Information related to received ETS Configuration TLV";
+
+        
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list REMOTE_DCBX_ETS_CONF_TLV_TABLE_LIST {
+            description
+                "Information related to received ETS Configuration TLV";
+
+            key "ifname";
+
+            leaf ifname {
+                type string;
+
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses common_ets_conf_tlv_info;
+
+            uses common_ets_tlv_info;
+        }
+    }
+
+    container LOCAL_DCBX_ETS_RECO_TLV_TABLE {
+        description
+            "Information related to transmitted ETS recommendation TLV";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list LOCAL_DCBX_ETS_RECO_TLV_TABLE_LIST {
+            description
+                "Information related to transmitted ETS Recommendation TLV";
+
+            key "ifname";
+
+             leaf ifname {
+                type string;
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses common_ets_tlv_info;
+        }
+    }
+
+    container REMOTE_DCBX_ETS_RECO_TLV_TABLE {
+        description
+            "Information related to received ETS Recommendation TLV";
+
+        sonic-ext:db-name "STATE_DB";
+        sonic-ext:key-delim "|";
+
+        config false;
+
+        list REMOTE_DCBX_ETS_RECO_TLV_TABLE_LIST {
+            description
+                "Information related to received ETS Recommendation TLV";
+
+            key "ifname";
+
+             leaf ifname {
+                type string;
+                description
+                    "Reference of port on which LLDP is configured.";
+            }
+
+            uses common_ets_tlv_info;
+        }
+    }
+
+    }
+}

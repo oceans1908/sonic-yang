@@ -1,0 +1,16 @@
+module sonic-spanning-tree-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/spanning-tree-annot";
+    prefix "sonic-stp-annot";
+
+    import sonic-spanning-tree { prefix sonic-stp; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sonic-stp:clear-stp {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_clear_stp";
+        }
+    }
+}

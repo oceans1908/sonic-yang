@@ -1,0 +1,370 @@
+module openconfig-qos-buffer-pool-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/qos/interface/bufferpool";
+
+  prefix "oc-qos-buffer-pool-ext";
+
+  import openconfig-qos { prefix oc-qos; }
+  import openconfig-qos-buffer { prefix oc-qos-buffer; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-yang-types { prefix oc-yang; }
+  import openconfig-types { prefix oc-types; }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module defines YANG model for network quality-of-service buffer-pool operational data.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2022-02-25" {
+    description
+      "Initial version";
+    reference "0.1.0";
+  }
+
+  grouping qos-interface-buffer-pool-config {
+    description
+      "Configuration data for the priority group associated with the
+      interface";
+
+    leaf name {
+      type string;
+      description
+        "Name of the buffer-pool";
+    }
+  }
+
+  grouping qos-interface-buffer-pool-state {
+    description
+      "Operational data for the priority group associated with the
+      interface";
+
+    leaf shared-watermark {
+      type oc-yang:counter64;
+      description
+        "occupancy watermark in shared buffer in bytes since last watermark clearance";
+    }
+
+    leaf shared-persistent-watermark {
+      type oc-yang:counter64;
+      description
+        "occupancy watermark in shared buffer in bytes since system up";
+    }
+    
+    leaf shared-periodic-watermark {
+      type oc-yang:counter64;
+      description
+        "Shared watermark occupancy in bytes since last telemetry watermark interval";
+    }
+  
+    leaf unicast-watermark {
+      type oc-yang:counter64;
+      description
+        "occupancy watermark in unicast buffer in bytes since last watermark clearance";
+    }
+
+    leaf unicast-persistent-watermark {
+      type oc-yang:counter64;
+      description
+        "occupancy watermark in unicast buffer in bytes since system up";
+    }
+
+    leaf unicast-periodic-watermark {
+      type oc-yang:counter64;
+      description
+        "unicast watermark occupancy in bytes since last telemetry interval";
+    }
+
+    leaf shared-watermark-percent {
+      type oc-types:percentage;
+      description
+        "occupancy watermark in shared buffer in percentage since last
+        watermark clearance";
+    }
+
+    leaf shared-persistent-watermark-percent {
+      type oc-types:percentage;
+      description
+        "occupancy watermark in shared buffer in percentage since system
+        up";
+    }
+    
+    leaf shared-periodic-watermark-percent {
+      type oc-types:percentage;
+      description
+        "Shared watermark occupancy in percentage since last telemetry interval";
+    }
+    
+    leaf unicast-watermark-percent {
+      type oc-types:percentage;
+      description
+        "occupancy watermark in unicast buffer in percentage since last
+        watermark clearance";
+    }
+
+    leaf unicast-persistent-watermark-percent {
+      type oc-types:percentage;
+      description
+        "occupancy watermark in unicast buffer in percentage since system
+        up";
+    }
+
+    leaf unicast-periodic-watermark-percent {
+      type oc-types:percentage;
+      description
+        "Unicast watermark occupancy in percentage since last telemetry interval";
+    }
+  }
+
+  grouping qos-interface-buffer-pool-top {
+    description
+      "Top-level grouping for the buffer-pools associated with the
+      interface";
+
+    container buffer-pools {
+      description
+        "Top-level container for the buffer-pools associated with the
+        interface";
+
+      list buffer-pool {
+        key "name";
+
+        description
+          "List of buffer-pools instantiated on the interface";
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          description
+            "Reference to the name of the buffer-pool instantiated on the
+            interface.";
+        }
+
+        container config {
+          description
+            "Configuration data for the buffer-pool associated with the
+            interface";
+
+          uses qos-interface-buffer-pool-config;
+        }
+
+        container state {
+          config false;
+
+          description
+            "Operational data for the buffer-pool associated with the
+            interface";
+
+          uses qos-interface-buffer-pool-config;
+          uses qos-interface-buffer-pool-state;
+        }
+      }
+    }
+  }
+
+  grouping qos-global-buffer-pool-watermarks-state-top {
+    description
+      "Top level grouping for global level buffer pool watermarks
+      counters";
+
+    container watermarks {
+      description
+        "Watermark counters of global level buffer-pool";
+
+      leaf shared-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in shared buffer in bytes since last watermark clearance";
+      }
+
+      leaf shared-persistent-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in shared buffer in bytes since system up";
+      }
+      
+      leaf shared-periodic-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in shared buffer in bytes since last telemetry interval";
+      }
+
+      leaf multicast-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in multicast buffer in bytes since last watermark clearance";
+      }
+
+      leaf multicast-persistent-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in multicast buffer in bytes since system up";
+      }
+       
+      leaf multicast-periodic-watermark {
+        type oc-yang:counter64;
+        description
+          "occupancy watermark in multicast buffer in bytes since last telemetry interval";
+      }
+
+      leaf shared-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in shared buffer in percentage since last
+          watermark clearance";
+      }
+
+      leaf shared-persistent-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in shared buffer in percentage since system
+          up";
+      }
+      
+      leaf shared-periodic-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in shared buffer in percentage since last telemetry interval";
+      }
+
+      leaf multicast-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in multicast buffer in percentage since last
+          watermark clearance";
+      }
+
+      leaf multicast-persistent-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in multicast buffer in percentage since system
+          up";
+      }
+      
+      leaf multicast-periodic-watermark-percent {
+        type oc-types:percentage;
+        description
+          "occupancy watermark in multicast buffer in percentage since last telemetry interval";
+      }
+     
+    }
+  }
+  
+  grouping device-watermark-config{
+    description
+      "device watermark parameters";
+    leaf name {
+        type string;
+        default "switch";
+        description
+           "Resource name.";
+    }
+    leaf watermark {
+        type oc-yang:counter64;
+        description
+          "Device watermark in bytes since last watermark clearance";
+    }
+    leaf persistent-watermark{
+        type oc-yang:counter64;
+        description
+          "Persistent device watermark in bytes since system up";
+    }
+    leaf periodic-watermark{
+        type oc-yang:counter64;
+        description
+          "Periodic device watermark in bytes since last telemetry interval";
+    }
+    leaf watermark-percent {
+        type oc-types:percentage;
+        description
+          "Device watermark in percentage since last watermark clearance";
+    }
+    leaf persistent-watermark-percent{
+        type oc-types:percentage;
+        description
+          "Persistent device watermark in percentage since system up";
+    }
+    leaf periodic-watermark-percent{
+        type oc-types:percentage;
+        description
+          "Periodic device watermark in percentage since last telemetry interval";
+    }
+  }
+
+
+  grouping qos-device-watermark-top {
+    description
+      "Top level grouping for device watermark.";
+
+    container device-watermark {
+      description
+        "Device watermark parameter";
+
+      list device {
+        key "name";
+        description
+          "Device Name.";
+
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          default "switch";
+          description
+            "Key name";
+        }
+
+        container config {
+          description
+            "Configuration parameters of device watermark";
+
+          uses device-watermark-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters of device watermark";
+          uses device-watermark-config;
+        }
+      }
+    }
+  }
+  augment /oc-qos:qos/oc-qos:interfaces/oc-qos:interface {
+    description
+      "Configuration and operational pararmeters for buffer-pools under
+      interfaces";
+
+    uses qos-interface-buffer-pool-top;
+  }
+
+  augment
+  /oc-qos:qos/oc-qos-buffer:buffer/oc-qos-buffer:buffer-pools/oc-qos-buffer:buffer-pool/oc-qos-buffer:state
+  {
+    description
+      "Operational parameters for global level buffer-pool";
+
+    uses qos-global-buffer-pool-watermarks-state-top;
+  }
+  
+   augment
+  /oc-qos:qos/oc-qos-buffer:buffer
+  {
+      description
+          "Operational parameters for periodic device watermark";
+
+      uses qos-device-watermark-top;
+
+  }
+
+}

@@ -1,0 +1,111 @@
+module openconfig-pimv6 {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/pimv6";
+
+  prefix "oc-pimv6";
+
+  // import some basic types/interfaces
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-extensions { prefix "oc-ext"; }
+  import openconfig-pim { prefix "oc-pim"; }
+
+  // meta
+  organization
+    "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "An OpenConfig model for Protocol Independent Multicast (PIMv6).";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2022-03-09" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  grouping pimv6-gbl-ip-tib-state {
+    description
+      "Operational state IPv6 information of PIMv6 TIB.";
+
+    container ipv6-entries {
+      description
+        "Details about all IPv6 multicast entries present in PIMv6 protocol TIB.";
+
+      list ipv6-entry {
+        key "group-address";
+
+        description
+          "List of the IPv6 multicast entries present in PIMv6 protocol TIB.";
+
+        uses oc-pim:pim-gbl-ip-entry-key-refs-state;
+
+        container state {
+          description "Operational state information.";
+
+          leaf group-address {
+            type oc-inet:ipv6-address;
+            description
+              "IPv6 Multicast group-address";
+          }
+        }
+
+        uses oc-pim:pim-gbl-ip-src-entries-top;
+      }
+    }
+  }
+
+  grouping pimv6-gbl-tib-state {
+    description
+      "Operational state information of PIMv6 TIB.";
+
+    container tib {
+      config false;
+      description
+        "PIMv6 Protocol TIB state information.";
+
+      uses pimv6-gbl-ip-tib-state;
+    }
+  }
+
+  grouping pimv6-global-top {
+    description
+      "Top level grouping for global PIMv6 configuration.";
+
+    uses oc-pim:pim-global-cmn;
+    uses pimv6-gbl-tib-state;
+  }
+
+  grouping pimv6-top {
+    description
+      "Top-level grouping for PIMv6.";
+
+    container pimv6 {
+       description
+          "Top-level PIMv6 configuration and operational state.";
+
+       container global {
+          description
+             "This container defines global PIMv6 configuration and state
+             information.";
+          uses pimv6-global-top;
+       }
+
+       uses oc-pim:pim-interfaces-top;
+    }
+  }
+
+  // data definition statements
+}

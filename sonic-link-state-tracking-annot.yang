@@ -1,0 +1,5 @@
+module sonic-link-state-tracking-annot {
+    namespace "http://github.com/Azure/sonic-link-state-tracking-annot";
+    prefix slst-annot;
+    yang-version 1.1;
+}

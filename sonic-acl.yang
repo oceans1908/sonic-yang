@@ -1,0 +1,899 @@
+module sonic-acl {
+    namespace "http://github.com/Azure/sonic-acl";
+    prefix sacl;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-port {
+        prefix sprt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-interface {
+        prefix sint;
+    }
+
+    import sonic-mirror-session {
+        prefix sms;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC ACL";
+
+    revision 2020-02-20 {
+        description
+            "L2 ACL support and update must and when expressions.";
+    }
+
+    revision 2019-05-15 {
+        description
+            "Initial revision.";
+    }
+
+    typedef acl-stage {
+        description "ACL Binding stages";
+        type enumeration {
+            enum INGRESS;
+            enum EGRESS;
+        }
+    }
+
+    typedef acl-bind-points {
+        description "Ports/Locations on which ACL can be applied";
+        type union {
+            type leafref {
+                path "/sprt:sonic-port/sprt:PORT/sprt:PORT_LIST/sprt:ifname";
+            }
+            type leafref {
+                path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+            }
+            type leafref {
+                path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+            }
+            type leafref {
+                path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+            }
+            type enumeration {
+                enum Switch;
+                enum CtrlPlane;
+            }
+        }
+    }
+
+    typedef object-group-name {
+        description "IPV4/IPV6 Object Group Name";
+        type string {
+            pattern '[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,71})';
+            length 1..72;
+        }
+    }
+
+    typedef object-group-type {
+        type enumeration {
+            enum NETWORK;
+        }
+    }
+
+    //Acl Table
+    grouping acl-table-attributes {
+        description
+            "Grouping for Acl Table attributes";
+
+        leaf policy_desc {
+            type string {
+                length 1..255 {
+                    error-app-tag policy-desc-invalid-length;
+                }
+            }
+        }
+
+        leaf stage {
+            type acl-stage;
+        }
+
+        leaf type {
+            mandatory true;
+            sonic-ext:custom-validation ValidateLeafConstant;
+            type enumeration {
+                enum MIRROR;
+                enum L2;
+                enum L3;
+                enum L3V6;
+                enum TAM;
+            }
+        }
+    }
+
+    //Acl Client Acl Table Attributes
+    grouping acl-client-acl-table-attributes {
+        description
+            "Grouping for Acl Client Acl Table attributes";
+
+        leaf POLICY_DESC {
+            type string {
+                length 1..255 {
+                    error-app-tag policy-desc-invalid-length;
+                }
+            }
+        }
+
+        leaf STAGE {
+            type acl-stage;
+        }
+
+        leaf TYPE {
+            mandatory true;
+            sonic-ext:custom-validation ValidateLeafConstant;
+            type enumeration {
+                enum MIRROR;
+                enum L2;
+                enum L3;
+                enum L3V6;
+                enum TAM;
+            }
+        }
+    }
+
+    typedef vlan-tag-format {
+        description "Vlan tags format";
+        type enumeration {
+            enum multi-tagged;
+
+        }
+    }
+
+    //Acl Rule
+    grouping acl-rule-attributes {
+        description
+            "Groupings for Acl Rule attributes";
+
+        leaf PRIORITY {
+            type uint16 {
+                range "1..65535"{
+                    error-message "Invalid ACL rule priority.";
+                }
+            }
+        }
+
+        leaf DESCRIPTION {
+            type string {
+                length 1..255 {
+                    error-app-tag rule-desc-invalid-length;
+                }
+            }
+        }
+
+        leaf PACKET_ACTION {
+            type enumeration {
+                enum FORWARD;
+                enum DROP;
+                enum TRANSIT;
+                enum DISCARD;
+                enum REDIRECT;
+                enum INT_INSERT;
+                enum INT_DELETE;
+                enum MONITOR_DROPS;
+                enum DO_NOT_NAT;
+            }
+        }
+
+        leaf IP_TYPE {
+            when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3V6')";
+
+            sonic-ext:custom-validation ValidateAclRuleIPAddress;
+            type enumeration {
+                enum ANY;
+                enum IP;
+                enum IPV4;
+                enum IPV4ANY;
+                enum NON_IPV4;
+                enum IPV6ANY;
+                enum NON_IPV6;
+            }
+        }
+
+        leaf IP_PROTOCOL {
+            when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3V6')";
+            type uint8;
+        }
+
+        choice src_port {
+            when "(IP_PROTOCOL = '6') or (IP_PROTOCOL = '17')";
+            case l4_src_port {
+                leaf L4_SRC_PORT {
+                    type uint16;
+                }
+            }
+            case l4_src_port_range {
+                leaf L4_SRC_PORT_RANGE {
+                    type string {
+                        pattern "([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])(-)([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])";
+                    }
+                }
+            }
+        }
+
+        choice dst_port {
+            when "(IP_PROTOCOL = '6') or (IP_PROTOCOL = '17')";
+            case l4_dst_port {
+                leaf L4_DST_PORT {
+                    type uint16;
+                }
+            }
+            case l4_dst_port_range {
+                leaf L4_DST_PORT_RANGE {
+                    type string {
+                        pattern "([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])(-)([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])";
+                    }
+                }
+            }
+        }
+
+        leaf-list TCP_FLAGS {
+            when "current()/../IP_PROTOCOL = '6'";
+            type string {
+                pattern "0[xX][0-9a-fA-F]{1,2}[/]0[xX][0-9a-fA-F]{1,2}";
+            }
+        }
+
+        leaf ICMP_TYPE {
+            when "current()/../IP_PROTOCOL = '1'";
+            type uint8;
+        }
+
+        leaf ICMP_CODE {
+            when "current()/../IP_PROTOCOL = '1'";
+            type uint8;
+        }
+
+        leaf ICMPV6_TYPE {
+            when "current()/../IP_PROTOCOL = '58'";
+            type uint8;
+        }
+
+        leaf ICMPV6_CODE {
+            when "current()/../IP_PROTOCOL = '58'";
+            type uint8;
+        }
+
+        leaf DSCP {
+            when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3V6') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM')";
+            type uint8 {
+                range "0..63"{
+                    error-message "Invalid DSCP Value.";
+                }
+            }
+        }
+
+        leaf ECN {
+            sonic-ext:custom-validation ValidateLeafNotSupported;
+            when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3V6')";
+            type string {
+                pattern "[0-3]|[0-3]/[0-3]" {
+                    error-message "Invalid ECN Value.";
+                }
+            }
+        }
+
+        leaf VLAN {
+            type uint16 {
+                range "1..4094" {
+                    error-message "Vlan ID out of range";
+                    error-app-tag vlanid-invalid;
+                }
+            }
+        }
+    }
+
+    container sonic-acl {
+
+        container ACL_TABLE {
+
+            list ACL_TABLE_LIST {
+                key "aclname";
+                max-elements 1024; // Max 1K ACL tables for all platforms
+                sonic-ext:custom-validation ValidateAclTable;
+
+                leaf aclname {
+                    type string {
+                        pattern '[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,71})';
+                        length 1..72;
+                    }
+                }
+
+                leaf-list ports {
+                    type acl-bind-points;
+                }
+
+                uses acl-table-attributes;
+            }
+        }
+
+        container ACL_RULE {
+
+            list ACL_RULE_LIST {
+                key "aclname rulename";
+                max-elements 65536; // Max 64K ACL rules for all platforms
+
+                leaf aclname {
+                    type leafref {
+                        path "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST/aclname";
+                    }
+                }
+
+                leaf rulename {
+                    type string;
+                }
+
+                leaf MIRROR_ACTION {
+                    when "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'MIRROR'";
+                    type leafref {
+                        path "/sms:sonic-mirror-session/sms:MIRROR_SESSION/sms:MIRROR_SESSION_LIST/sms:name";
+                    }
+                }
+
+                leaf TAM_INT_TYPE {
+                    when "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM'";
+                    type enumeration {
+                        enum IFA;
+                    }
+                }
+
+                leaf ETHER_TYPE {
+                    must "(((/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM')) and (current() = '0x800')) or " +
+                          "(((/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L3V6') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM')) and ((current() = '0x86DD') or (current() = '0x86dd'))) or " +
+                          "((/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L2') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM'))" {
+                          error-message "Ethertype value invalid or not supported for this table type";
+                    }
+                    type string {
+                        pattern "0[xX][6-9a-fA-F][0-9a-fA-F]{2}|0[xX][1-9a-fA-F][0-9a-fA-F]{3}" {
+                            error-message "Invalid Ether Type";
+                            error-app-tag ether-type-invalid;
+                        }
+                    }
+                }
+
+                choice src_dst_address {
+                    case l2_src_dst_address {
+                        when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L2') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'TAM')";
+                        leaf SRC_MAC {
+                            type string {
+                                pattern "[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}|[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}/[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}";
+                            }
+                        }
+                        leaf DST_MAC {
+                            type string {
+                                pattern "[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}|[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}/[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}";
+                            }
+                        }
+                    }
+                    case ipv4_src_dst_address {
+                        when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'TAM')";
+                        leaf SRC_IP {
+                            type inet:ipv4-prefix;
+                        }
+                        leaf DST_IP {
+                            type inet:ipv4-prefix;
+                        }
+                    }
+                    case ipv6_src_dst_address {
+                        when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3V6') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/aclname]/type = 'TAM')";
+                        leaf SRC_IPV6 {
+                            type inet:ipv6-prefix;    
+                        }
+                        leaf DST_IPV6 {
+                            type inet:ipv6-prefix;    
+                        }
+                    }
+                }
+
+                leaf PCP {
+                    when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L2') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM')";
+                    type string {
+                        pattern "[0-7]|[0-7]/[0-7]" {
+                            error-message "Invalid PCP Value.";
+                        }
+                    }
+                }
+
+                leaf DEI {
+                    when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L2') or (/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'TAM')";
+                    type uint8 {
+                        range "0..1" {
+                            error-message "Invalid DEI Value.";
+                        }
+                    }
+                }
+
+                leaf VLAN_TAG_FORMAT {
+                    must "(not(current()/../ETHER_TYPE))" {
+                          error-message "Vlan-tag-format cannot be configured along with Ethertype";
+                    }
+                    when "(/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()/../aclname]/type = 'L2')";
+                    type vlan-tag-format;
+                }
+
+                leaf-list IN_PORTS {
+                    type leafref {
+                        path "/sprt:sonic-port/sprt:PORT/sprt:PORT_LIST/sprt:ifname";
+                    }
+                }
+
+                uses acl-rule-attributes;
+            }
+        }
+
+        container ACL_BINDING_TABLE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+            list ACL_BINDING_TABLE_LIST {
+                key "intfname stage";
+                leaf intfname {
+                    type acl-bind-points;
+                }
+
+                leaf stage {
+                    type acl-stage;
+                }
+
+                leaf-list L2 {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([a-zA-Z]+)\|'
+                            + '([a-zA-Z0-9_-]+)?\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '(Active|Inactive|Partial|Inprogress)\|(Redirect|Security)';
+                    }
+                    description "MAC ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Source>|<SIPGrpName>|<Priority>|<Status>|<Feature>. SIPGrpName can be empty as its optional.";
+                }
+
+                leaf-list L3 {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([a-zA-Z]+)\|'
+                            + '([a-zA-Z0-9_-]+)?\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '(Active|Inactive|Partial|Inprogress)\|(Redirect|Security)';
+                    }
+                    description "IP ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Source>|<SIPGrpName>|<Priority>|<Status>|<Feature>. SIPGrpName can be empty as its optional.";
+                }
+
+                leaf-list L3V6 {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([a-zA-Z]+)\|'
+                            + '([a-zA-Z0-9_-]+)?\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '(Active|Inactive|Partial|Inprogress)\|(Redirect|Security)';
+                    }
+                    description "IPV6 ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Source>|<SIPGrpName>|<Priority>|<Status>|<Feature>. SIPGrpName can be empty as its optional.";
+                }
+            }
+        }
+
+        container ACL_CLIENT_ACL_TABLE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+            list ACL_CLIENT_ACL_TABLE_LIST {
+                key "aclname";
+                max-elements 1024; // Max 1K ACL tables for all platforms
+
+                leaf aclname {
+                    type string {
+                        pattern '[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,71})';
+                        length 1..72;
+                    }
+                }
+
+                uses acl-client-acl-table-attributes;
+            }
+        }
+
+        container ACL_CLIENT_ACL_RULE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+
+            list ACL_CLIENT_ACL_RULE_LIST {
+                key "aclname rulename";
+                max-elements 65536; // Max 64K ACL rules for all platforms
+
+                leaf aclname {
+                    type leafref {
+                        path "/sonic-acl/ACL_CLIENT_ACL_TABLE/ACL_CLIENT_ACL_TABLE_LIST/aclname";
+                    }
+                }
+   
+                leaf rulename {
+                    type string;
+                }
+
+                choice src_dst_address {
+                    case ipv4_src_dst_address {
+                        when "(/sonic-acl/ACL_CLIENT_ACL_TABLE/ACL_CLIENT_ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3')";
+                        leaf SRC_IP {
+                            must "(not(current()/../SRC_IP_OBJECT_GROUP))" {
+                                error-message "Source IPv4 cannot be configured when Source IPv4 Object Group is configured";
+                            }
+                            type inet:ipv4-prefix;
+                        }
+                        leaf DST_IP {
+                            must "(not(current()/../DST_IP_OBJECT_GROUP))" {
+                                error-message "Destination IPv4 cannot be configured when Destination IPv4 Object Group is configured";
+                            }
+                            type inet:ipv4-prefix;
+                        }
+                    }
+                    case ipv6_src_dst_address {
+                        when "(/sonic-acl/ACL_CLIENT_ACL_TABLE/ACL_CLIENT_ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3V6')";
+                        leaf SRC_IPV6 {
+                            must "(not(current()/../SRC_IPV6_OBJECT_GROUP))" {
+                                error-message "Source IPv6 cannot be configured when Source IPv6 Object Group is configured";
+                            }
+                            type inet:ipv6-prefix;    
+                        }
+                        leaf DST_IPV6 {
+                            must "(not(current()/../DST_IPV6_OBJECT_GROUP))" {
+                                error-message "Destination IPv6 cannot be configured when Destination IPv6 Object Group is configured";
+                            }
+                            type inet:ipv6-prefix;    
+                        }
+                    }
+                }
+
+                choice src_dst_object_group {
+                    case ipv4_src_dst_object_group {
+                        when "(/sonic-acl/ACL_CLIENT_ACL_TABLE/ACL_CLIENT_ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3')";
+                        leaf SRC_IP_OBJECT_GROUP {
+                            must "(not(current()/../SRC_IP))" {
+                                error-message "Source IPv4 Object Group cannot be configured when Source IPv4 is configured";
+                            }
+                            type leafref {
+                                path "/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST/groupname";
+                            }
+                        }
+                        leaf DST_IP_OBJECT_GROUP {
+                            must "(not(current()/../DST_IP))" {
+                                error-message "Destination IPv4 Object Group cannot be configured when Destination IPv4 is configured";
+                            }
+                            type leafref {
+                                path "/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST/groupname";
+                            }
+                        }
+                    }
+                    case ipv6_src_dst_object_group {
+                        when "(/sonic-acl/ACL_CLIENT_ACL_TABLE/ACL_CLIENT_ACL_TABLE_LIST[aclname=current()/aclname]/type = 'L3V6')";
+                        leaf SRC_IPV6_OBJECT_GROUP {
+                            must "(not(current()/../SRC_IPV6))" {
+                                error-message "Source IPv6 Object Group cannot be configured when Source IPv6 is configured";
+                            }
+                            type leafref {
+                                path "/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST/groupname";
+                            }
+                        }
+                        leaf DST_IPV6_OBJECT_GROUP {
+                            must "(not(current()/../DST_IPV6))" {
+                                error-message "Destination IPv6 Object Group cannot be configured when Destination IPv6 is configured";
+                            }
+                            type leafref {
+                                path "/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST/groupname";
+                            }
+                        }
+                    }
+                }
+
+                uses acl-rule-attributes;
+            }
+        }
+
+        container ACL_CLIENT_ACL_BINDING_TABLE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+            list ACL_CLIENT_ACL_BINDING_TABLE_LIST {
+                key "intfname";
+
+                leaf intfname {
+                    type acl-bind-points;
+                }
+
+                leaf-list IPV4_SECURITY_ING_ACL {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '([a-zA-Z0-9_-]+)?';
+                    }
+                    description "ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Priority>|<ObjectGroup>. ObjectGroup can be empty as its optional.";
+                }
+
+/*
+                leaf-list IPV4_REDIRECT_ING_ACL {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '([a-zA-Z0-9_-]+)?';
+                    }
+                    description "ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Priority>|<ObjectGroup>. ObjectGroup can be empty as its optional.";
+                }
+*/
+
+                leaf-list IPV6_SECURITY_ING_ACL {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '([a-zA-Z0-9_-]+)?';
+                    }
+                    description "ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Priority>|<ObjectGroup>. ObjectGroup can be empty as its optional.";
+                }
+
+/*
+                leaf-list IPV6_REDIRECT_ING_ACL {
+                    type string {
+                        pattern '([a-zA-Z0-9_-]+)\|'
+                            + '([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])\|'
+                            + '([a-zA-Z0-9_-]+)?';
+                    }
+                    description "ACL associated to the interface. Each leaf is in the format
+                        <AclName>|<Priority>|<ObjectGroup>. ObjectGroup can be empty as its optional.";
+                }
+*/
+            }
+        }
+
+        container ACL_CLIENT_OBJECT_GROUP_TABLE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+            list ACL_CLIENT_OBJECT_GROUP_TABLE_LIST {
+                key "groupname";
+                max-elements 256; // Max 256 Object group tables for all platforms
+
+                leaf groupname {
+                    type object-group-name;
+                }
+
+                leaf group-type {
+                    mandatory true;
+                    type object-group-type;
+                }
+
+                leaf DESCRIPTION {
+                    type string {
+                        length 1..255 {
+                            error-app-tag group-desc-invalid-length;
+                        }
+                    }
+                }
+
+                leaf AF_TYPE {
+                    mandatory true;
+                    type enumeration {
+                        enum IPV4;
+                        enum IPV6;
+                    }
+                }
+            }
+        }
+
+        container ACL_CLIENT_OBJECT_GROUP_ENTRY_TABLE {
+            sonic-ext:db-name "STATE_DB";
+            sonic-ext:key-delim "|";
+            config false;
+
+            list ACL_CLIENT_OBJECT_GROUP_ENTRY_TABLE_LIST {
+                key "groupname entryname";
+                max-elements 65536; // Max 64K Object Group entries for all platforms
+
+                leaf groupname {
+                    type leafref {
+                        path "/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST/groupname";
+                    }
+                }
+
+                leaf entryname {
+                    type string;
+                }
+
+                leaf DESCRIPTION {
+                    type string {
+                        length 1..255 {
+                            error-app-tag entry-desc-invalid-length;
+                        }
+                    }
+                }
+
+                leaf IPV4_ADDR {
+                    type inet:ipv4-address;
+                    when "(/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST[groupname=current()/../groupname]/AF_TYPE = 'IPV4')";
+                    must "(not(current()/../IPV6_ADDR))" {
+                        error-message "Configuring IPv4 and IPv6 fields in the same entry is not allowed.";
+                    }
+                }
+
+                leaf IPV6_ADDR {
+                    type inet:ipv6-address;
+                    when "(/sonic-acl/ACL_CLIENT_OBJECT_GROUP_TABLE/ACL_CLIENT_OBJECT_GROUP_TABLE_LIST[groupname=current()/../groupname]/AF_TYPE = 'IPV6')";
+                    must "(not(current()/../IPV4_ADDR))" {
+                        error-message "Configuring IPv4 and IPv6 fields in the same entry is not allowed.";
+                    }
+                }
+            }
+        }
+    }
+
+    rpc clear-acl-counters {
+        description "Clear ACL counters by ACL name and interface. ACL Type is mandatory. If ACL name is specified," +
+            "it will clear aggregate or per interface counters ACL counters depending on the counter mode set. " +
+            "Interface name is optional and can be specified only when counter mode is set to per-interface";
+
+        input {
+            leaf aclname {
+                type string {
+                    pattern '[a-zA-Z0-9]{1}([-a-zA-Z0-9_]{0,71})';
+                    length 1..72;
+                }
+            }
+
+            leaf type {
+                type enumeration {
+                    enum L2;
+                    enum L3;
+                    enum L3V6;
+                }
+            }
+
+            leaf ifname {
+                type acl-bind-points;
+            }
+        }
+
+        output {
+            leaf status {
+                type enumeration {
+                    enum SUCCESS;
+                    enum INVALID_PAYLOAD;
+                    enum ACL_TYPE_MISMATCH;
+                    enum ACL_NOT_FOUND;
+                    enum ACL_BINDING_NOT_FOUND;
+                    enum COUNTER_MODE_MISMATCH;
+                    enum FAILED;
+                }
+            }
+
+            leaf status-detail {
+                type string;
+                description "Indicates the detailed status message in case of failure";
+            }
+        }
+    }
+
+    rpc get-object-groups {
+        description
+            "RPC to retrieve the object-group data. The object-group name and object-group type are optional.
+            If no object-group name is specified then all object-groups with the matching type will be retrieved.
+            If no object-group type is provided then all object-groups will be retrieved.";
+
+        input {
+            leaf GROUP_NAME {
+                type object-group-name;
+                description
+                    "Name of the object group to retrieved. (Optional)";
+            }
+            leaf GROUP_TYPE {
+                type object-group-type;
+                description
+                    "Type of the object group to retrieved. (Optional)";
+            }
+        }
+        output {
+            list OBJECT_GROUPS {
+                key GROUP_NAME;
+
+                leaf GROUP_NAME {
+                    type string;
+                }
+
+                leaf GROUP_TYPE {
+                    type object-group-type;
+                }
+
+                leaf DESCRIPTION {
+                    type string;
+                }
+
+                leaf IP_TYPE {
+                    type string;
+                }
+
+                list ENTRIES {
+                    key ENTRY_NAME;
+
+                    leaf ENTRY_NAME {
+                        type string;
+                    }
+
+                    leaf DESCRIPTION {
+                        type string;
+                    }
+
+                    leaf IP {
+                        type string;
+                    }
+
+                    leaf IPV6 {
+                        type string;
+                    }
+                }
+
+                list INTERFACES {
+                    key NAME;
+
+                    leaf NAME {
+                        type string;
+                    }
+
+                    list ACL_ENTRIES {
+                        key ACL_NAME;
+
+                        leaf ACL_NAME {
+                            type string;
+                        }
+
+                        leaf TYPE {
+                            type string;
+                        }
+                    }
+                }
+
+                list ACL_ENTRIES {
+                    key ACL_NAME;
+
+                    leaf ACL_NAME {
+                        type string;
+                    }
+
+                    leaf COUNT {
+                        type string;
+                    }
+
+                    leaf TYPE {
+                        type string;
+                    }
+                }
+            }
+        }
+    }
+}
+

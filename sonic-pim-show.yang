@@ -1,0 +1,143 @@
+module sonic-pim-show {
+    namespace "http://github.com/Azure/sonic-pim-show";
+    prefix spimshow;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for RPC based PIM show.";
+
+    revision 2021-10-20 {
+        description "Added model support for PIM-SM";
+    }
+
+    revision 2021-10-06 {
+        description "Added support for IPv6 address family.";
+    }
+
+    revision 2020-01-20 {
+        description
+            "Initial revision.";
+    }
+
+    typedef show-pim-query-type {
+        description "Query type that specifies various different ways to fetch the PIM-protocol information based on various filters";
+
+        type enumeration {
+            enum RPF {
+                description "To fetch all RPF information from PIM Protocol TIB";
+            }
+            enum RP_INFO { 
+                description "To fetch all learned multicast group and their RP";
+            }
+            enum ASSERT {
+                description "To fetch all the assert related information";
+            }
+            enum MULTICAST {
+                description "To fetch all the multicast related information";
+            }
+        }
+    }
+
+    rpc show-pim {
+        description "RPC for fetch PIM Protocol information based on various different options";
+
+        input {
+            leaf vrf-name {
+                type string;
+                default "default";
+                description
+                    "Fetches PIM Protocol information for a given VRF name. If VRF name is not present, the default VRF is used";
+            }
+
+            leaf address-family {
+                type enumeration {
+                    enum IPV4_UNICAST;
+                    enum IPV6_UNICAST;
+                }
+                default "IPV4_UNICAST";
+                description
+                    "Address family(IPv4/IPv6)";
+            }
+
+            leaf query-type {
+                type show-pim-query-type;
+                mandatory true;
+                description
+                    "Query type that specifies various ways to fetch the PIM Protocol information based on various filters.
+                    It represent the choice mentioned below. And then relevant attributes should be filled to fetch the PIM protocol information.
+                    This is a mandatory parameter.";
+            }
+
+            choice type {
+                case RPF {
+                    description
+                        "query-type attribute should be RPF. Fetch the RPF information from PIM Protocol TIB";
+
+                    leaf rpf {
+                        type boolean;
+                        default false;
+                        description "True : to fetch RPF information from PIM Protocol TIB";
+                    }
+                }
+                case RPINFO {
+                    description 
+                       "query-type attribure should be set to RPINFO. Fetches all the learned groups and
+                        their correspondins RP details";
+                    
+                    leaf rpinfo {
+                        type boolean;
+                        default false;
+                        description "True : to fetch RP information for all learned groups";
+                    }
+
+                    leaf rpinfo-per-group-addr {
+                        type inet:ip-address;
+                        description "Group-address for which the RP details to
+                                     be fetched";
+                    }
+                } 
+                case ASSERT {
+                    description
+                        "Fetches the assert related information. Set the query-type attribute to ASSERT.";
+
+                    leaf assert {
+                        type boolean;
+                        default false;
+                        description "True : to fetch ASSERT information";
+                    }
+                }
+                case MULTICAST {
+                    description
+                        "query-type attribute should be multicast. Fetch the multicast information from PIM Protocol TIB";
+
+                    leaf multicast {
+                        type boolean;
+                        default false;
+                        description
+                            "Retrieves multicast information for default VRF (if no name specified), specific VRFs and all VRFs.
+                            Details fetched are about dynamic multicast routes, upstream join timer, join/prune time, rpf cache refresh information and interface related details";
+                    }
+                }
+            }
+        }
+
+        output {
+            leaf status {
+                type string;
+                description
+                    "On success, returns PIM Protocol information in JSON string format.";
+            }
+        }
+    }
+
+}

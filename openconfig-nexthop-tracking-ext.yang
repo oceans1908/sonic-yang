@@ -1,0 +1,321 @@
+module openconfig-nexthop-tracking-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/nexthop-tracking/extension";
+
+  prefix "oc-nexthop-tracking-ext";
+
+  // import some basic types
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-network-instance { prefix oc-netinst; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-policy-types { prefix "oc-policy-types"; }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module describes a YANG model for Nexthop resolution
+    configuration extensions.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2021-08-18" {
+    description
+      "Add Nexthop rule extension features.";
+    reference "0.1.0";
+  }
+
+  identity NHT_NEXTHOP_TYPE {
+    description
+      "Route Nexthop gateway type base";
+  }
+
+  identity NHT_NEXTHOP_TYPE_IPV4 {
+    base "NHT_NEXTHOP_TYPE";
+    description
+      "Route Nexthop gateway type IPv4 address";
+  }
+
+  identity NHT_NEXTHOP_TYPE_IPV6 {
+    base "NHT_NEXTHOP_TYPE";
+    description
+      "Route Nexthop gateway type IPv6 address";
+  }
+
+  identity NHT_NEXTHOP_TYPE_INTERFACE {
+    base "NHT_NEXTHOP_TYPE";
+    description
+      "Route Nexthop gateway type is directly connected interface";
+  }
+
+  identity NHT_NEXTHOP_TYPE_BLACKHOLE {
+    base "NHT_NEXTHOP_TYPE";
+    description
+      "Route Nexthop gateway type is blackhole";
+  }
+
+  identity PROTOCOL_ANY {
+    base oc-policy-types:INSTALL_PROTOCOL_TYPE;
+    description
+      "Network instance protocol type any";
+  }
+
+  grouping nexthop-tracking-ext-global-config {
+    description
+      "Configuration data for nexthop rule within a network instance";
+
+    leaf family {
+      type oc-inet:ip-version;
+      description
+        "IP address family";
+    }
+
+    leaf resolve-via-default {
+      type boolean;
+      description
+        "Enable or disable Nexthop resolution via default route";
+    }
+  }
+
+  grouping nexthop-tracking-ext-route-clients-state {
+    description
+     "Client entries for a route";
+
+    container clients{
+      description
+        "list of clients";
+
+      list client {
+        key "protocol";
+
+        leaf protocol {
+          type leafref {
+            path "../state/protocol";
+          }
+          description
+            "Reference to client protocol";
+        }
+        description
+          "List of client protocols";
+
+        container state {
+          config false;
+          description
+            "state information for a route client";
+
+          leaf protocol {
+            type identityref {
+              base "oc-policy-types:INSTALL_PROTOCOL_TYPE";
+            }
+            description
+              "Route client protocol";
+          }
+
+          leaf filtered {
+            type boolean;
+            description
+              "Route is filtered ";
+          }
+
+          leaf socket-fd{
+            type uint32;
+            description
+              "Protocol socket FD";
+          }
+        }
+      }
+    }
+  }
+
+  grouping nexthop-tracking-ext-route-nexthops-state {
+    description
+     "Route nexthop entries";
+
+    container nexthops {
+      description
+        "list of nexthops";
+
+      list nexthop {
+        key "type gateway out-interface";
+
+        leaf type {
+          type leafref {
+            path "../state/type";
+          }
+          description
+            "Reference to Next hop type";
+        }
+
+        leaf gateway {
+          type leafref {
+            path "../state/gateway";
+          }
+          description
+            "Reference to Next hop gateway address";
+        }
+
+        leaf out-interface {
+          type leafref {
+            path "../state/out-interface";
+          }
+          description
+            "Reference to Next hop outgoing interface name";
+        }
+
+        description
+          "List of nexthops with ecmp legs";
+
+        container state {
+          config false;
+          description
+            "state information for a single nexthop";
+
+          leaf type {
+            type identityref {
+              base "NHT_NEXTHOP_TYPE";
+            }
+            description
+              "Nexthop type, can be ipv4/6, interface or blackhole";
+          }
+
+          leaf gateway {
+            type oc-inet:ip-address;
+            description
+              "Next hop address";
+          }
+
+          leaf out-interface {
+            type string;
+            description
+              "Outgoing interface name";
+          }
+        }
+      }
+    }
+  }
+
+  grouping nexthop-tracking-ext-routes-state {
+    description
+     "Nexthop tracking route entries";
+
+    container routes {
+      config false;
+      description
+        "Route list";
+
+      list route {
+        key "prefix";
+
+        leaf prefix {
+          type leafref {
+            path "../state/prefix";
+          }
+          description
+            "Reference to the prefix address in the route table";
+        }
+        description
+          "List of routes";
+
+        container state {
+          config false;
+          description
+            "state information for a one route entry";
+
+          leaf prefix {
+            type oc-inet:ip-prefix;
+            description
+              "IP route prefix";
+          }
+
+          leaf connected {
+            type boolean;
+            description
+              "Route is connected";
+          }
+
+          leaf status {
+            type string;
+            description
+              "This states the functional state of the route";
+          }
+
+          leaf psuedowires {
+            type string;
+            description
+              "Psuedowire name";
+          }
+
+          leaf update-sent {
+            type boolean;
+            description
+              "Route update sent or not";
+          }
+
+          leaf last-update-time{
+            type uint32;
+            description
+              "Route last update time";
+          }
+        }
+
+        uses nexthop-tracking-ext-route-nexthops-state;
+        uses nexthop-tracking-ext-route-clients-state;
+      }
+    }
+  }
+
+  grouping nexthop-tracking-ext-top {
+    description
+      "Configuration data for next hop resolution";
+
+    container nexthop-tracking {
+      description
+        "Operational state parameters relating to Next hop resolutions.";
+
+        list address-family {
+          key "family";
+
+          leaf family {
+            type leafref {
+              path "../config/family";
+            }
+            description
+              "Reference to the address family in the route table";
+          }
+
+          description
+            "Address family list";
+
+          container config {
+            description
+              "Configuration parameters relating to Next hop resolutions.";
+
+            uses nexthop-tracking-ext-global-config;
+          }
+
+          container state {
+            config false;
+            description
+              "Operational state parameters relating to Next hop resolutions.";
+
+            uses nexthop-tracking-ext-global-config;
+         }
+
+         //uses nexthop-tracking-ext-routes-state;
+      }
+    }
+  }
+
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance" {
+    description
+      "Nexthop tracking configuration and state information";
+
+    uses nexthop-tracking-ext-top;
+  }
+}

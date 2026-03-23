@@ -1,0 +1,50 @@
+module openconfig-policy-types-ext {
+
+  yang-version "1.1";
+
+  // namespace
+   namespace "http://openconfig.net/yang/policy-types/extension";
+
+   prefix "oc-pol-types-ext";
+
+  // import some basic types
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-policy-types { prefix "oc-pol-types"; }
+
+  organization
+    "OCP SONiC Subproject";
+
+  contact
+    "OCP SONiC Subproject Working Group";
+
+  description
+    "This module contains extensions for general data definitions for use in routing
+    policy.  It can be imported by modules that contain protocol-
+    specific policy conditions and actions.";
+
+  oc-ext:openconfig-version "1.0.1";
+
+  revision "2024-08-30" {
+    description
+      "Add attached host protocol type.";
+    reference "1.0.1";
+  }
+
+  revision "2023-10-17" {
+    description
+      "Add OpenConfig module extensions for policy-types.";
+    reference "1.0.0";
+  }
+
+  identity SYS_KERNEL {
+    base "oc-pol-types:INSTALL_PROTOCOL_TYPE";
+    description
+      "Route prefix contributed by Kernel";
+  }
+
+  identity ATTACHED_HOST {
+    base "oc-pol-types:INSTALL_PROTOCOL_TYPE";
+    description
+      "Route prefix contributed by ARP/ND";
+  }
+}

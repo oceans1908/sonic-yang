@@ -1,0 +1,41 @@
+module sonic-frr-nd-clear {
+   namespace "http://github.com/Azure/sonic-frr-nd-clear";
+    prefix sfrrndclear;
+    yang-version 1.1;
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for FRR ND clear options";
+
+    revision 2023-02-02 {
+        description
+            "Initial revision.";
+    }
+
+   rpc clear-frr-nd {
+
+    description "RPC for clearing RA enabled interfaces. Input can be :
+        1. Specific RA enabled interface.";
+
+    input {
+        leaf interface {
+            type string;
+            description
+                "Interface name on which the RA information has to be cleared";
+        }
+    }
+
+    output {
+        leaf status {
+            type string;
+            description
+                "Success / failure in clear operation execution request.";
+        }
+    }
+  }
+}

@@ -1,0 +1,282 @@
+module openconfig-switch-resource {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/system/switch-resource/extension";
+
+  prefix "oc-swresource";
+
+  // import some basic types
+  import openconfig-extensions { prefix oc-ext; }
+
+  // meta
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module contains a collection of YANG definitions for the
+    Switch Resources Management for resource like Exact Match Entries.
+    It has Global settings.";
+
+  revision "2020-07-27" {
+    description
+      "Initial draft revision.";
+    reference "1.0.2";
+  }
+
+  oc-ext:openconfig-version "1.0.2";
+
+  // typedef statements
+
+  typedef switch-resource-type {
+    type enumeration {
+      enum DROP_MONITOR {
+        description
+          "Drop Monitor Resource";
+      }
+      enum ROUTE_SCALE {
+        description
+          "Route Scale Resource";
+      }
+      enum VLAN_STACKING {
+        description
+          "Vlan Stacking";
+      }
+      enum L2_NEXTHOP_GROUP {
+        description
+          "l2 nexthop group";
+      }
+      enum ECMP_GROUP {
+        description
+           "Ecmp Group";
+      }
+    }
+    description
+      "The Different Resource Types of Switch Resource Management  ";
+
+  }
+
+  typedef flow-scale-limit {
+    type enumeration {
+      enum "NONE" {
+        description
+          "No flow scale configured.";
+      }
+      enum "MIN" {
+        description
+          "minumum flow scale configured.";
+      }
+    }
+    description
+      "Drop Monitor Flow Scale Options";
+
+  }
+
+  typedef route-scale-limit {
+    type enumeration {
+      enum "DEFAULT" {
+        description
+          "No route scale configured.";
+      }
+      enum "MAX" {
+        description
+          "Maximum route scale configured.";
+      }
+      enum "MAX_V6" {
+        description
+          "Maximum ipv6 route scale configured.";
+      }
+      enum "V4_V6_MAX" {
+        description
+          "Maximum ipv4 and ipv6 route scale configured.";
+      }
+    }
+    description
+      "Route Scale Options";
+
+  }
+
+  typedef ecmp-group-partition-limit {
+    type enumeration {
+      enum "512" {
+        description
+          "Level-1 NHG scale of 512 configured.";
+      }
+      enum "1024" {
+        description
+          "Level-1 NHG scale of 1024 configured.";
+      }
+      enum "1536" {
+        description
+          "Level-1 NHG scale of 1536 configured.";
+      }
+      enum "2048" {
+        description
+          "Level-1 NHG scale of 2048 configured.";
+      }
+      enum "2560" {
+        description
+          "Level-1 NHG scale of 2560 configured.";
+      }
+      enum "3072" {
+        description
+          "Level-1 NHG scale of 3072 configured.";
+      }
+      enum "3584" {
+        description
+          "Level-1 NHG scale of 3584 configured.";
+      }
+    }
+    description
+      "ECMP Group Partition Level-1 Options";
+
+  }
+
+
+  typedef host-scale-limit {
+    type enumeration {
+      enum "DEFAULT" {
+        description
+          "No host scale configured.";
+      }
+      enum "L2_L3" {
+        description
+          "L2_L3 host scale configured.";
+      }
+      enum "L2_L3_BALANCED" {
+        description
+          "L2_L3_BALANCED host scale configured.";
+      }
+    }
+    description
+      "Host Scale Options";
+
+  }
+
+  typedef vlan-stacking-type {
+    type enumeration {
+      enum DISABLED {
+        description
+          "Vlan stacking not enabled.";
+      }
+      enum ENABLED {
+        description
+          "Vlan stacking enabled.";
+      }
+    }
+    description
+      "Vlan stacking Options";
+
+  }
+
+  typedef l2-nexthop-group-type {
+    type enumeration {
+      enum DISABLED {
+        description
+          "L2 Nexthop Group not enabled.";
+      }
+      enum ENABLED {
+        description
+          "L2 Nexthop Group enabled.";
+      }
+    }
+    description
+      "L2 Nexthop Group Options";
+
+  }
+
+  // grouping statements
+
+  grouping switch-resource-config {
+    description
+      "Switch Resources Configuration parameters";
+    leaf name {
+      type switch-resource-type;
+
+      description
+        "Resource name.";
+    }
+
+    leaf flows {
+      type flow-scale-limit;
+      description
+        "Drop Monitor Flow Scale  limit";
+    }
+
+    leaf routes {
+      type route-scale-limit;
+      description
+        "Route Scale limit";
+    }
+
+    leaf level-1-partition {
+      when "../name='ECMP_GROUP'";
+      type ecmp-group-partition-limit;
+      description
+        "ECMP Group level-1 partition limit";
+    }
+
+    leaf hosts {
+      type host-scale-limit;
+      description
+        "Host Scale limit";
+    }
+
+    leaf vlan-stacking {
+      when "../name='VLAN_STACKING'";
+      type vlan-stacking-type;
+      description
+        "Vlan Stacking enabled or disabled";
+    }
+
+    leaf l2-nexthop-group {
+      when "../name='L2_NEXTHOP_GROUP'";
+      type l2-nexthop-group-type;
+      description
+        "L2 Nexthop group enabled or disabled";
+    }
+  }
+
+  grouping switch-resource-top {
+    description
+      "Top level grouping for attributes for Switch Resources .";
+
+    container swresource {
+      description
+        "Parameters related to switch resource manager configuration and status.";
+
+      list resource {
+        key "name";
+        description
+          "Switch Resource Name.";
+
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          description
+            "Key name";
+        }
+
+        container config {
+          description
+            "Configuration parameters of Switch Resources";
+
+          uses switch-resource-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters of Switch Resources";
+          uses switch-resource-config;
+        }
+      }
+    }
+  }
+}

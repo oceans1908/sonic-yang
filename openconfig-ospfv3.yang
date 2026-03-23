@@ -1,0 +1,130 @@
+module openconfig-ospfv3 {
+
+  yang-version "1.1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/ospfv3";
+
+  prefix "oc-ospfv3";
+
+  import openconfig-extensions { prefix oc-ext; }  
+  import openconfig-ospf-common { prefix oc-ospf-cmn; }
+
+  organization
+    "OCP SONiC Subproject";
+
+  contact
+    "OCP SONiC Subproject Working Group";
+
+  description
+    "An OpenConfig model for Open Shortest Path First (OSPF)
+    version 3 extensions ";
+
+  oc-ext:openconfig-version "0.1.1";
+
+  revision "2024-04-05" {
+    description
+      "Add OSPFv3 yang extensions for FRR config and show";
+    reference
+      "0.1.1";
+  }
+
+  grouping ospfv3-global-structural {
+    description
+      "Top level structural grouping for OSPFv3 global parameters";
+
+    container global {
+      description
+        "Configuration and operational state parameters for settings
+        that are global to the OSPFv3 instance";      
+
+      container config {
+        description
+          "Global configuration parameters for OSPFv3";
+        uses oc-ospf-cmn:ospf-routerid-config;
+      }
+
+      container state {
+        config false;
+        description
+          "Operational state parameters for OSPFv3";
+        uses oc-ospf-cmn:ospf-routerid-config;
+      }
+
+      container graceful-restart {
+        description
+          "Configuration and operational state parameters for OSPFv3
+          graceful restart";
+
+        container config {
+          description
+            "Configuration parameters relating to OSPFv3 graceful
+            restart";
+          uses oc-ospf-cmn:ospf-global-graceful-restart-config;
+        }
+
+        container state {
+          config false;
+          description
+            "Operational state parameters relating to OSPFv3 graceful
+            restart";
+          uses oc-ospf-cmn:ospf-global-graceful-restart-config;
+        }
+      }
+    }
+  }
+
+  grouping ospfv3-area-structure {
+    description
+      "Structural grouping for configuration and operational state
+      parameters that relate to an individual area";
+
+    container config {
+      description
+        "Configuration parameters relating to an OSPFv3 area";
+
+      uses oc-ospf-cmn:ospf-area-config;
+    }
+
+    container state {
+      config false;
+      description
+        "Operational state parameters relating to an OSPFv3 area";
+      uses oc-ospf-cmn:ospf-area-config;
+    }     
+  }
+
+  grouping ospfv3-top {
+    description
+      "Top-level OSPF configuration and operational state";
+
+    container ospfv3 {
+      description
+        "Top-level configuration and operational state for
+        Open Shortest Path First OSPFv3";
+
+    uses ospfv3-global-structural;
+
+    container areas {
+        description
+          "Configuration and operational state relating to
+	         OSPFv3 area.";
+
+        list area {
+          key "identifier";
+          description
+            "The OSPFv3 areas within which the local system exists";
+          leaf identifier {
+            type leafref {
+              path "../config/identifier";
+            }
+            description
+              "A reference to the identifier for the area.";
+          }
+          uses ospfv3-area-structure;
+        }
+      }
+    }
+  }
+
+}

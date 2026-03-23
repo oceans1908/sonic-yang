@@ -1,0 +1,371 @@
+module sonic-error-database {
+  namespace "http://github.com/Azure/sonic-error-database";
+  prefix error-database;
+  yang-version 1.1;
+
+  import sonic-extension {
+    prefix sonic-ext;
+  }
+
+  import ietf-yang-types {
+    prefix yang;
+  }
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+
+  import sonic-vrf {
+    prefix svrf;
+  }
+ 
+  import sonic-interface {
+    prefix sint;
+  }
+
+  import sonic-portchannel-interface {
+    prefix spcint;
+  }
+
+  import sonic-vlan-interface {
+    prefix svlanint;
+  }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "SONiC Error-Database yang model";
+
+  revision 2022-10-12 {
+    description
+      "Initial revision";
+  }
+
+  grouping sonic-rc-operation-codes {
+    description
+      "Grouping for all return codes and operations";
+
+    leaf rc {
+      type enumeration {
+        enum SWSS_RC_SUCCESS;
+        enum SWSS_RC_INVALID_PARAM;
+        enum SWSS_RC_UNAVAIL;
+        enum SWSS_RC_NOT_FOUND;
+        enum SWSS_RC_NO_MEMORY;
+        enum SWSS_RC_EXISTS;
+        enum SWSS_RC_TABLE_FULL;
+        enum SWSS_RC_IN_USE;
+        enum SWSS_RC_NOT_IMPLEMENTED;
+        enum SWSS_RC_FAILURE;
+        enum SWSS_RC_INVALID_OBJECT_ID;
+        enum SWSS_RC_INSUFFICIENT_RESOURCES;
+        enum SWSS_RC_UNKNOWN;
+      }
+    }
+
+    leaf operation {
+      type string; 
+    }
+  }
+
+  grouping sonic-error-route-table {
+    leaf vrf_name {
+      type union {
+        type string {
+          pattern "default";
+        }
+        type leafref {
+          path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+        }
+      }
+    }
+
+    leaf prefix {
+      type inet:ip-prefix;
+    }
+
+    leaf nexthop_group {
+      type uint32;
+      description
+        "Nexthop group id, Nexthop Info is derived from group id";
+    }
+
+    leaf ifname {
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+        type leafref {
+          path "/svlanint:sonic-vlan-interface/svlanint:VLAN_INTERFACE/svlanint:VLAN_INTERFACE_LIST/svlanint:vlanName";
+        }
+        type leafref {
+          path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+        }
+      }
+    }
+
+  }
+
+  grouping sonic-error-neighbor-table {
+    leaf ipaddress {
+      type inet:ip-address;
+    }
+
+    leaf neigh{
+      type yang:mac-address;
+    }
+
+    leaf ifname {
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+        type leafref {
+          path "/svlanint:sonic-vlan-interface/svlanint:VLAN_INTERFACE/svlanint:VLAN_INTERFACE_LIST/svlanint:vlanName";
+        } 
+        type leafref {
+          path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+        } 
+      }
+    }
+
+  }
+
+  grouping sonic-error-ipmc-route-table {
+    leaf vrf_name {
+      type union {
+        type string {
+          pattern "default";
+        }
+        type leafref {
+          path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+        }
+      }
+    }
+
+    leaf source_ip {
+      type inet:ip-address;
+    }
+
+    leaf group_ip {
+      type inet:ip-address;
+    }
+
+    leaf in_interface {
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+        type leafref {
+          path "/svlanint:sonic-vlan-interface/svlanint:VLAN_INTERFACE/svlanint:VLAN_INTERFACE_LIST/svlanint:vlanName";
+        }
+        type leafref {
+          path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+        }
+      }
+    }
+
+    leaf-list out_interfaces {
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+        type leafref {
+          path "/svlanint:sonic-vlan-interface/svlanint:VLAN_INTERFACE/svlanint:VLAN_INTERFACE_LIST/svlanint:vlanName";
+        }
+        type leafref {
+          path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+        }
+      }
+    }
+
+  }
+
+
+  grouping sonic-error-vlan-stacking-table {
+  
+    description
+      "Grouping for error-stacking-table-data";
+
+    leaf map_type {
+
+      type enumeration {
+        enum TUNNEL;
+        enum TRANSLATE;
+      }
+      description "Type of vlan-mapping TUNNEL or TRANSLATE.";
+    }
+
+    leaf ifname {
+
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+      }
+      description
+        "Interface name";
+      }
+
+    leaf cvlan_ids {
+      type string;
+      description
+          "Represents single or double customer VLAN tags. Example  30 for single tag,
+           and 60_70 for double tags, where 60 is outer CVLAN and 70 is inner CVLAN.";
+    }
+
+    leaf s_vlan {
+      type string;
+      description "Service VLAN i.e Vlan20";
+    }
+
+    leaf s_vlan_priority {
+      type uint8 {
+        range "0..7";
+      }
+      description "priority for Service VLAN";
+    }
+
+    leaf multitag {
+         type boolean;
+                    description "Supports multitag(max 3 tag) traffic if true when SVLAN is mapped to VXLAN";
+    }
+  }
+
+  grouping sonic-error-vlan-member-table {
+
+    description
+      "Grouping for error-vlan-member-table-data";
+
+
+    leaf vlan_member {
+      type union {
+        type leafref {
+          path "/sint:sonic-interface/sint:INTERFACE/sint:INTERFACE_LIST/sint:portname";
+        }
+        type leafref {
+          path "/spcint:sonic-portchannel-interface/spcint:PORTCHANNEL_INTERFACE/spcint:PORTCHANNEL_INTERFACE_LIST/spcint:pch_name";
+        }
+      }
+    }
+
+    leaf vlan {
+      type string;
+      description "Vlan i.e Vlan20";
+    }
+
+    leaf tagging_mode {
+      type string;
+    }
+  }
+
+  rpc clear_error_table {
+    input {
+      leaf table_name {
+        type string;
+        description
+          "ERROR DB table name";
+      }
+    }
+
+    output {
+      leaf status {
+        type string;
+        description
+          "Success/Failure of clearing an error database table";
+      }
+    }
+  }
+
+  container sonic-error-database {
+
+    container ERROR_ROUTE_TABLE {
+      sonic-ext:db-name "ERROR_DB";
+      sonic-ext:key-delim ":";
+      config false;
+
+      list ERROR_ROUTE_TABLE_LIST {
+
+        key "prefix";
+
+        uses sonic-error-route-table;
+        uses sonic-rc-operation-codes;
+      }
+    }
+
+    container ERROR_NEIGH_TABLE {
+      sonic-ext:db-name "ERROR_DB";
+      sonic-ext:key-delim ":";
+      config false;
+  
+      list ERROR_NEIGH_TABLE_LIST {
+
+        key "ifname ipaddress";
+
+        uses sonic-error-neighbor-table;
+        uses sonic-rc-operation-codes;
+      }
+    }
+
+    container ERROR_IPMC_ROUTE_TABLE {
+      sonic-ext:db-name "ERROR_DB";
+      sonic-ext:key-delim ":";
+      config false;
+
+      list ERROR_IPMC_ROUTE_TABLE_LIST {
+
+        key "source_ip group_ip";
+        
+        uses sonic-error-ipmc-route-table;
+        uses sonic-rc-operation-codes;
+      }
+    }
+
+    container ERROR_VLAN_STACKING_TABLE {
+      sonic-ext:db-name "ERROR_DB";
+      sonic-ext:key-delim ":";
+      config false;
+
+      list ERROR_VLAN_STACKING_TABLE_LIST {
+
+        key "map_type ifname s_vlan cvlan_ids";
+
+        uses sonic-error-vlan-stacking-table;
+        uses sonic-rc-operation-codes;
+      }
+    }
+
+    container ERROR_VLAN_MEMBER_TABLE {
+      sonic-ext:db-name "ERROR_DB";
+      sonic-ext:key-delim ":";
+      config false;
+
+      list ERROR_VLAN_MEMBER_TABLE_LIST {
+
+        key "vlan vlan_member";
+
+        uses sonic-error-vlan-member-table;
+        uses sonic-rc-operation-codes;
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+module sonic-vrf-annot {
+    namespace "http://github.com/Azure/sonic-vrf-annot";
+    prefix svrf-annot;
+    yang-version 1.1;
+
+    import sonic-extensions { prefix sonic-ext; } 
+    import sonic-vrf { prefix sonicvrf; }
+
+    deviation /sonicvrf:sonic-vrf {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+        }
+    }
+} 

@@ -1,0 +1,47 @@
+module sonic-proxy {
+    namespace "http://github.com/Azure/sonic-proxy";
+    prefix sonic-proxy;
+    yang-version 1.1;
+
+    import sonic-common {
+        prefix scommon;
+    }
+   
+    import sonic-extension { 
+        prefix sonic-ext;
+    }
+ 
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for Proxy-ARP and ND-Proxy.";
+
+    revision 2024-05-16 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-proxy {
+           container NDPPD_TABLE {
+               sonic-ext:db-name "APPL_DB";
+               sonic-ext:key-delim ":";
+               config false;
+               container global {
+                  leaf restart_ndppd {
+                     type boolean;
+                     default false;
+                  }
+                  leaf service {
+                     default disable;
+                     type scommon:mode-enable;
+                  }
+             }
+        }
+      }
+}
+
+

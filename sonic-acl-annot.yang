@@ -1,0 +1,32 @@
+module sonic-acl-annot {
+    namespace "http://github.com/Azure/sonic-acl-annot";
+    prefix sacl-annot;
+    yang-version 1.1;
+
+    import sonic-acl { prefix sacl; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sacl:clear-acl-counters {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_clear_acl_counters";
+            sonic-ext:user-role-priv "rpc:netadmin";
+        }
+    }
+    deviation /sacl:get-object-groups {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_get_object_groups";
+            sonic-ext:user-role-priv "rpc:netadmin";
+        }
+    }
+    deviation /sacl:clear-acl-counters {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+        }
+    }
+    deviation /sacl:get-object-groups {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+        }
+    }
+}
+

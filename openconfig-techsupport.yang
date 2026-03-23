@@ -1,0 +1,126 @@
+module openconfig-techsupport {
+
+    yang-version "1";
+
+    namespace "http://openconfig.net/yang/system/techsupport/extension";
+
+    prefix "oc-sys-ts";
+
+    import openconfig-system { prefix oc-sys; }
+    import openconfig-extensions { prefix "oc-ext"; }
+    import openconfig-inet-types { prefix oc-inet; }
+
+
+    organization
+        "Broadcom Inc.";
+    contact
+        "SONiC";
+    description
+        "SONIC TechSupport";
+
+    revision 2021-08-19 {
+        description
+            "Initial revision.";
+        reference
+            "0.1.0";
+    }
+
+    oc-ext:openconfig-version "0.1.0";
+
+    grouping techsupport-export-config
+    {
+        description
+            "TechSupport Export Config";
+
+        leaf cfgmode {
+             type boolean;
+             description
+                  "Enable or Disable TechSupport Export";
+        }
+
+        leaf interval {
+             type uint32 {
+                   range "0..1440" {
+                      error-message "Invalid interval time value (0 minutes to 24 hours)";
+                   }
+             }
+             units minutes;
+             default 30;
+             description
+                   "Time interval at which periodic techsupport is exported.
+                       Disable is 0; Default is 30 minutes";
+        }
+
+        leaf servername {
+             type oc-inet:ip-address;
+             description
+                  "the remote server ip address";
+        }
+
+        leaf destdir {
+             type string;
+             description
+                  "the remote directory";
+        }
+
+        leaf username {
+             type string;
+             description
+                  "the remote server login username";
+        }
+
+        leaf password {
+             type string;
+             description
+                  "the remote server login password";
+        }
+
+        leaf protocol {
+             type string {
+                  pattern "scp|sftp" {
+                      error-message "Invalid value passed for protocol: scp or sftp";
+                  }
+                  oc-ext:posix-pattern '^scp|sftp$';
+
+             }
+             description
+                 " protocoal: scp or sftp";
+        }
+
+    }
+
+    grouping techsupport-export-top
+    {
+        description
+            "Top level grouping for TechSupport Export";
+
+        container techsupport-export 
+        {
+            description
+                "Container for TechSupport Export";
+
+            container config
+            {
+                description
+                    "Configuration parameters for TechSupport Export";
+
+                uses techsupport-export-config;
+            }
+            container state
+            {
+                config false;
+                description
+                    "State information of TechSupport Export";
+
+                uses techsupport-export-config;
+
+            }
+        }
+    }
+
+    augment /oc-sys:system {
+        description
+            "TechSupport";
+        uses techsupport-export-top;
+    }
+}

@@ -1,0 +1,657 @@
+module sonic-ospfv2 {
+  namespace "http://github.com/Azure/sonic-ospfv2";
+  prefix sn-ospfv2;
+  yang-version 1.1;
+
+  import ietf-yang-types { 
+    prefix "ietf-yang"; 
+  }
+
+  import ietf-inet-types { 
+    prefix "ietf-inet"; 
+  }
+
+  import sonic-ospf-common { 
+    prefix "sonic-ospf-cmn"; 
+  }
+
+  import sonic-vrf {
+      prefix "sonic-vrf";
+  }
+
+  import sonic-extension {
+      prefix sonic-ext;
+  }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+     "SONIC ospfv2 Global YANG";
+
+  revision 2024-05-29 {
+    description
+      "Reorganized Yang definitions for OSPFv2 specifically";
+  }
+
+  revision 2020-03-21 {
+    description
+      "Added Yang definition for OSPFv2 features.";
+  }
+
+ 
+
+  container sonic-ospfv2 {  
+
+    container OSPFV2_ROUTER {
+      description
+        "OSPFv2 router global configuration Table.";
+
+      list OSPFV2_ROUTER_LIST {
+        key "vrf_name";
+
+        leaf vrf_name {
+          type union {
+            type string {
+              pattern "default";
+            }
+            type leafref {
+              path "/sonic-vrf:sonic-vrf/sonic-vrf:VRF/sonic-vrf:VRF_LIST/sonic-vrf:vrf_name";
+            }
+          }          
+          description
+            "OSPF router VRF name";
+        }
+ 
+        uses sonic-ospf-cmn:ospf_router_config;
+
+        leaf opaque-lsa-capability {
+          type boolean;
+          description
+            "When the value of this leaf is set to true, opaque LSA
+             capability (rfc2370) is enabled.";
+        }
+
+        leaf ospf-rfc1583-compatible {
+          type boolean;
+          description
+            "OSPF RFC1538 comaptible";
+          default false;
+        }
+
+        leaf passive-interface-default {
+          type boolean;
+          description
+            "OSPF configuration for default passive interface";
+          default false;
+        }
+
+        leaf lsa-min-interval-timer {
+          type uint32 {
+            range "0..5000";
+          }
+          description
+            "LSA minimum interval timer";
+        }
+
+        leaf max-metric-administrative {
+          type boolean;
+          description
+            "OSPF Max-metric is administrative configuration";
+          default false;
+        }
+
+        leaf max-metric-on-startup {
+          type uint32 {
+            range "5..86400";
+          }
+          units seconds;
+          description
+            "Max metric startup timeout in seconds";
+        }
+
+        leaf max-metric-router-lsa-all {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise all Router LSA links with max-metric";
+        }
+
+        leaf max-metric-router-lsa-stub {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise all Router LSA stub links with max-metric";
+        }
+
+        leaf max-metric-router-point-to-point {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise Router LSA point-to-point links with max-metric";
+        }
+
+        leaf max-metric-external-lsa-all {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise all External LSA stub links with max-metric";
+        }
+
+        leaf max-metric-external-lsa-connected {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise connected External LSA stub links with max-metric";
+        }
+
+        leaf max-metric-summary-lsa-all {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "Advertise all Summary LSA stub links with max-metric";
+        }
+
+        leaf max-metric-on-shutdown {
+          type uint32 {
+            range "5..500";
+          }
+          units seconds;
+          description
+            "Max metric shutdown timeout in seconds";
+        }
+      } //OSPFV2_ROUTER_LIST
+    } //OSPFV2_ROUTER
+
+    container OSPFV2_ROUTER_AREA {
+      description
+        "OSPFv2 Area configuration table.";
+
+      list OSPFV2_ROUTER_AREA_LIST {
+
+        key "vrf_name area-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Network Address Area Id";
+        }
+
+        uses sonic-ospf-cmn:ospf_router_area_config;
+
+        leaf stub-default-cost {
+          type uint32 {
+            range "0..16777215";
+          }
+          description
+            "OSPFv2 stub default cost.";
+          sonic-ext:custom-validation ValidateOspfStubAreaDefCost;
+        }
+      
+        leaf authentication {
+          type string;
+          description
+            "OSPFv2 Area level authentication type.";
+        }
+      } //OSPFV2_ROUTER_AREA_LIST
+    } //OSPFV2_ROUTER_AREA    
+
+    container OSPFV2_ROUTER_AREA_NETWORK {
+      description
+        "OSPFv2 Area Network prefix configuration table.
+         Interface with IPv4 address matching the network 
+         prefix is considered to be part of current area";
+
+      list OSPFV2_ROUTER_AREA_NETWORK_LIST {
+
+        key "vrf_name area-id prefix";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Network Address Area Id";
+          sonic-ext:custom-validation ValidateOspfNwStyleAreaConfig;
+        }
+
+        leaf prefix {
+          type ietf-inet:ipv4-prefix;
+          description
+            "Network address prefix of the OSPF interface
+             Interface with IPv4 address matching the network
+             prefix is considered to be part of current area";
+          sonic-ext:custom-validation ValidateOspfNetworkPrefix;
+        }
+
+        leaf enable {
+          type boolean;
+          description
+            "Enable/Disable area network";
+        }
+
+      } //OSPFV2_ROUTER_AREA_NETWORK_LIST
+    } //OSPFV2_ROUTER_AREA_NETWORK
+
+
+    container OSPFV2_ROUTER_AREA_VIRTUAL_LINK {
+      description
+        "OSPFv2 Area Virtual Link configuration table.";
+
+      list OSPFV2_ROUTER_AREA_VIRTUAL_LINK_LIST {
+
+        key "vrf_name area-id remote-router-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          must "(../enable='true')" {
+            error-message "Conflicting Virtual link enable configuration";
+          }
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Virtual link transit Area Id";
+        }
+
+        leaf description {
+          type string;
+           description
+             "String description for the configured virtual link";
+           default "Virtual Link";
+        }
+
+        leaf remote-router-id {
+          type ietf-yang:dotted-quad;
+          description
+            "The router ID of the remote OSPFv2 ABR router.";
+        }
+
+        leaf enable {
+          type boolean;
+          description
+            "Enable/Disable virtual link";
+        }
+
+        leaf authentication-type {
+          type string;
+          description
+             "OSPF autentication type";
+        }
+
+        leaf authentication-key {
+          // when "../authentication-type = 'TEXT'"
+          sonic-ext:custom-validation ValidateEncryptedKey;
+          type string;
+          description
+            "OSPF authentication password string.";
+        }
+
+        leaf authentication-key-encrypted {
+          type boolean;
+          description
+            "Authentication key is in encrypted format";
+        }
+
+        leaf dead-interval {
+          type uint32 {
+            range "1..65535";
+          }
+          sonic-ext:custom-validation ValidateOspfHelloDeadIntervals;
+          units seconds;
+          description
+            "The number of seconds that the local system should let
+            elapse before declaring a silent router down";
+          default 40;
+        }
+
+        leaf hello-interval {
+          type uint32{
+            range "1..65535";
+          }
+          sonic-ext:custom-validation ValidateOspfHelloDeadIntervals;
+          units seconds;
+          description
+            "The number of seconds the local system waits between the
+            transmission of subsequent Hello packets";
+          default 10;
+        }
+
+        leaf retransmission-interval {
+          type uint32 {
+            range "1..65535";
+          }
+          units seconds;
+          description
+            "The number of seconds that the local system waits before
+            retransmitting an unacknowledged LSA.";
+          default 5;
+        }
+
+        leaf transmit-delay {
+          type uint32 {
+            range 1..65535;
+          }
+          units seconds;
+          description
+            "The number of seconds that the local system waits before
+            retransmitting an unacknowledged LSA.";
+        }
+      } //OSPFV2_ROUTER_AREA_VIRTUAL_LINK_LIST
+    } //OSPFV2_ROUTER_AREA_VIRTUAL_LINK
+
+
+    container OSPFV2_ROUTER_AREA_VLMD_AUTHENTICATION {
+      description
+        "OSPFv2 passive interface configuration table.";
+
+      list OSPFV2_ROUTER_AREA_VLMD_AUTHENTICATION_LIST {
+
+        key "vrf_name area-id remote-router-id authentication-key-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Virtual link transit Area Id";
+        }
+
+        leaf remote-router-id {
+          type ietf-yang:dotted-quad;
+          description
+            "The router ID of the remote OSPFv2 ABR router.";
+        }
+
+        leaf authentication-key-id {
+          type uint8 {
+            range "1..255";
+          }
+          description
+            "Message digest key ID";
+        }
+
+        leaf authentication-md5-key {
+          sonic-ext:custom-validation ValidateEncryptedKey;
+          type string;
+          description
+            "Authentication key";
+        }
+
+        leaf authentication-key-encrypted { 
+          type boolean;
+          description
+            "Authentication key is in encrypted format";
+        }
+      } //OSPFV2_ROUTER_AREA_VLMD_AUTHENTICATION_LIST
+    }//OSPFV2_ROUTER_AREA_VLMD_AUTHENTICATION
+
+
+    container OSPFV2_ROUTER_AREA_POLICY_ADDRESS_RANGE {
+      description
+        "OSPFv2 inter area policy address range configuartion
+         Table.";
+
+      list OSPFV2_ROUTER_AREA_POLICY_ADDRESS_RANGE_LIST {
+
+        key "vrf_name area-id prefix";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+          sonic-ext:custom-validation ValidateOspfAreaRangeConfig;
+        }
+
+        leaf area-id {
+          type sonic-ospf-cmn:ospf-area-identifier;
+          description
+             "Policy address range Area Id";
+        }
+
+        uses sonic-ospf-cmn:ospf_router_area_policy_address_config;
+
+        leaf prefix {
+          type ietf-inet:ipv4-prefix;
+          description
+            "Address prefix for the OSPF address";
+        }       
+
+        leaf substitue-prefix {
+          type ietf-inet:ipv4-prefix;
+          description
+            "Substitute Address prefix for the OSPF address";
+        }
+      } //OSPFV2_ROUTER_AREA_POLICY_ADDRESS_RANGE_LIST
+    } //OSPFV2_ROUTER_AREA_POLICY_ADDRESS_RANGE
+
+
+    container OSPFV2_ROUTER_DISTRIBUTE_ROUTE {
+      description
+        "OSPFv2 policy route distribution Table.";
+
+      list OSPFV2_ROUTER_DISTRIBUTE_ROUTE_LIST {
+
+        key "vrf_name protocol direction";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf protocol {
+          type sonic-ospf-cmn:ospf-policy-protocol;
+          description
+            "Distribute routes to or from protocol";
+        }
+
+        leaf direction {
+          type sonic-ospf-cmn:ospf-policy-direction;
+          description
+            "Ditribute type or direction IMPORT or EXPORT";
+        }
+
+        uses sonic-ospf-cmn:ospf_router_distribution_list_config;        
+      } //OSPFV2_ROUTER_DISTRIBUTE_ROUTE_LIST
+    } //OSPFV2_ROUTER_DISTRIBUTE_ROUTE
+
+    container OSPFV2_ROUTER_GR_NEIGHBOUR_HELPER {
+      description
+        "OSPFv2 Graceful restart helper neighbor configuration table.";
+
+      list OSPFV2_ROUTER_GR_NEIGHBOUR_HELPER_LIST {
+
+        key "vrf_name neighbour-id";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf neighbour-id {
+          type ietf-yang:dotted-quad;
+          description
+            "The Neighbor ID of the remote OSPFv2 neighbor.";
+        }
+      } //OSPFV2_ROUTER_GR_NEIGHBOUR_HELPER_LIST
+    }//OSPFV2_ROUTER_GR_NEIGHBOUR_HELPER
+
+    container OSPFV2_ROUTER_PASSIVE_INTERFACE {
+      description
+        "OSPFv2 passive interface configuration table.";
+
+      list OSPFV2_ROUTER_PASSIVE_INTERFACE_LIST {
+
+        key "vrf_name name address";
+
+        leaf vrf_name {
+          type leafref {
+            path "../../../OSPFV2_ROUTER/OSPFV2_ROUTER_LIST/vrf_name";
+          }
+          description
+            "OSPF router VRF name";
+        }
+
+        leaf name {
+          type sonic-ospf-cmn:ospf-interface;
+          description
+            "The name of the passive interface .";
+         }
+
+        leaf address {
+          type ietf-inet:ipv4-address-no-zone;
+          description
+              "Interface IP address";
+        }
+
+        leaf non-passive {
+          type boolean;
+          description
+            "Make this interface non passive";
+        }
+
+      } //OSPFV2_ROUTER_PASSIVE_INTERFACE_LIST
+    }//OSPFV2_ROUTER_PASSIVE_INTERFACE
+
+
+    container OSPFV2_INTERFACE {
+       description
+         "OSPFv2 Interface Table.";
+
+       list OSPFV2_INTERFACE_LIST {
+
+         key "name address";
+
+         leaf name {
+           type sonic-ospf-cmn:ospf-interface;
+           description
+             "OSPF interface";
+         }
+
+         uses sonic-ospf-cmn:ospf_interface_config;
+
+         leaf address {
+           type ietf-inet:ipv4-address-no-zone;
+           description
+             "The Interface address";
+         }
+        
+         leaf authentication-type {
+           type string;
+           description
+              "OSPF autentication type";
+         }
+
+         leaf authentication-key {
+           // when "../authentication-type = 'TEXT'"
+           sonic-ext:custom-validation ValidateEncryptedKey;
+           type string;
+           description
+             "OSPF authentication password string.";
+         }
+
+         leaf authentication-key-encrypted {
+           type boolean;
+           description
+             "Authentication key is in encrypted format";
+         }
+       } //OSPFV2_INTERFACE_LIST
+     } //OSPFV2_INTERFACE
+
+
+    container OSPFV2_INTERFACE_MD_AUTHENTICATION {
+      description
+        "OSPFv2 passive interface configuration table.";
+
+      list OSPFV2_INTERFACE_MD_AUTHENTICATION_LIST {
+
+        key "name address authentication-key-id";
+
+        leaf name {
+          type sonic-ospf-cmn:ospf-interface;
+          description
+            "The name of the passive interface .";
+         }
+
+        leaf address {
+          type ietf-inet:ipv4-address-no-zone;
+          description
+              "Interface IP address";
+        }
+
+        leaf authentication-key-id {
+          type uint8 {
+            range "1..255";
+          }
+          description
+            "Message digest key ID";
+        }
+
+        leaf enable {
+           type boolean;
+           description
+             "OSPF Interface authentication is present.";
+        }
+
+        leaf authentication-md5-key {
+          sonic-ext:custom-validation ValidateEncryptedKey;
+          type string;
+          description
+            "Authentication key";
+        }
+
+        leaf authentication-key-encrypted {
+          type boolean;
+          description
+            "Authentication key is in encrypted format";
+        }
+      } //OSPFV2_INTERFACE_MD_AUTHENTICATION_LIST
+    }//OSPFV2_INTERFACE_MD_AUTHENTICATION
+
+
+
+  } //sonic-ospfv2
+}
+

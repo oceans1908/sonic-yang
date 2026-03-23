@@ -1,0 +1,455 @@
+module sonic-mclag {
+	namespace "http://github.com/Azure/sonic-mclag";
+	prefix smclag;
+	yang-version 1.1;
+
+    import ietf-yang-types {
+        prefix yang;
+    }
+
+	import ietf-inet-types {
+		prefix inet;
+	}
+
+    import sonic-common {
+        prefix scommon;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+	organization
+		"SONiC";
+
+	contact
+		"SONiC";
+
+	description
+		"SONIC MCLAG";
+
+	revision 2019-10-01 {
+		description
+			"Initial revision.";
+	}
+
+	container sonic-mclag {
+            container MCLAG_GW_MAC {
+
+                list MCLAG_GW_MAC_LIST {
+                    key "gw_mac";
+                    max-elements 1;
+                    description 
+                            "Gateway Mac for MCLAG";
+
+                    leaf gw_mac {
+                        type yang:mac-address;
+                        sonic-ext:custom-validation ValidateMclagMac;
+	                }
+
+                    leaf gw_mac_en {
+                        type enumeration {
+                            enum enable;
+                        }
+                    }
+                }
+            }
+
+        container MCLAG_DOMAIN {
+
+            list MCLAG_DOMAIN_LIST { 
+                key "domain_id";
+                max-elements 1;
+                sonic-ext:custom-validation ValidateMclagDomainCfg;
+                sonic-ext:custom-validation ValidateMclagDomainCreationDeletion;
+
+                leaf domain_id {
+                     type uint16 {
+                        range "1..4095" {
+                            error-message "MCLAG Domain ID out of range";
+                        }
+                    }
+                }
+
+                leaf source_ip {
+                    type inet:ipv4-address;
+                    sonic-ext:custom-validation ValidateMclagIp;
+                }
+                leaf peer_ip {
+                    type inet:ipv4-address;
+                    sonic-ext:custom-validation ValidateMclagIp;
+                }
+
+                leaf session_vrf {
+                    type union {
+                        type string {
+                            pattern "mgmt";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                    description
+                      "VRF Names";
+                    sonic-ext:custom-validation ValidateMclagVrf;
+                }
+                leaf peer_link {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                    }
+                    sonic-ext:custom-validation ValidateMclagPmsIntf;
+                }
+                leaf mclag_system_mac {
+                    type yang:mac-address;
+                    description
+                        "MCLAG system MAC";
+                    sonic-ext:custom-validation ValidateMclagMac;
+                }
+                leaf keepalive_interval {
+                    type uint16 {
+                        range "1..60" {
+                            error-message "MCLAG Domain keepalive interval out of range";
+                            error-app-tag keepalive_interval-invalid;
+                        }
+                    }
+                    default 1;
+                }
+                leaf session_timeout {
+                    type uint16 {
+                        range "3..3600" {
+                            error-message "MCLAG Domain session timeout out of range";
+                            error-app-tag session_timeout-invalid;
+                        }
+                    }
+                    default 30;
+                }
+                must "(keepalive_interval * 3) <= session_timeout" {
+                        error-message "(keepalive interval * 3) must be <= session_timeout value";
+                        error-app-tag keepalive_interval-invalid;
+                }
+                leaf delay_restore {
+                    type uint16 {
+                        range "1..3600" {
+                            error-message "MCLAG delay restore time is out of range";
+                            error-app-tag delay_restore-invalid;
+                        }
+                    }
+                    units seconds;
+                    default 300;
+                    description
+                        "Time to wait for protocol to converge before bringing up
+                         all MCLAG and orphan interfaces";
+                }
+                leaf fast_convergence {
+                    type enumeration {
+                        enum enable;
+                    }
+                    description
+                        "MCLAG Fast convergence knob to turnoff traffic disable logic";
+                }            
+                leaf backup_keepalive_source_ip {
+                    type inet:ipv4-address;
+                    sonic-ext:custom-validation ValidateMclagIp;
+                    sonic-ext:custom-validation ValidateMclagBackupKeepAliveIpAddition;
+                    description
+                        "Source IP address used for sending backup keep-alive IP packets";
+                }
+                leaf backup_keepalive_peer_ip {
+                    type inet:ipv4-address;
+                    sonic-ext:custom-validation ValidateMclagIp;
+                    sonic-ext:custom-validation ValidateMclagBackupKeepAliveIpAddition;
+                    description
+                        "Peer or destination IP address used for sending backup keep-alive IP packets";
+                }
+                leaf backup_keepalive_interval {
+                    type uint16 {
+                        range "1..60" {
+                            error-message "MCLAG Domain backup keepalive interval out of range";
+                             error-app-tag backup_keepalive_interval-invalid;
+                        }
+                    }
+                    default 30;
+                    description
+                        "Time in seconds between sending backup keep-alive IP packets";
+                }
+                leaf backup_keepalive_session_vrf {
+                    type union {
+                        type string {
+                            pattern "mgmt";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                     description
+                      "VRF Names";
+                    sonic-ext:custom-validation ValidateMclagVrf;
+                }
+            }
+        }
+
+        container MCLAG_INTERFACE { 
+
+            list MCLAG_INTERFACE_LIST { 
+                key "domain_id if_name";
+
+                leaf domain_id {
+                    type leafref {
+                        path "../../../MCLAG_DOMAIN/MCLAG_DOMAIN_LIST/domain_id";
+                    }
+                }
+
+                leaf if_name {
+                    type leafref {
+                        path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                    }
+                    sonic-ext:custom-validation ValidateMclagPmsIntf;
+                }
+                leaf if_type {
+                    type string;
+                }
+            }
+        }
+
+        container MCLAG_UNIQUE_IP {
+
+            list MCLAG_UNIQUE_IP_LIST {
+                key "if_name";
+                sonic-ext:dependent-on "MCLAG_DOMAIN_LIST";
+
+                must "(/scommon:operation/scommon:operation = 'DELETE') or "
+                    + "count(../../MCLAG_DOMAIN/MCLAG_DOMAIN_LIST/domain_id) != 0" {
+                    error-message "mclag not configured";
+                    error-app-tag mclag-invalid;
+                }
+
+                must "(/scommon:operation/scommon:operation != 'DELETE') or "
+                    + "count(../../MCLAG_PEER_GATEWAY/MCLAG_PEER_GATEWAY_LIST[if_name=current()/if_name]) = 0" {
+                    error-message "mclag-peer-gateway configured";
+                    error-app-tag peer-gw-config;
+                }
+
+                leaf if_name {
+                    type leafref {
+                        path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                    }
+                }
+                leaf unique_ip {
+                    type enumeration {
+                        enum enable;
+                    }
+                }
+            }
+        }
+
+        container MCLAG_PEER_GATEWAY {
+
+            list MCLAG_PEER_GATEWAY_LIST {
+                key "if_name";
+
+                must "(/scommon:operation/scommon:operation = 'DELETE') or "
+                    + "count(../../MCLAG_DOMAIN/MCLAG_DOMAIN_LIST/domain_id) != 0" {
+                    error-message "mclag not configured";
+                    error-app-tag mclag-invalid;
+                }
+
+                must "count(../../MCLAG_UNIQUE_IP/MCLAG_UNIQUE_IP_LIST[if_name=current()/if_name]) != 0" {
+                    error-message "mclag-separate-ip not configured";
+                    error-app-tag no-unique-ip;
+                }
+
+                leaf if_name {
+                    type leafref {
+                        path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                    }
+                }
+                leaf peer_gateway {
+                    type enumeration {
+                        enum enable;
+                    }
+                }
+            }
+        }
+
+        //stateDB MCLAG Table
+        container MCLAG_TABLE { 
+            sonic-ext:db-name "STATE_DB"; 
+            sonic-ext:key-delim "|"; 
+
+            config false;
+            description "state db mclag domain table";
+
+            list MCLAG_TABLE_LIST { 
+                key "domain_id";
+
+                leaf domain_id {
+                     type uint16;
+                }
+
+                leaf oper_status {
+                    type scommon:oper-status;
+                }
+
+                leaf role {
+                    type enumeration {
+						enum active;
+						enum standby;
+					}
+                }
+
+                leaf system_mac {
+                    type yang:mac-address;
+                    description
+                     "System MAC Address used for ICCPD";
+                }
+
+                leaf delay_restore_start_time {
+                     type uint64;
+                     description
+                         "Delay Restore start time in seconds since the Epoch";
+                }
+
+                leaf peer_link_status {
+                    description
+                        "Peer link oper status";
+                    type enumeration {
+                        enum up;
+                        enum down;
+                        enum unknown;
+                    }
+                    default down;
+                }
+                
+                leaf backup_keepalive_oper_status {
+                    type scommon:oper-status;
+                }
+            }
+        }
+
+        //state MCLAG Local interface Table
+        container MCLAG_LOCAL_INTF_TABLE { 
+
+            sonic-ext:db-name "STATE_DB"; 
+            sonic-ext:key-delim "|"; 
+
+            config false;
+            description "state db LOCAL interface table";
+
+            list MCLAG_LOCAL_INTF_TABLE_LIST { 
+                key "if_name";
+
+                leaf if_name {
+                    type string;
+                }
+
+                leaf port_isolate_peer_link {
+                    type boolean; 
+                }
+                leaf oper_status {
+                    description
+                        "MCLAG Interface oper status";
+                    type enumeration {
+                        enum up;
+                        enum down;
+                    }
+                    default down;
+                }
+            }
+        }
+
+
+        //state MCLAG Remote interface Table
+        container MCLAG_REMOTE_INTF_TABLE { 
+
+            sonic-ext:db-name "STATE_DB"; 
+            sonic-ext:key-delim "|"; 
+
+            config false;
+            description "state db remote interface table";
+
+            list MCLAG_REMOTE_INTF_TABLE_LIST { 
+                key "domain_id if_name";
+
+                leaf domain_id {
+                     type uint16;
+                }
+
+                leaf if_name {
+                    type string;
+                }
+
+                leaf oper_status {
+                    type enumeration {
+                        enum up;
+                        enum down;
+                        enum unknown;
+                    }
+                    default unknown;
+                }
+            }
+        }
+
+        container MCLAG_FDB_TABLE {
+            sonic-ext:db-name "APPL_DB";
+            sonic-ext:key-delim ":";
+
+            config false;
+            description "App DB MCLAG fdb table";
+
+            list MCLAG_FDB_TABLE_LIST {
+                key "vlan mac_addr mac_type";
+
+                leaf vlan {
+                    type leafref {
+                        path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                    }
+                }
+                leaf mac_addr {
+                    type yang:mac-address;
+                }
+                leaf mac_type {
+                    type enumeration {
+                        enum remote;
+                        enum local;
+                        enum self;
+                    }
+                }
+                leaf port {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                    }
+                }
+                leaf type {
+                    type string;
+                    description "Static or dynamic MAC Entry";
+                }
+            }
+        }
+    }
+}

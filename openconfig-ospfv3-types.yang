@@ -1,0 +1,183 @@
+module openconfig-ospfv3-ext-types {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/ospfv3-ext-types";
+
+  prefix "oc-ospfv3-ext-types";
+
+  // import some basic types
+  import ietf-yang-types { prefix "yang"; }
+  import openconfig-extensions { prefix "oc-ext"; }
+
+  // meta
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "Type definitions for OSPF";
+
+  oc-ext:openconfig-version "0.0.1";
+
+  revision "2016-06-24" {
+    description
+      "Initial revision";
+    reference "0.0.1";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+// identities
+  identity OSPF_LSA_TYPE {
+    description
+      "Base identity for an OSPF LSA type. This identity is intended
+      to be used across OSPFv3. Identity values that
+      correspond to only one OSPF version are marked as such.";
+  }
+
+  identity ROUTER_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2001 - ROUTER_LSA. An LSA originated by each router within
+      the area describing the state and cost of the router's links
+      in the area.";
+    reference "RFC5340";
+  }
+
+  identity NETWORK_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2002 - NETWORK_LSA. An LSA originated for each broadcast and
+      non-broadcast multiple access (NBMA) in the area. This LSA is
+      originated by the designated router.";
+    reference "RFC5340";
+  }
+
+  identity INTER_AREA_PREFIX_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2003 - INTER_AREA_PREFIX_LSA. An LSA originated by area
+      border routers describing inter-area destinations. This LSA type
+      is used when the destination is an IP network";
+    reference "RFC5340";
+  }
+
+  identity INTER_AREA_ROUTER_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2004 - INTER_AREA_ROUTER_LSA. An LSA originated by an area border
+      router describing inter-area destinations. This LSA type is used
+      when the destination is an AS boundary router.";
+    reference "RFC5340";
+  }
+
+  identity AS_EXTERNAL_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x4005 - AS_EXTERNAL_LSA. This LSA type is used to describe
+      destinations external to the autonomous system, and is
+      originated by an AS boundary router (ASBR).";
+    reference "RFC5340";
+  }
+
+  identity NSSA_AS_EXTERNAL_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2007 - NSSA_AS_EXTERNAL_LSA. This LSA type is used by
+      systems within a not-so-stubby-area (NSSA) to inject external
+      prefixes into the LSDB. They are translated to Type 5 LSAs
+      at an ABR device.";
+    reference "RFC5340";
+  }
+
+  identity LINK_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x0008 - A separate link-LSA is created for each
+      attached link that supports two or more routers.(including the
+      originating router itself).";   
+    reference "RFC5340";
+  }
+
+  identity INTRA_AREA_PREFIX_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x2009 - This LSA either associates a list of IPv6
+      address prefixes with a transit network link by referencing a
+      network-LSA, or associates a list of IPv6 address prefixes
+      with a router by referencing a router-LSA.  A stub link's
+      prefixes are associated with its attached router.";
+    reference "RFC5340";
+  }
+
+  identity GRACE_LSA {
+    base "OSPF_LSA_TYPE";
+    description
+      "Type 0x000b - A grace-LSA requests that the router's neighbors
+      aid in its graceful restart by continuing to advertise the router
+      as fully adjacent during the specified grace period.  The grace-LSA
+      contains the restarting router grace-period and the reason code
+      indicating the reason for the graceful restart.";    
+    reference "RFC5187";
+  }
+
+  identity ROUTER_LSA_TYPES {
+    description
+      "Sub-types of the router LSA";
+  }
+
+  identity ROUTER_LSA_P2P {
+    base "ROUTER_LSA_TYPES";
+    description
+      "The LSA represents a point-to-point connection to another
+      router";
+  }
+
+  identity ROUTER_LSA_TRANSIT_NETWORK {
+    base "ROUTER_LSA_TYPES";
+    description
+      "The LSA represents a connection to a transit network";
+  }
+
+  identity ROUTER_LSA_STUB_NETWORK {
+    base "ROUTER_LSA_TYPES";
+    description
+      "The LSA represents a connection to a stub network";
+  }
+
+  identity ROUTE_TYPE {
+    description
+      "Type of route";
+  }
+
+  identity INTRA_AREA_ROUTE {
+    base "ROUTE_TYPE";
+    description
+      "Intra-area route";
+  }
+
+  identity INTER_AREA_ROUTE {
+    base "ROUTE_TYPE";
+    description
+      "Inter-area route";
+  }
+
+  identity EXTERNAL1_ROUTE {
+    base "ROUTE_TYPE";
+    description
+      "External1 route";
+  }
+
+  identity EXTERNAL2_ROUTE {
+    base "ROUTE_TYPE";
+    description
+      "External2 route";
+  }
+}

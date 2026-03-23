@@ -1,0 +1,725 @@
+module sonic-ospf-common {
+  namespace "http://github.com/Azure/sonic-ospf-common";
+  prefix sbc;
+  yang-version 1.1;
+
+  import ietf-yang-types {
+    prefix "ietf-yang";
+  }
+
+  import sonic-port {
+      prefix "sonic-prt";
+  }
+
+  import sonic-portchannel {
+      prefix "sonic-pch";
+  }
+
+  import sonic-vlan {
+      prefix "sonic-vlan";
+  }
+
+  import sonic-loopback {
+      prefix "sonic-lbk";
+  }
+
+  import sonic-interface {
+      prefix sonic-if;
+  }
+
+  import sonic-acl {
+      prefix sonic-acl;
+  }
+
+  import sonic-route-map { 
+      prefix "sonic-rmap";
+  }
+
+  import sonic-routing-policy-sets {
+      prefix "sonic-rpolicy";
+  }
+
+  import sonic-extension {
+      prefix "sonic-ext";
+  }
+
+  organization
+      "SONiC";
+
+  contact
+      "SONiC";
+
+  description
+      "SONIC OSPF common YANG attributes";
+
+  revision 2024-04-03 {
+      description
+          "Changed ospfv2 to ospf common yang file";
+  }  
+
+  typedef ospf-area-identifier {
+   type union {
+     type uint32;
+     type ietf-yang:dotted-quad;
+   }
+   description
+     "An identifier for an area with OSPF version 2 or 3. This value
+     is expressed as either a dotted-quad, or a unsigned 32-bit
+     number";
+  }
+
+  typedef ospf-metric {
+    type uint32 {
+       range 0..16777214;
+    }
+    description
+      "A common type that can be utilised to express an OSPF metric";
+  }
+
+  typedef ospf-distance {
+    type uint8;
+    description
+      "A common type that can be utilised to express an OSPF distance";
+  }
+
+  typedef ospf-config-type {
+    type enumeration {
+      enum ENABLE {
+        description
+          "Configuration has been enabled";
+      }
+      enum DISABLE {
+        description
+          "Configuration has been disabled";
+      }
+      enum DEFAULT {
+        description
+          "Configuration has been set to default";
+      }
+    }
+  }
+
+  typedef ospf-metric-type {
+    type enumeration {
+      enum TYPE_1 {
+        value 1;
+        description 
+          "OSPF Type-1 metric";
+      }
+      enum TYPE_2 { 
+        value 2;
+        description
+          "OSPF Type-2 metric";
+      }
+    }
+  } 
+
+  typedef ospf-policy-direction {
+    type enumeration {
+      enum IMPORT {
+        description 
+          "OSPF policy import";
+      }
+      enum EXPORT { 
+        description
+          "OSPF policy export";
+      }
+    }
+  }
+
+  typedef ospf-policy-protocol {
+    type enumeration {
+      enum BGP {
+        description 
+          "OSPF policy protocol BGP";
+      }
+      enum OSPF {
+        description 
+          "OSPF policy protocol OSPF";
+      }
+      enum STATIC {
+        description 
+          "OSPF policy protocol static";
+      }
+      enum DIRECTLY_CONNECTED {
+        description 
+          "OSPF policy protocol connected";
+      }
+      enum KERNEL {
+        description 
+          "OSPF policy protocol kernel";
+      }
+      enum DEFAULT_ROUTE {
+        description 
+          "OSPF policy protocol default-route";
+      }
+    }
+  }
+
+  typedef ospf-abr-type {
+    type enumeration {
+      enum CISCO {
+        description
+          "OSPF ABR type CISCO";
+      }
+      enum IBM {
+        description
+          "OSPF ABR type IBM";
+      }
+      enum STANDARD {
+        description
+          "OSPF ABR type Standard";
+      }
+      enum SHORTCUT {
+        description
+          "OSPF ABR type Shortcut";
+      }
+    }
+  }
+
+  typedef ospf-authentication-type {
+    type enumeration {
+      enum AUTH_NONE {
+        description
+          "OSPF authentication type none";
+      }
+      enum TEXT {
+        description
+          "OSPF authentication type plain text";
+      }
+      enum MD5HMAC {
+        description
+          "OSPF authentication type MD5 HMAC";
+      }
+    }
+  }
+
+  typedef ospf-network-type {
+    type enumeration {
+      enum POINT_TO_POINT_NETWORK {
+        description
+          "OSPF interface network type point-to-point";
+      }
+      enum BROADCAST_NETWORK {
+        description
+          "OSPF interface network type broadcast";
+      }
+    }
+  }
+
+
+  typedef ospf-log-type {
+    type enumeration {
+      enum LOG_NONE {
+        value 0;
+        description
+          "OSPF no log";
+      }
+      enum BRIEF {
+        value 1;
+        description
+          "OSPF log type brief";
+      }
+      enum DETAIL {
+        value 2;
+        description
+          "OSPF log type detail";
+      }
+    }
+  }
+
+  typedef ospf-import-export-policy {
+    type leafref {
+      path "/sonic-acl:sonic-acl/sonic-acl:ACL_TABLE" +
+           "/sonic-acl:ACL_TABLE_LIST/sonic-acl:aclname";
+      }
+  }
+
+  typedef ospf-interface {
+    type union {
+      type string {
+        pattern "null";
+      }
+      type leafref {
+        path "/sonic-prt:sonic-port/sonic-prt:PORT/sonic-prt:PORT_LIST/sonic-prt:ifname";
+      }
+      type leafref {
+        path "/sonic-pch:sonic-portchannel/sonic-pch:PORTCHANNEL/sonic-pch:PORTCHANNEL_LIST/sonic-pch:name";
+      }
+      type leafref {
+        path "/sonic-vlan:sonic-vlan/sonic-vlan:VLAN/sonic-vlan:VLAN_LIST/sonic-vlan:name";
+      }
+      type leafref {
+        path "/sonic-lbk:sonic-loopback/sonic-lbk:LOOPBACK/sonic-lbk:LOOPBACK_LIST/sonic-lbk:name";
+      }
+      type leafref {
+        path "/sonic-if:sonic-interface/sonic-if:VLAN_SUB_INTERFACE/sonic-if:VLAN_SUB_INTERFACE_LIST/sonic-if:id";
+      }
+    }
+    description 
+      "OSPF Interface name";
+  }
+
+  grouping ospf_router_config {
+    leaf enable {
+      type boolean;
+      description
+        "OSPF router is enabled in this VRF";
+    }
+
+    leaf description {
+      type string;
+      description
+        "String description for the configured router";
+        default "OSPF Router";
+    }
+
+    leaf router-id {
+      type ietf-yang:dotted-quad;
+      description
+        "OSPF router Id";
+    }
+  
+    leaf abr-type {
+      type ospf-abr-type;
+      description
+        "OPSF ABR type";
+    }
+
+    leaf auto-cost-reference-bandwidth {
+      type uint32 {
+        range "1..4294967";
+      }
+      description
+        "Refrence Bandwidth for auto calculating OSPFv2 interface cost.";
+    }
+
+    leaf log-adjacency-changes {
+      type ospf-log-type;
+      description
+        "OPSF adjacency event logging";
+        default LOG_NONE;
+    }
+
+    leaf default-metric {
+      type uint32 {
+        range "0..16777214";
+      }
+      description
+        "Default metric value for routes";
+    }
+
+    leaf write-multiplier {
+      type uint8 {
+        range "0..100";
+      }
+      description
+        "OSPF write multiplier";
+    }
+
+    leaf spf-initial-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF initial Delay";
+    }
+
+    leaf spf-maximum-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF maximum Delay";
+    }
+
+    leaf spf-throttle-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "SPF throttle Delay";
+    }
+
+    leaf lsa-min-arrival-timer {
+      type uint32 {
+        range "0..600000";
+      }
+      description
+        "LSA minimum arrival timer";
+    }
+
+    leaf lsa-refresh-timer {
+      type uint32 {
+        range "10..1800";
+    }
+    description
+      "LSA refresh timer";
+    }
+
+    leaf distance-all {
+      type ospf-distance;
+      description
+        "Distribute distance for all routes ";
+    }
+
+    leaf distance-intra-area {
+      type ospf-distance;
+      description
+        "Distribute distance for intra area routes";
+    }
+
+    leaf distance-inter-area {
+      type ospf-distance;
+      description
+        "Distribute distance for inter area routes";
+    }
+
+    leaf distance-external {
+      type ospf-distance;
+      description
+        "Distribute distance for external routes";
+    }
+
+    leaf gr-enabled {
+      type boolean;
+      description
+        "When the value of this leaf is set to true, graceful restart
+        is enabled on the local system. In this case, the system will
+        use Grace-LSAs to signal that it is restarting to its
+        neighbors.";
+    }
+
+    leaf gr-grace-period {
+      type uint32 {
+        range "1..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+        
+    leaf gr-helper-only {
+      type boolean;
+      description
+        "Operate graceful-restart only in helper mode. When this leaf
+        is set to true, the local system does not use Grace-LSAs to
+        indicate that it is restarting, but will accept Grace-LSAs
+        from remote systems, and suppress withdrawl of adjacencies
+        of the system for the grace period specified";
+    }
+
+    leaf gr-helper-strict-lsa-checking {
+      type boolean;
+      description
+        "Enable or disable Strict LSA checking";
+    }
+
+    leaf gr-helper-planned-only {
+      type boolean;
+      description
+        "Enable or disable Planned only graceful restart";
+    }
+
+    leaf gr-helper-supported-grace-time {
+      type uint32 {
+        range "10..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+
+    leaf maximum-paths {
+      type uint16 {
+        range "1..256";
+      }
+      description
+        "Max no of multiple paths for ECMP support.";
+    }    
+  }
+
+  grouping ospf_router_area_config {     
+
+    leaf description {
+      type string;
+      description
+        "String description for the configured area";
+        default "OSPF Area";
+    }
+
+    leaf enable {
+      type boolean;
+      description
+        "Enable/Disable area";
+    }
+
+    leaf stub {
+      type boolean;
+      description
+        "OSPFv2 stub configuration.";
+      sonic-ext:custom-validation ValidateOspfStubAreaBackbone;
+    }
+
+    leaf stub-no-summary {
+      type boolean;
+      description
+        "OSPFv2 stub no summary.";
+      sonic-ext:custom-validation ValidateOspfStubAreaSummaryBackbone;
+    }   
+
+    leaf shortcut {
+      type ospf-config-type;
+      description
+        "OSPF area shortcut configuration.";
+    }
+
+    leaf import-list {
+      //must "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()]/type = 'L3'";
+      type leafref {
+      path "/sonic-acl:sonic-acl/sonic-acl:ACL_TABLE" +
+           "/sonic-acl:ACL_TABLE_LIST/sonic-acl:aclname";
+      }    
+      description
+        "OSPF Area policy import IPv4 access list name.";
+    }
+
+    leaf export-list {
+      //must "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()]/type = 'L3'";
+      type leafref {
+        path "/sonic-acl:sonic-acl/sonic-acl:ACL_TABLE" +
+             "/sonic-acl:ACL_TABLE_LIST/sonic-acl:aclname";
+      }
+      description
+        "OSPF Area policy export IPv4 access list name.";
+    }
+
+    leaf filter-list-in {
+      type leafref {
+        path "/sonic-rpolicy:sonic-routing-policy-sets/sonic-rpolicy:PREFIX_SET" +
+             "/sonic-rpolicy:PREFIX_SET_LIST/sonic-rpolicy:name";
+      }
+      description
+        "OSPF Area policy import filter list name.";
+    }
+
+    leaf filter-list-out {
+      type leafref {
+        path "/sonic-rpolicy:sonic-routing-policy-sets/sonic-rpolicy:PREFIX_SET" +
+             "/sonic-rpolicy:PREFIX_SET_LIST/sonic-rpolicy:name";
+      }
+      description
+        "OSPF Area policy export filter list name.";
+    }
+  }
+
+  grouping ospf_router_area_policy_address_config {   
+
+        leaf description {
+          type string;
+           description
+             "String description for the configured address range";
+           default "Address range";
+        }
+
+        leaf advertise {
+          type boolean;
+          description
+            "Advertise or no-adverise configuration for prefix";
+          default true;
+        }
+
+        leaf metric {
+          type uint32 {
+            range 0..16777215;
+          }
+          description
+            "Metric value for the prefix";
+        }
+
+        leaf substitute {
+          type boolean;
+          description
+            "Substitute Address prefix for the OSPF address";
+          default false;
+        }
+
+        leaf enable {
+          type boolean;
+          description
+            "Enable/Disable area address range";
+        }
+  }
+
+  grouping ospf_router_distribution_list_config {
+    
+
+        leaf description {
+          type string;
+           description
+             "String description for the configured policy";
+           default "OSPFv2 Route distribution list";
+        }
+
+        leaf metric {
+          type ospf-metric;
+          description
+            "Metric for route distribution";
+        }
+
+        leaf metric-type {
+          type ospf-metric-type;
+          description
+            "Metric type for route distribution";
+        }
+
+        leaf table-id {
+          //when "../protocol = 'sonic-ospf-cmn:OSPF'" ;
+          type uint32;
+          default 0;
+          description
+            "Distribute OSPF protocol routing table instance id";
+        }
+
+        leaf always {
+          //when "../protocol = 'sonic-ospf-cmn:DEFAULT_ROUTE' or ../protocol = 'DEFAULT_ROUTE'" ;
+          type boolean ;
+          description
+            "Distribute default-route is always or not";
+        }
+
+        leaf route-map {
+          type leafref {
+            path "/sonic-rmap:sonic-route-map/sonic-rmap:ROUTE_MAP_SET" +
+                 "/sonic-rmap:ROUTE_MAP_SET_LIST/sonic-rmap:name";
+          }
+          description
+            "Route map for default route originate or distribution";
+        }
+
+        leaf access-list {
+          //must "/sonic-acl/ACL_TABLE/ACL_TABLE_LIST[aclname=current()]/type = 'L3'";
+          type leafref {
+            path "/sonic-acl:sonic-acl/sonic-acl:ACL_TABLE" +
+                 "/sonic-acl:ACL_TABLE_LIST/sonic-acl:aclname";
+          }
+          description
+            "IPv4 Access List for distribution list";
+        }    
+  }
+
+  grouping ospf_interface_config {
+
+    leaf area-id {
+      type ospf-area-identifier;
+      description
+        "An identifier for the OSPFv2 area - described as either a
+        32-bit unsigned integer, or a dotted-quad";
+      sonic-ext:custom-validation ValidateOspfIntfStyleAreaConfig;
+    }
+
+    leaf enable {
+      type boolean;
+      description
+        "Interface OSPF is enabled.";
+    }
+
+    leaf network-type {
+      type ospf-network-type;
+      description
+        "Network type for the interface";
+    }
+
+    leaf metric {
+      type uint32 {
+        range "1..65535";
+      }
+      description
+        "The metric for the interface";
+    }
+
+    leaf priority {
+      type uint8;
+      description
+        "The local system's priority to become the designated router";
+    }
+
+    leaf mtu-ignore {
+      type boolean;
+      description
+        "OSPF interface MTU ignore configuration.";
+    }
+
+    leaf bfd-enable {
+      type boolean;
+      description
+        "OSPF interface BFD configuration.";
+    }
+
+    leaf bfd-profile {
+      type string {
+        length "1..64";
+      }
+      description
+        "BFD Profile name";
+    }
+
+    leaf dead-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      sonic-ext:custom-validation ValidateOspfHelloDeadIntervals;
+      units seconds;
+      description
+        "The number of seconds that the local system should let
+        elapse before declaring a silent router down";
+      default 40;
+    }
+
+    leaf dead-interval-minimal {
+      type boolean;
+      description
+        "OSPF interface dead-interval type minimal configuration.";
+    }
+
+    leaf hello-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      sonic-ext:custom-validation ValidateOspfHelloDeadIntervals;
+      units seconds;
+      description
+        "The number of seconds the local system waits between the
+        transmission of subsequent Hello packets";
+      default 10;
+    }
+
+    leaf hello-multiplier {
+      type uint32 {
+        range 1..10;
+      }
+      description
+        "OSPF interface hello multiplier configuration.";
+    }
+
+    leaf retransmission-interval {
+      type uint32 {
+        range "1..65535";
+      }
+      units seconds;
+      description
+        "The number of seconds that the local system waits before
+        retransmitting an unacknowledged LSA.";
+      default 5;
+    }
+
+    leaf transmit-delay {
+      type uint32 {
+        range 1..65535;
+      }
+      units seconds;
+      description
+        "The number of seconds that the local system waits before
+        retransmitting an unacknowledged LSA.";
+    }
+  }
+}
+

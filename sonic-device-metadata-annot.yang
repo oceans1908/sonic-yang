@@ -1,0 +1,14 @@
+module sonic-device-metadata-annot {
+    yang-version 1.1;
+    namespace "http://github.com/Azure/sonic-device-metadata-annot";
+    prefix sdma;
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-device-metadata { prefix sdm; }
+
+    deviation /sdm:sonic-device-metadata {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin,secadmin";
+        }
+    }
+}

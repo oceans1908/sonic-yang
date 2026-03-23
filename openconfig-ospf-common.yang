@@ -1,0 +1,660 @@
+module openconfig-ospf-common {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/ospf-common";
+
+  prefix "oc-ospf-cmn";
+
+  // import some basic types
+  import ietf-yang-types { prefix "yang"; }
+  import openconfig-extensions { prefix "oc-ext"; }
+  import openconfig-ospf-types { prefix "oc-ospf-types"; }
+  import openconfig-types { prefix "oc-types"; }
+  import ietf-inet-types { prefix "inet"; }
+
+  // meta
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "This submodule provides common configuration and operational
+    state parameters that are shared across OSPFv2 and OSPFv3";
+
+  oc-ext:openconfig-version "0.0.2";
+
+  revision "2016-04-18" {
+    description
+      "Added common LSDB yangs to support OSPFv2 and OSPFv3";
+    reference "0.0.2";
+  }
+
+  revision "2016-06-24" {
+    description
+      "Initial revision";
+    reference "0.0.1";
+  }
+
+  grouping ospf-routerid-config {
+    leaf router-id {
+      type yang:dotted-quad;
+      description
+        "A 32-bit number represented as a dotted quad assigned to
+        each router running the OSPF protocol. This number should
+        be unique within the autonomous system";
+    }
+  }
+
+  grouping ospf-spf-timers-config {
+    description
+      "Configuration parameters relating to global SPF timer
+      parameters ";
+
+    leaf initial-delay {
+      // rjs TODO: IS-IS model has this as decimal64 - should it be
+      // that or uint32 msec?
+      type uint32;
+      units msec;
+      description
+        "The value of this leaf specifies the time between a change
+        in topology being detected and the first run of the SPF
+        algorithm.";
+    }
+
+    leaf maximum-delay {
+      // rjs TODO: same question as above
+      type uint32;
+      units msec;
+      description
+        "The value of this leaf specifies the maximum delay between
+        a topology change being detected and the SPF algorithm
+        running. This value is used for implementations that support
+        increasing the wait time between SPF runs.";
+    }
+  }
+
+  grouping ospf-common-timers {
+    description
+      "Common definition of the type of timers that the OSPF implementation
+      uses";
+
+    leaf timer-type {
+      type enumeration {
+        enum LINEAR_BACKOFF {
+          description
+            "The backoff used by the OSPF implementation is linear, such that
+            a common delay is added following each event.";
+        }
+        enum EXPONENTIAL_BACKOFF {
+          description
+            "The backoff used by the OSPF implementation is exponential, such
+            that the delay added following each event increases.";
+        }
+      }
+      description
+        "The timer mode that is utilised by the implementation.";
+    }
+  }
+
+  grouping ospf-global-graceful-restart-config {
+    description
+      "Configuration parameters relating to graceful restart for
+      OSPF";
+
+    leaf enabled {
+      type boolean;
+      description
+        "When the value of this leaf is set to true, graceful restart
+        is enabled on the local system. In this case, the system will
+        use Grace-LSAs to signal that it is restarting to its
+        neighbors.";
+    }
+
+    leaf helper-only {
+      type boolean;
+      description
+        "Operate graceful-restart only in helper mode. When this leaf
+        is set to true, the local system does not use Grace-LSAs to
+        indicate that it is restarting, but will accept Grace-LSAs
+        from remote systems, and suppress withdrawl of adjacencies
+        of the system for the grace period specified";
+    }
+  }
+
+  grouping ospf-area-config {
+    description
+      "Configuration parameters relating to an OSPF area";
+
+    leaf identifier {
+      type oc-ospf-types:ospf-area-identifier;
+      description
+        "An identifier for the OSPF area - described as either a
+        32-bit unsigned integer, or a dotted-quad";
+    }
+  }
+
+  grouping ospf-area-interface-config {
+    description
+      "Configuration parameters for an OSPF interface";
+
+    leaf id {
+      type string;
+      description
+        "An operator-specified string utilised to uniquely
+        reference this interface";
+    }
+
+    leaf network-type {
+      type identityref {
+        base "oc-ospf-types:OSPF_NETWORK_TYPE";
+      }
+      description
+        "The type of network that OSPFv2 should use for the specified
+        interface.";
+    }
+
+    leaf priority {
+      type uint8;
+      description
+        "The local system's priority to become the designated
+        router";
+    }
+
+    leaf metric {
+      type oc-ospf-types:ospf-metric;
+      description
+        "The metric for the interface";
+    }
+  }
+
+  grouping ospf-area-interface-timers-config {
+    description
+      "Configuration parameters relating to per-interface OSPF
+      timers";
+
+    leaf dead-interval {
+      type uint32;
+      units seconds;
+      description
+        "The number of seconds that the local system should let
+        elapse before declaring a silent router down";
+    }
+
+    leaf hello-interval {
+      type uint32;
+      units seconds;
+      description
+        "The number of seconds the local system waits between the
+        transmission of subsequent Hello packets";
+    }
+
+    leaf retransmission-interval {
+      type uint32;
+      units seconds;
+      description
+        "The number of seconds that the local system waits before
+        retransmitting an unacknowledged LSA.";
+    }
+  }
+
+  grouping ospf-area-interface-neighbor-state {
+    description
+      "Operational state parameters relating an individual neighbor
+      system on an interface within an OSPF area";
+
+    leaf priority {
+      type uint8;
+      description
+        "The remote system's priority to become the designated
+        router";
+    }
+
+    leaf dead-time {
+      type oc-types:timeticks64;
+      description
+        "The time at which this neighbor's adjacency will be
+        considered dead. The value is expressed relative to
+        the Unix Epoch (Jan 1, 1970 00:00:00 UTC).";
+    }
+
+    leaf designated-router {
+      type yang:dotted-quad;
+      description
+        "The designated router for the adjacency. This device
+        advertises the Network LSA for broadcast and NBMA networks.";
+    }
+
+    leaf backup-designated-router {
+      type yang:dotted-quad;
+      description
+        "The backup designated router for the adjacency.";
+    }
+
+    leaf optional-capabilities {
+      // rjs TODO: should this be anything more than the hex-string
+      // this is currently what is shown in IOS/JUNOS
+      type yang:hex-string;
+      description
+        "The optional capabilities field received in the Hello
+        message from the neighbor";
+    }
+
+    leaf last-established-time {
+      type oc-types:timeticks64;
+      // rjs TODO: check implementations - is FULL considered 'up'
+      // since the adjacency is probably up since ExStart
+      description
+        "The time at which the adjacency was last established with
+        the neighbor. That is to say the time at which the
+        adjacency last transitioned into the FULL state. The
+        value is expressed relative to the Unix Epoch (Jan 1 1970
+        00:00:00 UTC).";
+    }
+
+    leaf adjacency-state {
+      type identityref {
+        base "oc-ospf-types:OSPF_NEIGHBOR_STATE";
+      }
+      description
+        "The state of the adjacency with the neighbor.";
+    }
+
+    leaf state-changes {
+      type uint32;
+      description
+        "The number of transitions out of the FULL state that this
+        neighbor has been through";
+    }
+
+    leaf retranmission-queue-length {
+      type uint32;
+      description
+        "The number of LSAs that are currently in the queue to be
+        retransmitted to the neighbor";
+    }
+  }
+
+  grouping ospf-lsdb-area-lsa-state {
+    description
+      "Generic parameters of an OSPF LSA";
+
+    leaf advertising-router {
+      type yang:dotted-quad;
+      description
+        "The router ID of the router that originated the LSA";
+    }
+
+    leaf sequence-number {
+      type int32;
+      description
+        "A signed 32-bit integer used to detect old and duplicate
+        LSAs. The greater the sequence number the more recent the
+        LSA.";
+    }
+
+    leaf checksum {
+      type uint16;
+      description
+        "The checksum of the complete contents of the LSA excluding
+        the age field.";
+    }
+
+    leaf age {
+      type uint16;
+      units seconds;
+      description
+        "The time since the LSA's generation in seconds";
+    }
+  }
+
+  grouping ospf-lsdb-common-tos-metric {
+    description
+      "Common LSDB LSA parameters for type of service and metric";
+
+    leaf tos {
+      type uint8;
+      description
+        "OSPF encoding of the type of service referred to by this
+        LSA. Encoding for OSPF TOS are described in RFC2328.";
+    }
+
+    leaf metric {
+      type oc-ospf-types:ospf-metric;
+      description
+        "The metric value to be used for the TOS specified. This value
+        represents the cost of use of the link for the specific type
+        of service.";
+    }
+  }
+
+  grouping ospf-lsdb-generic-lsa-tos-metric-state {
+    description
+      "Per-TOS state parameters for the Router LSA";
+
+    uses ospf-lsdb-common-tos-metric;
+  }
+
+  grouping ospf-lsdb-generic-lsa-tos-metric-structure {
+    description
+      "Grouping including a generic TOS/metric structure for an
+      LSA";
+
+    container types-of-service {
+      description
+        "Breakdown of LSA contents specifying multiple
+        TOS values";
+
+      list type-of-service {
+        key "tos";
+        description
+          "Per-type of service parameters for the LSA";
+
+        leaf tos {
+          type leafref {
+            path "../state/tos";
+          }
+          description
+            "Reference to the type of service identifier which is
+            specified in the LSA";
+        }
+
+        container state {
+          description
+            "Per-TOS parameters for the LSA";
+
+          uses ospf-lsdb-generic-lsa-tos-metric-state;
+        }
+      }
+    }
+  }
+
+  grouping ospf-lsdb-network-lsa-state {
+    description
+      "Parameters of the Network LSA";
+
+    leaf network-mask {
+      type uint8 {
+        range "0..32";
+      }
+      description
+        "The mask of the network described by the Network LSA
+        represented as a CIDR mask.";
+    }
+
+    leaf-list attached-router {
+      type yang:dotted-quad;
+      description
+        "A list of the router ID of the routers that are attached to
+        the network described by the Network LSA";
+    }
+  }
+
+  grouping ospf-lsdb-network-lsa-structure {
+    description
+      "Structural grouping for Network LSA contents within the LSDB";
+
+    container network-lsa {
+      description
+        "Contents of the network LSA";
+
+      container state {
+        description
+          "State parameters of the network LSA";
+        uses ospf-lsdb-network-lsa-state;
+      }
+    }
+  }
+
+  grouping ospf-lsdb-asexternal-lsa-common-parameters {
+    description
+      "Common parameters that are used for OSPF AS External LSAs";
+
+    leaf forwarding-address {
+      type inet:ip-address-no-zone;
+      description
+        "The destination to which traffic for the external prefix
+        should be advertised. When this value is set to 0.0.0.0/0::0 then
+        traffic should be forwarded to the LSA's originator";
+    }
+
+    leaf external-route-tag {
+      type uint32;
+      description
+        "An opaque tag that set by the LSA originator to carry
+        information relating to the external route";
+    }
+  }
+
+  grouping ospf-lsdb-asexternal-lsa-state {
+    description
+      "Parameters for the AS External LSA";
+
+    leaf mask {
+      type uint8;
+      description
+        "The subnet mask for the advertised destination";
+    }
+
+    leaf metric-type {
+      type enumeration {
+        enum "TYPE_1" {
+          description
+            "When the metric of a prefix is specified as Type 1
+            then it is considered to be expressed in the same units as
+            the link-state metrics carried in OSPF. That is to say
+            that the metric advertised is directly compared to the
+            internal cost";
+        }
+        enum "TYPE_2" {
+          description
+            "When the metric of a prefix is specified as Type 2 then
+            it is considered to be expressed as a cost in addition to
+            that of the link-state metric to the advertising router.
+            That is to say that the metric is considered to be the
+            cost to the advertising router plus the advertised metric
+            for the external entity";
+        }
+      }
+      description
+        "The type of metric included within the AS External LSA.";
+    }
+
+    leaf metric {
+      type oc-ospf-types:ospf-metric;
+      description
+        "The cost to reach the external network specified. The exact
+        interpretation of this cost is dependent on the type of
+        metric specified";
+    }
+
+    uses ospf-lsdb-asexternal-lsa-common-parameters;
+  }
+
+  grouping ospf-lsdb-asexternal-tos-state {
+    description
+      "Per-TOS parameters for the AS External LSA";
+
+    uses ospf-lsdb-asexternal-lsa-common-parameters;
+    uses ospf-lsdb-common-tos-metric;
+  }
+
+  grouping ospf-lsdb-asexternal-lsa-structure {
+    description
+      "Structural grouping for the AS External LSA contents within
+      the LSDB";
+
+    container as-external-lsa {
+      description
+        "Contents of the AS External LSA";
+
+      container state {
+        description
+          "State parameters for the AS external LSA";
+        uses ospf-lsdb-asexternal-lsa-state;
+      }
+
+      container types-of-service {
+        description
+          "Breakdown of External LSA contents specifying multiple
+          TOS values";
+
+        list type-of-service {
+          key "tos";
+          description
+            "Per-type of service parameters for the AS External LSA";
+
+          leaf tos {
+            type leafref {
+              path "../state/tos";
+            }
+            description
+              "Reference to the type of service identifier which is
+              specified in the AS External LSA";
+          }
+
+          container state {
+            description
+              "Per-TOS parameters for the LSA";
+
+            uses ospf-lsdb-asexternal-tos-state;
+          }
+        }
+      }
+
+    }
+  }
+
+  grouping ospf-lsdb-nssa-external-lsa-state {
+    description
+      "Operational state parameters specific to the NSSA External
+      LSA";
+
+    leaf propagate {
+      type boolean;
+      description
+        "When this bit is set to true, an NSSA border router will
+        translate a Type 7 LSA (NSSA External) to a Type 5 LSA
+        (AS External).";
+      reference "RFC3101, Section 2.3";
+    }
+  }
+
+  grouping ospf-lsdb-nssa-external-lsa-structure {
+    description
+      "Structural grouping for the NSSA External LSA contents within
+      the LSDB";
+
+    container nssa-external-lsa {
+      description
+        "Contents of the NSSA External LSA";
+
+      container state {
+        description
+          "State parameters for the AS external LSA";
+        // Type 7 LSAs are are a super-set of Type 5 LSAs so we simply
+        // include the Type 5
+        uses ospf-lsdb-asexternal-lsa-state;
+        uses ospf-lsdb-nssa-external-lsa-state;
+      }
+
+      container types-of-service {
+        description
+          "Breakdown of the NSSA External LSA contents specifying multiple
+          TOS values";
+
+        list type-of-service {
+          key "tos";
+          description
+            "Per-type of service parameters for the NSSA external LSA";
+
+          leaf tos {
+            type leafref {
+              path "../state/tos";
+            }
+            description
+              "Reference to the type of services identifier which is specified
+              in the NSSA External LSA";
+          }
+
+          container state {
+            description
+              "Per-TOS parameters for the LSA";
+            uses ospf-lsdb-asexternal-tos-state;
+          }
+        }
+      }
+    }
+  }
+
+  grouping ospf-lsdb-grace-state {
+    description
+      "State parameters on a per-TLV basis of the Grace LSA";
+
+    leaf type {
+      type identityref {
+        base "oc-ospf-types:GRACE_LSA_TLV_TYPES";
+      }
+      description
+        "The type of the sub-TLV received within the Grace LSA";
+    }
+
+    leaf period {
+      when "../type = 'GRACE_PERIOD'" {
+        description
+          "Include the period specification when the sub-TLV type is indicated
+          to be of this type";
+      }
+
+      type uint32;
+      units seconds;
+      description
+        "The number of seconds that the router's neighbors should advertise
+        the local system as fully adjacent regardless of database
+        synchronization state";
+      reference "RFC3623/RFC5187";
+    }
+
+    leaf reason {
+      when "../type = 'GRACE_RESTART_REASON'" {
+        description
+          "Include the restart reason when the sub-TLV type specifies this
+          is included";
+      }
+
+      type enumeration {
+        enum UNKNOWN {
+          value 0;
+          description
+            "The reason for the graceful restart is unknown";
+        }
+        enum SOFTWARE_RESTART {
+          value 1;
+          description
+            "The local system is restarting due to a software component
+            restart";
+        }
+        enum SOFTWARE_RELOAD_UPGRADE {
+          value 2;
+          description
+            "The local system is restarting due to a software reload or
+            upgrade";
+        }
+        enum CONTROL_PROCESSOR_SWITCH {
+          value 3;
+          description
+            "The local system is restarting due to a switch to a redundant
+            control plane element";
+        }
+      }
+      description
+        "The reason for the graceful restart event occurring, as advertised
+        by the restarting system";
+      reference "RFC3623/RFC5187";
+    }
+  }
+
+}

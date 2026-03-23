@@ -1,0 +1,144 @@
+module sonic-errdisable {
+    namespace "http://github.com/Azure/sonic-errdisable";
+    prefix serrdisable;
+
+    yang-version 1.1;
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC Err Disable Recovery yang model";
+
+    revision 2020-06-04 {
+        description
+            "Initial revision.";
+    }
+
+    typedef is_enabled {
+        type enumeration {
+            enum enabled;
+            enum disabled;
+        }
+    }
+
+    grouping errdisable_config {
+        leaf interval {
+            type uint32 {
+                range "30..65535" {
+                    error-message "Invalid Err-Disable Recovery interval value.";
+                }
+            }
+            units seconds;
+            default 300;
+            description
+                "Err-Disable Recovery interval value.";
+        }
+
+        leaf udld {
+            type is_enabled;
+            description
+                "Enable/Disable Err Disable Recovery for UDLD";
+        }
+
+        leaf bpduguard {
+            type is_enabled;
+            description
+                "Enable/Disable Err Disable Recovery for BPDUGUARD";
+        }
+
+        leaf link_flap {
+            type is_enabled;
+            description
+                "Enable/Disable Err Disable Recovery for LINK_FLAP";
+        }
+
+        leaf coa {
+            type is_enabled;
+            description
+                "Enable/Disable Err Disable Recovery for COA";
+        }
+    }
+
+
+    grouping errdisable_link_flap_state {
+        description
+        "Groups ErrDisable Link-flap state ";
+
+		leaf error-disable {
+        	type string;
+		}
+
+        leaf start-time {
+            type uint32 {
+            	range 0..65535;
+			}
+		}
+
+        leaf link-flaps {
+            type uint32 {
+            	range 0..65535;
+			}
+		}
+
+        leaf flap-threshold {
+            type uint8 {
+                range 1..50;
+            }
+        }
+
+        leaf sampling-interval {
+            type uint32 {
+                range 1..65535;
+            }
+        }
+
+        leaf recovery-interval {
+            type uint32 {
+                range 0..65534;
+            }
+        }
+
+		leaf status {
+			type string;
+		}
+
+	}
+
+    container sonic-errdisable {
+        container ERRDISABLE {
+            list ERRDISABLE_LIST {
+                key "id";
+
+                leaf id {
+                    type enumeration {
+                        enum RECOVERY;
+                    }
+                    description
+                        "It's value is always RECOVERY";
+                }
+
+                uses errdisable_config;
+            }
+        }
+        container PORT_ERR_DISABLE_TABLE {
+            list PORT_ERR_DISABLE_TABLE_LIST {
+                key "name";
+        		leaf name {
+            		type leafref {
+                		path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+            		}
+        		}
+
+                uses errdisable_link_flap_state;
+            }
+		}
+    }
+}

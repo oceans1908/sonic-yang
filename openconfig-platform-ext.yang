@@ -1,0 +1,406 @@
+module openconfig-platform-ext {
+
+    yang-version "1";
+
+    // namespace
+    namespace "http://openconfig.net/yang/platform/extension";
+
+    prefix "oc-pf-ext";
+
+    import openconfig-extensions { prefix "oc-ext"; }
+    import openconfig-platform { prefix oc-pf; }
+    import openconfig-platform-transceiver { prefix oc-transceiver; }
+    import openconfig-platform-types {prefix oc-pf-types; }
+    import openconfig-yang-types { prefix oc-yang; }
+
+    organization "SONiC";
+    contact
+        "SONiC";
+    description
+        "An OpenConfig model extension of platform configuration and operational state.";
+
+    oc-ext:openconfig-version "0.12.8";
+
+    revision 2024-09-18 {
+      description
+        "Add support for extended fec modes";
+       reference "0.12.8";
+    }
+
+    revision 2024-03-12 {
+      description
+        "Add suppport for CMIS v4 tunable laser controls";
+       reference "0.12.7";
+    }
+
+    revision 2023-12-23 {
+      description
+        "Added objects for laser tuning.";
+       reference "0.12.6";
+    }
+
+    revision 2021-11-02 {
+      description
+        "Add leaf to indicate transceiver qualification.";
+       reference "0.12.5";
+    }
+
+    revision 2021-09-15 {
+        description
+            "Updates to Sensor to meet Openconfig standard:
+             1. Move sensor-category list a level above and introduce a wrapping container sensor-categories.
+             2. Re-name state leaf inside sensor list.
+            ";
+        reference "0.12.4";
+    }
+
+    revision 2020-09-03 {
+        description
+            "Add RS and FC fec types for forward error correction";
+        reference "0.12.3";
+    }
+
+    revision 2019-10-11 {
+        description
+            "Initial revision.";
+        reference "0.12.2";
+    }
+
+    typedef laser-grid-type {
+        description "Laser grid spacing types";
+        type enumeration {
+            enum GRID_3P125G {
+                description "3.125 GHz";
+            }
+            enum GRID_6P25G {
+                description "6.25 GHz";
+            }
+            enum GRID_12P5G {
+                description "12.5 GHz";
+            }
+            enum GRID_25G {
+                description "25 GHz";
+            }
+            enum GRID_50G {
+                description "50 GHz";
+            }
+            enum GRID_100G {
+                description "100 GHz";
+            }
+            enum GRID_33G {
+                description "33 GHz";
+            }
+            enum GRID_75G {
+                description "75 GHz";
+            }
+        }
+    }
+
+    grouping platform-ext-cmis-laser-capabilities-top {
+        description "Top group for laser capabilities of the optic";
+        leaf transmitter-is-tunable {
+            type boolean;
+            description "Indicates if tunable laser controls are supported on the optic";
+        }
+        container grids {
+            description "Enclosing container for supported laser grids of the optic";
+            list grid {
+                description "List of supported laser grids of the optic";
+                leaf name {
+                    type laser-grid-type;
+                    description "Laser grid spacing type";
+                }
+                leaf min-channel {
+                    type int16;
+                    description "Lowest supported channel (offset) number";
+                }
+                leaf max-channel {
+                    type int16;
+                    description "Highest supported channel (offset) number";
+                }
+            }
+        }
+        container fine-tuning {
+            description "Supported laser fine-tuning characteristics";
+            leaf resolution {
+                type int16;
+                description "Fine-tuning resolution (0.001 GHz)";
+            }
+            leaf min-offset {
+                type int16;
+                description "Lowest supported fine-tuning offset (0.001 GHz)";
+            }
+            leaf max-offset {
+                type int16;
+                description "Highest supported fine-tuning offset (0.001 GHz)";
+            }
+        }
+        container output-power {
+            description "Supported laser programmable output power characteristics";
+            leaf per-lane-supported {
+                type boolean;
+                description "Ability to support programmable output power per lane";
+            }
+            leaf min-power {
+                type int16;
+                description "Lowest supported output power (0.01 dBm)";
+            }
+            leaf max-power {
+                type int16;
+                description "Highest supported output power (0.01 dBm)";
+            }
+        }
+    }
+    grouping platform-ext-cmis-laser-options-top {
+        description "Top group of laser tunable options";
+        leaf grid {
+            type laser-grid-type;
+            description "Desirable laser grid spacing type";
+        }
+        leaf grid-channel {
+            type int16;
+            description "Desirable laser channel number of the selected grid spacing type";
+        }
+        leaf fine-tuning {
+            type int16;
+            description "Desirable laser fine-tuning offset (0.001 GHz)";
+        }
+    }
+
+    identity FEC_DEFAULT {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is restored to system default.";
+    }
+
+    identity FEC_RS {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is set to RS (Reed-Solomon code).";
+    }
+
+    identity FEC_FC {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is set to FC (Fire code).";
+    }
+
+    identity FEC_RS528 {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is set to RS528.";
+    }
+
+    identity FEC_RS544 {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is set to RS544_1xN.";
+    }
+
+    identity FEC_RS544_2XN {
+        base oc-pf-types:FEC_MODE_TYPE;
+        description "FEC is set to RS544_2xN";
+    }
+
+    typedef frequency-grid-space {
+      type decimal64 {
+        fraction-digits 4;
+        range "3.125 | 6.25 | 12.5 | 25 | 33 | 50 | 75 | 100";
+      }
+      description "Frequency grid space type in GHz";
+    }
+
+    grouping platform-ext-extra-sensor-reading {
+        description "group for sensor readings";
+        container sensor-categories {
+            config false;
+            description "Top level container for the operational data of sensor categories.";
+
+            list sensor-category {
+                key "category";
+                description
+                    "List of sensor category";
+                leaf category {
+                    type leafref {
+                        path "../state/category";
+                    }
+                    description
+                        "Sensor Category Name";
+                }
+
+                container sensors {
+                    description "Sensor information";
+                    list sensor {
+                        key "name";
+                        description
+                            "List of sensors";
+                        leaf name {
+                            type leafref {
+                                path "../state/name";
+                            }
+                            description "Sensor name";
+                        }
+                        container state {
+                            description "Sensor state";
+                            leaf name {
+                                type string;
+                                description
+                                    "Sensor Name";
+                            }
+                            leaf status {
+                                type string;
+                                description "Sensor Value";
+                            }
+                        }
+                    }
+                }
+
+                container state {
+                    description "Sensor state";
+                    leaf category {
+                        type string;
+                        description
+                            "Sensor Category Name";
+                    }
+                }
+            }
+        }
+    }
+
+    augment /oc-pf:components/oc-pf:component/oc-pf:subcomponents/oc-pf:subcomponent {
+        description "subcomponent for sensor readings";
+        uses platform-ext-extra-sensor-reading;
+    }
+
+    augment /oc-pf:components/oc-pf:component/oc-pf:state {
+        description "Additional fields for component state";
+
+        leaf base-mac-address {
+            type string;
+            description "Base MAC address";
+        }
+
+        leaf mac-addresses {
+            type int32;
+            description "Number of MAC addresses";
+        }
+
+        leaf onie-version {
+            type string;
+            description "ONIE version";
+        }
+  }
+
+    augment /oc-pf:components/oc-pf:component/oc-transceiver:transceiver/oc-transceiver:state {
+        description "Additional fields for transceiver";
+        leaf cable-length{
+            type decimal64 {
+                fraction-digits 1;
+            }
+            description "The length of cable (in meters) on the xcvr module";
+        }
+ 
+        leaf max-port-power{
+            type decimal64 {
+                fraction-digits 2;
+            }
+            description "The maximum power the port is allowed to provide (in watts)";
+        }
+
+        leaf max-module-power{
+            type decimal64 {
+                fraction-digits 2;
+            }
+            description "The maximum power the xcvr can draw (in watts)";
+        }
+
+        leaf display-name{
+            type string;
+            description "Name used for identifying the xcvr module";
+        }
+
+        leaf vendor-oui{
+            type string;
+            description "OUI of the xcvr module vendor";
+        }
+ 
+        leaf revision-compliance{
+            type string;
+            description "Revision Compliance of the xcvr module";
+        }
+
+        leaf qualified {
+           type boolean;
+            description
+             "Indicates if the component is qualified to be used by the system vendor.";
+        }
+
+        leaf is-high-power-media {
+          description
+            "Flag to indicate if the media is a high-power optics.";
+          type boolean;
+        }
+        leaf media-lockdown-state {
+          description
+            "To indicate whether the media is locked";
+          type boolean;
+        }
+        
+        leaf qsa-adapter{
+           type string;
+           description "Indicates QSA Adapter present or not";
+        }
+
+        leaf firmware-revision {
+           type string;
+           description "Active firmware revision";
+        }
+
+        leaf media-lane-id {
+           type uint8 {
+               range "0 .. 15";
+           }
+           description "The first media lane id of this logical port";
+        }
+        leaf media-lane-count {
+           type uint8 {
+               range "1 .. 16";
+           }
+           description "The media lane count of this logical port";
+        }
+
+        container laser-capabilities {
+            description "Top level container for laser capabilities";
+            uses platform-ext-cmis-laser-capabilities-top;
+        }
+    }
+
+    augment /oc-pf:components/oc-pf:component/oc-transceiver:transceiver/oc-transceiver:physical-channels/oc-transceiver:channel/oc-transceiver:config {
+        description "Additional fields for CMIS tunable laser controls";
+        uses platform-ext-cmis-laser-options-top;
+    }
+    augment /oc-pf:components/oc-pf:component/oc-transceiver:transceiver/oc-transceiver:physical-channels/oc-transceiver:channel/oc-transceiver:state {
+        description "Additional fields for CMIS tunable laser controls";
+        uses platform-ext-cmis-laser-options-top;
+        leaf target-frequency {
+           type uint64;
+           description "Target frequency for the media lane (MHz)";
+        }
+    }
+
+    grouping port-high-wattage-optics-top {
+      description
+        "Top-level grouping for port high wattage optics data";
+        leaf high-wattage-optics-enable {
+            type boolean;
+            default false;
+            description
+                "Enable/Disable high-wattage optics on the interface.";
+        }
+    }
+
+    augment /oc-pf:components/oc-pf:component/oc-pf:port/oc-pf:config{
+      description "Extending port to have high wattage optics support";
+      uses port-high-wattage-optics-top {
+        when "../oc-pf:state/oc-pf:type = 'PORT'" {
+          description
+            "This data is valid only for PORT components";
+        }
+      }
+    }
+}

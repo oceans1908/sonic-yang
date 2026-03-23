@@ -1,0 +1,16 @@
+module sonic-frr-nd-clear-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/sfrrndclear-annot";
+    prefix "sfrrndclear-annot";
+
+    import sonic-frr-nd-clear { prefix sfrrndclear; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sfrrndclear:clear-frr-nd {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_clear_frr_nd";
+        }
+    }
+}

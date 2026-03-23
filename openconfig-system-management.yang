@@ -1,0 +1,318 @@
+module openconfig-system-management {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/system/management";
+
+  prefix "oc-sys-mgmt";
+
+  // import some basic types
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-pki { prefix oc-pki; }
+  // meta
+  organization "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+    "This module defines configuration and operational state data
+    related to management services.";
+
+  oc-ext:openconfig-version "0.1.4";
+
+  revision "2024-08-16" {
+    description
+      "Add cipher-suite attribute in REST server configuration.";
+    reference "0.1.4";
+  }
+
+  revision "2024-01-28" {
+    description
+      "Add VRF name used for REST and Telemetry server.";
+    reference "0.1.3";
+  }
+
+  revision "2018-11-21" {
+    description
+      "Add OpenConfig module metadata extensions.";
+    reference "0.1.2";
+  }
+
+  revision "2018-08-28" {
+    description
+      "Update description of the ANY enum.";
+    reference "0.1.1";
+  }
+
+  revision "2018-07-26" {
+    description
+      "Initial public release";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  // identity statements
+
+  // typedef statements
+
+  // grouping statements
+
+  grouping system-grpc-server-config {
+    description
+      "Configuration data for the gRPC server";
+
+    leaf enable {
+      type boolean;
+      default true;
+      description
+        "Enables the gRPC server. The gRPC server is enabled by
+        default";
+    }
+
+    leaf port {
+      type oc-inet:port-number;
+      default 9339;
+      description
+        "TCP port on which the gRPC server should listen";
+    }
+
+    leaf transport-security {
+      type boolean;
+      description
+        "Enables gRPC transport security (e.g., TLS or SSL)";
+    }
+
+    leaf certificate-id {
+      type string;
+      description
+        "The certificate ID to be used for authentication";
+    }
+
+    leaf-list listen-addresses {
+      type union {
+        type oc-inet:ip-address;
+        type enumeration {
+          enum ANY {
+            description
+             "The gRPC daemon should listen on any address
+              bound to an interface on the system.";
+          }
+        }
+      }
+      description
+        "The IP addresses that the gRPC server should listen
+        on. This may be an IPv4 or an IPv6 address";
+    }
+  }
+
+  grouping system-grpc-server-top {
+    description
+      "Top-level grouping for system gRPC server data";
+
+      container grpc-server {
+        description
+          "Top-level container for the gRPC server";
+
+      container config {
+        description
+          "Configuration data for the system gRPC server";
+
+        uses system-grpc-server-config;
+      }
+
+      container state {
+        config false;
+
+        description
+          "Operational state data for the system gRPC server";
+
+        uses system-grpc-server-config;
+      }
+    }
+  }
+
+  grouping system-rest-server-config {
+    description
+      "Configuration data for REST server";
+
+    leaf port {
+      type uint16;
+      description
+	"Port that REST server listens on";
+    }
+
+    leaf log_level {
+      type uint8;
+      description
+	"Log level of REST server";
+    }
+
+    leaf client_auth {
+      type string {
+	pattern "((password|cert|jwt|none),?)*" {
+	  error-message "Invalid REST client_auth pattern";
+	  error-app-tag client-auth-invalid;
+	}
+      }
+    }
+
+    leaf req_limit {
+      type uint32;
+      description
+	"Maximum number of concurrent requests allowed";
+    }
+
+    leaf read_timeout {
+      type uint32;
+      description
+	"Number of seconds server waits for a valid http request to arrive on a connection";
+    }
+
+    leaf security_profile {
+      type leafref {
+        path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+      }
+    }
+
+    leaf api_timeout {
+      type uint32;
+      units "seconds";
+      description
+	"Server side timeout hint, in seconds, for requests";
+    }
+
+    leaf vrf {
+      type string;
+      description
+        "VRF instance on which the REST server listens.";
+    }
+
+    leaf cipher-suite {
+      type string;
+      description
+        "REST server cipher suite (TLSv1.2). TLSv1.3 cipher suites are supported by default.";
+    }
+  }
+
+  grouping system-rest-server-top {
+    description
+      "Top-level container for REST server";
+
+      container rest-server {
+        description
+	  "Top-level container for REST server";
+      container config {
+        description
+	  "Configuration data for REST server";
+
+        uses system-rest-server-config;
+      }
+
+      container state {
+        config false;
+        description
+	  "Operational state data for the system REST server";
+
+        uses system-rest-server-config;
+      }
+    }
+  }
+
+  grouping system-telemetry-server-config {
+    description
+      "Configuration data for telemetry server";
+
+    leaf port {
+      type uint16;
+      description
+	"Port that telemetry server listens on";
+    }
+
+    leaf log_level {
+      type uint8;
+      description
+	"Log level of telemetry server";
+    }
+
+    leaf jwt_refresh {
+      type uint32;
+      description
+	"Seconds before JWT expiry the token can be refreshed";
+    }
+
+    leaf jwt_valid {
+      type uint32;
+      description
+	"Seconds that JWT token is valid for";
+    }
+
+    leaf client_auth {
+      type string {
+	pattern "((password|cert|jwt|none),?)*" {
+	  error-message "Invalid telemetry client_auth pattern";
+	  error-app-tag client-auth-invalid;
+        }
+      }
+    }
+
+    leaf security_profile {
+      type leafref {
+        path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+      }
+    }
+    leaf api_timeout {
+      type uint32;
+      units "seconds";
+      description
+	"Server side rpc timeout hint, in seconds, for gNMI and gNOI rpcs";
+    }
+    leaf vrf {
+      type string;
+      description
+        "VRF instance on which the telemetry server listens."; 
+    }
+  }
+
+  grouping system-telemetry-server-top {
+    description
+      "Top-level grouping for telemetry server data";
+
+      container telemetry-server {
+        description
+	  "Top-level container for telemetry server";
+
+      container config {
+        description
+	  "Configuration data for telemetry server";
+
+        uses system-telemetry-server-config;
+      }
+
+      container state {
+        config false;
+
+        description
+	  "Operational state data for telemetry server";
+
+	uses system-telemetry-server-config;
+      }
+    }
+  }
+
+  // data definition statements
+
+  // augment statements
+
+  // rpc statements
+
+  // notification statements
+
+}

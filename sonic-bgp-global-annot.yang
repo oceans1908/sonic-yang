@@ -1,0 +1,19 @@
+module sonic-bgp-global-annot {
+    namespace "http://github.com/Azure/sonic-bgp-global-annot";
+    prefix sbgpg-annot;
+    yang-version 1.1;
+
+    import sonic-extensions {
+        prefix sonic-ext;
+    }
+
+    import sonic-bgp-global {
+        prefix sbgpglobal;
+    }
+
+    deviation /sbgpglobal:sonic-bgp-global {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+        }
+    }
+}

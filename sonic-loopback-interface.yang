@@ -1,0 +1,128 @@
+module sonic-loopback-interface {
+    namespace "http://github.com/Azure/sonic-loopback-interface";
+    prefix sonic-lo-if;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-vrf {
+        prefix vrf;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-loopback {
+        prefix lp;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC LOOPBACK INTERFACE";
+
+    revision 2022-12-21 {
+        description
+            "Add custom validation for vrf_name.";
+    }
+
+    revision 2020-07-26 {
+        description
+            "Move L2 Loopback to a separate Yang model.";
+    }
+
+    revision 2020-02-15 {
+            description
+                        "Add ipv6_use_link_local_only attribute to interface object";
+    }
+
+    revision 2019-12-01 {
+        description
+            "Add vrf_name for VRF interface binding.";
+    }
+
+    revision 2019-07-02 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-loopback-interface {
+
+        container LOOPBACK_INTERFACE {
+
+            list LOOPBACK_INTERFACE_LIST {
+                key "loIfName";
+
+                leaf loIfName {
+                    type leafref {
+                        path "/lp:sonic-loopback/lp:LOOPBACK/lp:LOOPBACK_LIST/lp:name";        
+                    }
+                }
+
+                leaf nat_zone {
+                    type uint8 {
+                        range "0..3";
+                    }
+                }
+
+                leaf vrf_name {
+                    type union {
+                        type string {
+                            pattern "mgmt";
+                        }
+                        type leafref {
+                            path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+                        }
+                    }
+                    sonic-ext:custom-validation ValidateDonorUnnumIntfVrf;
+                    sonic-ext:custom-validation ValidateIntfVrfBinding;
+                }
+
+                leaf ipv6_autoconfig {
+                    type cmn:mode-enable;
+                    default disable;
+                    description
+                        "Enable IPv6 stateless auto-configuration on interface";
+                }
+
+                leaf ipv6_use_link_local_only {
+                    type cmn:mode-enable;
+                    default disable;
+                    description
+                        "Enable IPv6 link local address on interface";
+                }
+            }
+
+            list LOOPBACK_INTERFACE_IPADDR_LIST {
+                key "loIfName ip_prefix";
+
+                leaf loIfName{
+                     type leafref {
+                        path "../../LOOPBACK_INTERFACE_LIST/loIfName";
+                    }
+                }
+
+                leaf ip_prefix {
+                    type inet:ip-prefix;
+                    sonic-ext:custom-validation ValidateIntfIp;
+
+                }
+                leaf secondary {
+                    type boolean;
+                    sonic-ext:custom-validation ValidateDonorIntfMultiIP;
+                }
+            }
+        }
+    }
+}

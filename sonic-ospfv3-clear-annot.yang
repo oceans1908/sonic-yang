@@ -1,0 +1,16 @@
+module sonic-ospfv3-clear-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/sospfv3clear-annot";
+    prefix "sospfv3clear-annot";
+
+    import sonic-ospfv3-clear { prefix sospfv3clear; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sospfv3clear:clear-ospfv3 {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_clear_ospfv3";
+        }
+    }
+}

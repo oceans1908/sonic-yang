@@ -1,0 +1,1610 @@
+module openconfig-ospf-common-ext {
+
+  yang-version "1.1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/ospf/extension";
+
+  prefix "oc-ospf-ext";
+
+  // import some basic types
+  import ietf-yang-types { prefix "yang"; }
+  import ietf-inet-types { prefix "inet"; }
+  import openconfig-ospf-types { prefix "oc-ospf-types"; }
+  import openconfig-network-instance { prefix oc-netinst; }
+  import openconfig-interfaces { prefix "oc-if"; }
+  import openconfig-routing-policy { prefix "oc-rpol"; }
+  import openconfig-if-ip { prefix oc-ip; } 
+  import openconfig-acl { prefix oc-acl; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-vlan { prefix oc-vlan; }
+  import openconfig-bfd  { prefix oc-bfd; }
+  import openconfig-ospf-common { prefix "oc-ospf-cmn"; }
+
+  organization
+    "OCP SONiC Subproject";
+
+  contact
+    "OCP SONiC Subproject Working Group";
+
+  description
+    "An OpenConfig model for Open Shortest Path First (OSPF)
+    extensions ";
+
+  oc-ext:openconfig-version "0.1.3";
+
+  revision "2025-01-30" {
+    description
+      "Added Area policy range metric and not-advertise validation";
+    reference
+      "0.1.3";
+  }
+
+  revision "2024-04-18" {
+    description
+      "Restructured LSDB specific yangs for FRR config and show";
+    reference
+      "0.1.2";
+  }
+
+  revision "2024-03-21" {
+    description
+      "Add common OSPF yang extensions for FRR config and show";
+    reference
+      "0.1.1";
+  }  
+
+  typedef ospf-cost-metric {
+    type uint32 {
+      range "0..16777215";
+    }
+    description "OSPF Interface metric (cost) value";
+  }
+
+  typedef ospf-routing-distance {
+    type uint8 {
+      range "1..255";
+    }
+    description "OSPF distance value";
+  }
+
+  grouping ospf-ext-global-config {
+    description
+      "Global configuration for OSPF extended";
+
+    leaf enable {
+      type boolean;
+      default true;
+      description
+        "OSPF router is enabled in this VRF";
+    }
+
+    leaf description {
+      type string;
+       default "OSPF Router";
+       description
+         "String description for the configured router";
+    }
+
+    leaf default-metric {
+      type ospf-cost-metric;
+      description
+        "Default metric value for routes";
+    }
+
+    leaf auto-cost-reference-bandwidth {
+      type uint32 {
+        range "1..4294967";
+      }
+      description
+        "Refrence Bandwidth for auto calculating OSPF interface cost.";
+    }
+
+    leaf write-multiplier {
+      type uint8 {
+         range "0..100";
+      }
+      description
+        "OSPF write multiplier";
+    }
+    
+    leaf maximum-paths {
+      type uint16 {
+        range "1..256";
+      }
+      description
+        "Max no of multiple paths for ECMP support.";
+    }
+    
+  }
+
+  grouping ospf-ext-policy-distance-config {
+    description
+      "Global distance configuration for OSPF";
+
+    leaf all {
+      type uint8 {
+        range "1..255";
+      }
+      description
+         "OSPF distance for all intra inter and external routes.";
+    }
+
+    leaf intra-area {
+      type uint8 {
+        range "1..255";
+      }
+      description
+        "OSPF distance for intra area routes.";
+    }
+
+    leaf inter-area {
+      type uint8 {
+        range "1..255";
+      }
+      description
+        "OSPF distance for intra area routes.";
+    }
+
+    leaf external {
+      type uint8 {
+        range "1..255";
+      }
+      description
+        "OSPF distance for intra area routes.";
+    }
+  }
+
+  grouping ospf-ext-policy-distance-top {
+    description
+      "Global distance configuration for OSPF";
+
+    container distance {
+      description
+        "Global distance configuration for OSPF";
+
+      container config {
+        description
+          "Config for Global distance configuration for OSPF";
+        uses ospf-ext-policy-distance-config;
+      }
+
+      container state {
+        config false;
+        description
+          "State for Global distance configuration for OSPF";
+        uses ospf-ext-policy-distance-config;
+      }
+    }
+  }
+
+
+  grouping ospf-ext-global-timers-spf-config {
+    description
+      "Configuration parameters relating to global SPF timer
+      parameters for OSPF";
+
+    leaf throttle-delay {
+      type uint32 {
+        range "0..600000";
+      }
+      units msec;
+      description
+        "SPF throttle Delay";
+    }
+
+    /* throttle initial-delay -> minimum-hold first-delay firstchange-to-first-spf
+       throttle maximum-delay -> max-hold throttle-hold
+       throttle throttle-delay -> intital hold bw spfs */
+  }
+
+  grouping ospf-ext-global-timers-spf-state {
+    description
+      "State parameters relating to global SPF timer
+      parameters for OSPF";
+
+    leaf spf-timer-due {
+      type uint32;
+      units seconds;
+      description
+        "spf timer due in seconds. If the value of spf-timer-due is 0, it means spf timer is inactive.";
+    }
+    /* if the value of spf-timer-due is 0, it means spf timer is inactive. */
+  }
+
+  grouping ospf-ext-global-max-metric-router-lsa-config {
+    description
+      "Global max-metric configuration for OSPF";
+
+    leaf administrative {
+      type boolean;
+      description
+        "OSPF Max-metric is administrative configuration";
+    }
+
+    leaf on-startup {
+      type uint32 {
+        range "5..86400";
+      }
+      units seconds;
+      description
+        "Max metric startup timeout in seconds";
+    }
+
+    leaf router-lsa-all {
+      type ospf-cost-metric ;
+      description
+        "Advertise all Router LSA links with OSPF max-metric";
+    }
+
+    leaf router-lsa-stub {
+      type ospf-cost-metric ;
+      description
+        "Advertise all Router LSA stub links with OSPF max-metric";
+    }
+
+    leaf external-lsa-all {
+      type ospf-cost-metric ;
+      description
+        "Advertise all External LSA prefixes with OSPF max-metric";
+    }
+
+    leaf external-lsa-connected {
+      type ospf-cost-metric ;
+      description
+        "Advertise connected External LSA prefixes with OSPF max-metric";
+    }
+
+    /*
+    leaf on-shutdown {
+      type uint32 {
+        range "5..500";
+      }
+      units seconds;
+      description
+        "Max metric shutdown timeout in seconds";
+    }
+    */
+  }
+
+  grouping ospf-ext-global-timers-max-metric-top {
+    description
+      "Global timers max-metric configuration for OSPF";
+
+    container max-metric {
+      description
+        "Configuration and operational state parameters relating
+        to setting the OSPF maximum metric.";
+
+      container config {
+        description
+          "Configuration parameters relating to setting the OSPF
+          maximum metric for a set of advertised entities.";
+        uses ospf-ext-global-max-metric-router-lsa-config;
+      }
+
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to setting the
+          OSPF maximum metric for a set of advertised entities.";
+        uses ospf-ext-global-max-metric-router-lsa-config;
+      }
+    }
+  }
+
+
+  grouping ospf-ext-global-lsa-generation-timers-config {
+    description
+      "Configuration parameters relating LSA generation timer
+      parameters for OSPF";
+
+    leaf minimum-interval{
+      type uint32 {
+        range "0..5000";
+      }
+      units msec;
+      description
+        "LSA minimum interval timer";
+    }
+
+    leaf minimum-arrival {
+      type uint32 {
+        range "0..600000";
+      }
+      units msec;
+      description
+        "LSA minimum arrival timer";
+    }
+
+    leaf refresh-timer {
+      type uint32 {
+        range "10..1800";
+      }
+      units seconds;
+      description
+        "LSA Refresh Timer configuration";
+    }
+  } 
+
+  grouping ospf-ext-global-state {
+    description "Global state information for ospf enabled router";
+    
+    leaf area-count {
+      type uint32;
+      description
+        "How many areas this router is connected to";
+    }
+
+    leaf hold-time-multiplier {
+      type uint32;
+      description
+        "Current hold time multiplier";
+    }
+
+    leaf last-spf-execution-time {
+      type uint64;
+      description
+        "Time elapsed since last SPF algorithm run";
+    }
+
+    leaf last-spf-duration {
+      type uint64;
+      description
+        "Duration of last SPF algorithm run";
+    }
+
+    leaf external-lsa-count {
+      type uint32;
+      description
+         "Total count of external LSA for this ospf enabled router";
+    }
+  
+  }
+
+  grouping ospf-ext-global-graceful-restart-config {
+    description
+      "Configuration parameters related to OSPF Graceful Restart (Restarting Node)";
+
+    leaf grace-period {
+      type uint32 {
+        range "1..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+  }
+  
+  grouping ospf-ext-global-graceful-restart-helper-config {
+    description
+      "Configuration parameters related to OSPF Graceful Restart Helper Mode";
+
+    leaf strict-lsa-checking {
+      type boolean;
+      description
+        "Enable or disable Strict LSA checking";
+    }
+
+    leaf planned-only {
+      type boolean;
+      description
+        "Enable or disable Planned only graceful restart";
+    }
+
+    leaf supported-grace-time {
+      type uint32 {
+        range "10..1800";
+      }
+      description
+        "Grace period timer value";
+    }
+  }
+  
+  grouping ospf-ext-global-graceful-restart-helper-status {
+    description
+      "State parameters related to OSPF Graceful Restart Helper Mode";
+
+    leaf gr-last-exit-reason {
+      type string;
+      description
+        "Last GR Helper Exit Reason";
+    }
+
+    leaf gr-helper-active-restarter-count {
+      type uint32;
+      description
+        "No of restarting router count for which this router is a helper";
+    }
+  }
+  
+  grouping ospf-ext-global-graceful-restart-status {
+    description
+      "State parameters related to OSPF Graceful Restart";
+
+    leaf gr-prepare-in-progress {
+      type boolean;
+      description
+        "Graceful Restart Preparation Status";
+    }
+  }
+
+  grouping ospf-ext-graceful-restart-helper-neighbor-config {
+    description
+      "Configuration parameters relating to graceful restart for
+      OSPF helper mode";
+
+    leaf neighbour-id {
+      type yang:dotted-quad;
+      description
+        "Neighbor ID";
+    }
+
+  }
+
+  grouping ospf-ext-global-graceful-restart-helpers-neighbor-config {
+    description
+      "Configuration parameters relating to GR helper";
+
+    container helpers {
+      description
+        "Configuration and state parameters relating network prefixes";
+
+      list helper {
+        key "neighbour-id";
+
+        description
+          "Configuration and state parameters relating to a
+          GR helper corresponding to a neighbor";
+
+        leaf neighbour-id {
+          type leafref {
+             path "../config/neighbour-id";
+          }
+          description
+            "Reference to the neighbour ID";
+        }
+
+        container config {
+          description
+            "Configuration parameters relating to the OSPF GR neigbor";
+          uses ospf-ext-graceful-restart-helper-neighbor-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters relating to the OSPF GR helper neigbor";
+          uses ospf-ext-graceful-restart-helper-neighbor-config;
+        }
+      }
+    }
+  }  
+
+  grouping ospf-ext-area-stub-config {
+    description
+      "Area stub configuration for OSPF";
+
+    leaf enable {
+      type boolean;
+      description
+         "OSPF area stub configuration.";
+    }
+
+    leaf no-summary {
+      type boolean;
+      description
+        "OSPF area stub no summary configuration.";
+    }
+
+    leaf default-cost {
+      type ospf-cost-metric ;
+      description
+        "OSPF summary-default cost for stub area";
+    }
+  }
+
+  grouping ospf-ext-area-stub-top {
+    description
+      "Stub area configuration for OSPF";
+
+    container stub {
+      description
+        "Stub Area configuration for OSPF";
+
+      container config {
+        description
+          "Config for Stub Area configuration for OSPF";
+        uses ospf-ext-area-stub-config;
+      }
+
+      container state {
+        config false;
+        description
+          "State for Stub Area for OSPF";
+        uses ospf-ext-area-stub-config;
+      }
+    }
+  }  
+
+  grouping ospf-ext-area-network-config {
+    description
+      "Configuration parameters relating to a network within
+      the OSPF area";
+
+    leaf address-prefix {
+      type inet:ip-prefix;
+      description
+        "Network address prefix of the OSPF interface
+         Interface with IPv4/IPv6 address matching the network
+         prefix is considered to be part of current area";
+    }
+  }
+
+  grouping ospf-ext-area-networks-top {
+    description
+      "Configuration parameters relating to a network-addresses within
+      the OSPF area";
+
+    container networks {
+      description
+        "Configuration and state parameters relating network prefixes";
+
+      list network {
+        key "address-prefix";
+
+        description
+          "Configuration and state parameters relating to a
+          network address prefix";
+
+        leaf address-prefix {
+          type leafref {
+            path "../config/address-prefix";
+          }
+          description
+            "Reference to the network prefix";
+        }
+
+        container config {
+          description
+            "Configuration parameters relating to the OSPF network address";
+          uses ospf-ext-area-network-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters relating to the OSPF network address";
+          uses ospf-ext-area-network-config;
+        }
+      }
+    }
+  }
+
+  grouping ospf-ext-router-id {
+    description
+      "OSPF router-id configuration";
+    
+    leaf router-id {
+      type yang:dotted-quad;
+      description
+        "Router id of this ospf router";
+    }
+  }
+
+  grouping ospf-ext-area-state {
+    description
+      "OSPF area state information";
+
+     uses ospf-ext-router-id;
+
+    leaf lsa-count {
+      type uint32;
+      description
+        "Total count of all types of LSA in this area";
+    }    
+  }
+
+  grouping ospf-ext-policy-area-address-range-config {
+    description
+      "Configuration parameters relating to a address-range within
+      the OSPF area";
+
+    leaf address-prefix {
+      type inet:ip-prefix;
+      description
+        "Address prefix for the OSPF address";
+    }
+
+    leaf advertise {
+      type boolean;
+      default true;
+      description
+        "Advertise or no-adverise configuration for prefix";
+    }
+
+    leaf metric {
+      type ospf-cost-metric;
+      must "(../advertise = 'true')" {
+          error-message "metric/cost can be set only when advertise is true.";
+      }
+      description
+        "Metric value for the prefix";
+    }
+
+    leaf substitute {
+      type boolean;
+      description
+        "Substitute Address prefix for the OSPF address";
+    }
+
+    leaf substitue-prefix {
+      type inet:ip-prefix;
+      description
+        "Substitute Address prefix for the OSPF address";
+    }
+  }
+
+  grouping ospf-ext-policy-address-range-top {
+    description
+      "Configuration parameters relating to a address-range within
+      the OSPF area";
+
+    container ranges {
+      description
+        "Configuration and state parameters relating address-range prefixes";
+
+      list range {
+        key "address-prefix";
+
+        description
+          "Configuration and state parameters relating to a
+          address-range address prefix";
+
+        leaf address-prefix {
+          type leafref {
+            path "../config/address-prefix";
+          }
+          description
+            "Reference to the address-range prefix";
+        }
+
+        container config {
+          description
+            "Configuration parameters relating to the OSPF address-range address";
+          uses ospf-ext-policy-area-address-range-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters relating to the OSPF address-range address";
+          uses ospf-ext-policy-area-address-range-config;
+        }
+      }
+    }
+  }
+
+  grouping ospf-ext-policy-area-filter-prefix-config {
+    description
+      "Configuration parameters relating to filter prefix within the OSPF area";
+
+    leaf name {
+      type leafref {
+              path "/oc-rpol:routing-policy/oc-rpol:defined-sets/" +
+                   "oc-rpol:prefix-sets/oc-rpol:prefix-set/oc-rpol:name";
+      }
+      description
+        "Filter prefix config";
+    }
+  }
+
+  grouping ospf-ext-policy-filter-list-top {
+    description
+      "Configuration parameters relating to a filter list within
+      the OSPF area";
+
+    container filter-list-in {
+      description
+        "Configuration and state parameters relating in filter list";
+
+      container config {
+        description
+          "Configuration parameters relating to the OSPF area filter list";
+        uses ospf-ext-policy-area-filter-prefix-config;
+      }
+
+      container state {
+        config false;
+        description
+          "State parameters relating to the OSPF area filter list";
+        uses ospf-ext-policy-area-filter-prefix-config;
+      }
+    }
+
+    container filter-list-out {
+      description
+        "Configuration and state parameters relating out filter list";
+
+      container config {
+        description
+          "Configuration parameters relating to the OSPF area filter list";
+        uses ospf-ext-policy-area-filter-prefix-config;
+      }
+
+      container state {
+        config false;
+        description
+          "State parameters relating to the OSPF area filter list";
+        uses ospf-ext-policy-area-filter-prefix-config;
+      }
+    }
+  }
+
+
+  grouping ospf-ext-inter-area-policy-config {
+    description
+      "Configuration parameters for OSPF policies which propagate
+      prefixes between areas";
+
+    leaf src-area {
+      type oc-ospf-types:ospf-area-identifier;
+      description
+        "The area from which prefixes are to be applied.";
+    }
+  }
+
+  grouping ospf-ext-inter-area-propagation-policy-top {
+    description
+       "Policies defining how inter-area propagation should be performed
+       by the OSPF instance";
+
+    //list inter-area-propagation-policy
+    //infra does not support augmenting same name after deviate
+    list inter-area-policy {
+      key "src-area";
+      description
+        "A list of connections between pairs of areas - routes are
+        propagated from the source (src) area to the destination (dst)
+        area according to the policy specified";
+
+      leaf src-area {
+        type leafref {
+          path "../config/src-area";
+        }
+        description
+          "Reference to the source area";
+      }
+
+      container config {
+        description
+          "Configuration parameters relating to the inter-area
+          propagation policy";
+        uses ospf-ext-inter-area-policy-config;
+      }
+
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to the inter-area
+           propagation policy";
+          uses ospf-ext-inter-area-policy-config;
+      }
+
+      uses ospf-ext-policy-address-range-top;
+      //uses ospf-ext-policy-export-list;
+      //uses ospf-ext-policy-import-list;
+      uses ospf-ext-policy-filter-list-top;
+    }
+  }    
+
+  grouping ospf-ext-lsdb-area-lsa-state {
+    description
+     "Parameters of an OSPF LSA";
+
+    leaf option {
+      type uint8;
+      description
+        "Options for an LSA(e.g. E bit (ExternalRoutingCapability) ";
+    }
+
+    leaf option-expanded {
+      type string;
+      description
+        "Names for all flags present in option";
+    }
+    leaf flags {
+      type uint8;
+      description
+        "Flag setting for an LSA, typically appliable for router LSA";
+    }
+
+    leaf length {
+      type uint16;
+      description
+        "Length of the LSA";
+    }
+
+    leaf display-sequence-number {
+      type string;
+      description
+        "Sequence number in display format";
+    }
+  }
+
+  grouping ospf-ext-lsdb-router-lsa-state {
+    description
+      "parameters related to router LSA state";
+
+    leaf flags {
+      type uint32;
+      description
+        "Flag information related to router lsa";
+    }
+
+    leaf flags-description {
+      type string;
+      description
+        "Description related to flags present in router lsa";
+    }
+
+    leaf number-links {
+      type uint16;
+      description
+        "The number of links that are described within the LSA";
+    }
+  }
+
+  grouping ospf-ext-passive-interface-config {
+    description
+      "Configuration parameters relating to a network within
+      the OSPF area";
+
+    leaf name {
+      type oc-if:base-interface-ref;
+      description
+        "The name of the passive interface .";
+    }
+
+    leaf subinterface {
+      type leafref {
+        path "/oc-if:interfaces/" +
+          "oc-if:interface[oc-if:name=current()/../name]/" +
+          "oc-if:subinterfaces/oc-if:subinterface/oc-if:index";
+      }
+      default 0;
+      description
+        "Reference to a subinterface -- this requires the base
+        interface to be specified using the interface leaf in
+        this container.  If only a reference to a base interface
+        is requuired, this leaf should not be set.";
+    }
+
+    leaf address {
+      type inet:ipv4-address-no-zone;
+      description
+          "Interface IP address";
+    }
+
+    leaf non-passive {
+      type boolean;
+      description
+        "Make this interface non passive";
+    }
+  }
+
+  grouping ospf-ext-passive-interfaces-top {
+    description
+      "Configuration parameters relating to a passive interfaces";
+
+    container passive-interfaces {
+      description
+        "Configuration and state parameters relating passive interfaces";
+
+      list passive-interface {
+        key "name subinterface address";
+
+        description
+          "Configuration and state parameters relating passive interfaces";
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+          description
+            "Reference to the passive interface";
+        }
+
+        leaf subinterface {
+          type leafref {
+            path "../config/subinterface";
+          }
+          description
+            "Reference to the passive sub-interface";
+        }
+
+        leaf address {
+          type leafref {
+            path "../config/address";
+          }
+          description
+            "Reference to the passive interface Ip address";
+        }
+
+        container config {
+          description
+            "Configuration parameters relating to the OSPF passive interface";
+          uses ospf-ext-passive-interface-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State parameters relating to the OSPF passive interface";
+          uses ospf-ext-passive-interface-config;
+        }
+      }
+    }
+  }  
+
+  grouping ospf-ext-area-interface-config {
+    description
+      "Configuration parameters for an OSPF interface";
+
+    leaf area-id {
+      type oc-ospf-types:ospf-area-identifier;
+      description
+        "An identifier for the OSPF area - described as either a
+        32-bit unsigned integer, or a dotted-quad";
+    }
+
+    leaf address {
+      type inet:ip-address;
+      description
+        "The Interface address";
+    }
+
+    leaf dead-interval-minimal {
+      type boolean;
+      description
+         "OSPF interface dead-interval type minimal configuration.";
+    }
+
+    leaf hello-multiplier {
+      type uint32 {
+        range 1..10;
+      }
+      description
+         "OSPF interface hello multiplier configuration.";
+    }
+
+    leaf mtu-ignore {
+      type boolean;
+      description
+         "OSPF interface MTU ignore configuration.";
+    }   
+  }
+  
+  grouping ospf-ext-area-interface-state {
+    description
+      "State parameters for an OSPF interface";
+
+    leaf index {
+      type uint32;
+      description
+        "Interface index";
+    }
+
+    leaf bandwidth {
+      type uint32;
+      description
+        "Interface bandwidth in Megabits";
+    }
+
+    leaf operational-state {
+      type string;
+      description
+        "Interface combined operational state";
+    }
+
+    leaf if-flags {
+      type string;
+      description
+        "Interface Flag indicating support for multicast, status etc";
+    }
+
+    leaf broadcast-address {
+      type inet:ip-address;
+      description
+        "Broadcast address address";
+    }
+
+    leaf dr-interface-address {
+      type inet:ip-address;
+      description
+        "DR Interface IP address address";
+    }
+
+    leaf mtu {
+      type uint32;
+      description
+        "Interface MTU";
+    }
+
+    uses ospf-ext-router-id;
+
+    leaf adjacency-status {
+      type string;
+      description
+        "The state of the adjacency with the neighbor,
+        or it can also indicate state like DR/BDR.";
+    }
+
+    leaf designated-router {
+      type yang:dotted-quad;
+      description
+        "Designated router";
+    }
+
+    leaf backup-designated-router-id {
+      type yang:dotted-quad;
+      description
+        "Backup Designated router Id";
+    }
+
+    leaf backup-designated-router-address {
+      type inet:ip-address;
+      description
+        "Backup Designated router address";
+    }
+
+    leaf designated-router-other {
+      type yang:dotted-quad;
+      description
+        "DR Other router";
+    }
+
+    leaf  member-of-ospf-all-routers {
+      type boolean;
+      description
+        "Member of OSPF All router multicast group";
+    }
+
+    leaf member-of-ospf-designated-routers {
+      type boolean;
+      description
+        "Member of OSPF Designated router multicast group";
+    }
+
+    leaf neighbor-count {
+      type uint32;
+      description
+        "Neighbor count";
+    }
+
+    leaf adjacency-count {
+      type uint32;
+      description
+        "Adjacency count";
+    }
+
+    leaf bfd-state {
+      type boolean;
+      description
+        "BFD State";
+    }
+
+    leaf ospf-enable {
+      type boolean;
+      description
+        "Ospf Enable State";
+    }
+
+    leaf address-len {
+      type uint8;
+      description
+        "Prefix length of the ip address configured on the interface";
+    }
+
+    leaf ospf-interface-type {
+      type string;
+      description
+        "Type of OSPF interface like point-to-point, broadcast etc";
+    }
+
+    leaf cost {
+      type uint32;
+      description
+        "Metric for this interface";
+    }
+
+    leaf transmit-delay {
+      type uint32;
+      description
+        "transmit delay for this interface in seconds";
+    }
+    leaf network-lsa-sequence-number {
+      type yang:hex-string;
+      description
+        "Saved Network-LSA sequence number in hex";
+    }
+
+    leaf unnumbered {
+      type boolean;
+      description
+        "Boolean flag indicating interface is unnumbered";
+    }
+  }
+
+  grouping ospf-ext-area-interface-message-stats-state {
+    description
+      "State parameters for an OSPF interface message stats";
+
+    leaf hello-receive {
+      type uint32;
+      description
+        "Hello receive count";
+      }
+
+    leaf hello-transmit {
+      type uint32;
+      description
+        "Hello transmit count";
+    }
+
+    leaf db-description-receive {
+      type uint32;
+      description
+        "Database description receive count";
+    }
+
+    leaf db-description-transmit {
+      type uint32;
+      description
+        "Database description transmit count";
+    }
+
+    leaf ls-request-receive {
+      type uint32;
+      description
+        "Link State request receive count";
+    }
+
+    leaf ls-request-transmit {
+      type uint32;
+      description
+        "Link State request transmit count";
+    }
+
+    leaf ls-update-receive {
+      type uint32;
+      description
+        "Link State update receive count";
+    }
+
+    leaf ls-update-transmit {
+      type uint32;
+      description
+        "Link State update transmit count";
+    }
+
+    leaf ls-acknowledge-receive {
+      type uint32;
+      description
+        "Link State update receive count";
+    }
+
+    leaf ls-acknowledge-transmit {
+      type uint32;
+      description
+        "Link State acknowlege transmit count";
+    }
+  }
+
+  grouping ospf-ext-area-interface-message-stats-top {
+    description
+      "OSPF interface message statistic information";
+
+    container message-statistics {
+      config false;
+      description
+        "OSPF message statistics";
+
+      container state {
+        config false;
+        description
+          "State parameters relating to OSPF message statistics";
+
+        uses ospf-ext-area-interface-message-stats-state;
+      }
+    }
+  }
+
+  grouping ospf-ext-area-interface-timers-config {
+    description
+      "Configuration parameters relating to per-interface OSPF
+      timers";
+
+    leaf transmit-delay {
+      type uint32;
+      units seconds;
+      description
+        "Set number of seconds for InfTransDelay value. LSAs' age
+         should be incremented by this value while transmitting";
+    }
+  }
+
+  grouping ospf-ext-area-interface-timers-state {
+    description
+      "Configuration parameters relating to per-interface OSPF
+      timers";
+
+    leaf wait-time {
+      type uint32;
+      description
+        "Wait time interval in seconds";
+    }
+
+    leaf hello-due {
+      type uint32;
+      units seconds;
+      description
+        "Hello due time";
+    }
+  }
+
+  grouping ospf-ext-area-virtual-link-config {
+    description
+      "Configuration parameters relating to a virtual-link within
+      the OSPF area";
+
+    leaf enable {
+      type boolean;
+      description
+        "Enable/Disable virtual link";
+    }
+
+    leaf authentication-type {
+      type string;
+      description
+         "OSPF autentication type";
+    }
+
+    leaf authentication-key {
+      type string;
+      description
+        "OSPF authentication password string.";
+    }
+
+    leaf authentication-key-encrypted {
+      type boolean;
+      description
+         "OSPF authentication password string is encrypted.";
+    }
+
+    uses oc-ospf-cmn:ospf-area-interface-timers-config;
+    uses ospf-ext-area-interface-timers-config;
+  }
+
+  grouping ospf-ext-area-interface-neighbor-option-byte-state {
+    description
+      "OSPF neighborship options";
+
+    leaf option-value {
+      type uint8;
+      default 0;
+      description
+        "OSPF optional capability byte value";
+    }
+
+    leaf option-byte-t-bit {
+      type boolean;
+      default false;
+      description
+        "This describes the router's TOS capability. If the T-bit is reset,
+        then the router supports only a single TOS (TOS 0).";
+    }
+
+    leaf option-byte-e-bit {
+      type boolean;
+      default false;
+      description
+        "Support for Type-5 AS-External-LSAs (ExternalRoutingCapability).";
+    }
+
+    leaf option-byte-mc-bit {
+      type boolean;
+      default false;
+      description
+        "Support for Multicast extensions to OSPF (MOSPF).";
+    }
+
+    leaf option-byte-np-bit {
+      type boolean;
+      default false;
+      description
+        "Support for handling Type-7 LSAs (NSSA).";
+    }
+
+    leaf option-byte-ea-bit {
+      type boolean;
+      default false;
+      description
+        "Support for External-Attributes-LSAs.";
+    }
+
+    leaf option-byte-dc-bit {
+      type boolean;
+      default false;
+      description
+        "Support for demand circuits.";
+    }
+
+    leaf option-byte-o-bit {
+      type boolean;
+      default false;
+      description
+        "Support for Opaque-LSAs.";
+    }
+
+    leaf option-byte-dn-bit {
+      type boolean;
+      default false;
+      description
+        "Support for demand circuits.";
+    }
+
+    /* Lint doesnt support type bits
+    leaf option-byte {
+      type bits {
+        bit t-bit {
+          position 0;
+          description
+            "This describes the router's TOS capability. If the T-bit is reset,
+             then the router supports only a single TOS (TOS 0).";
+        }
+        bit e-bit {
+          position 1;
+          description
+            "Support for Type-5 AS-External-LSAs (ExternalRoutingCapability).";
+        }
+        bit mc-bit {
+          position 2;
+          description
+            "Support for Multicast extensions to OSPF (MOSPF).";
+        }
+        bit np-bit {
+          position 3;
+          description
+            "Support for handling Type-7 LSAs (NSSA).";
+        }
+        bit ea-bit {
+          position 4;
+          description
+            "Support for External-Attributes-LSAs.";
+        }
+        bit dc-bit {
+          position 5;
+          description
+            "Support for demand circuits.";
+        }
+        bit o-bit {
+          position 6;
+          description
+            "Support for Opaque-LSAs.";
+        }
+        bit bit7 {
+          position 7;
+          description
+            "Unused zero.";
+        }
+      }
+      description
+        "OSPF neighborship options";
+    }
+    */
+  }
+
+  grouping ospf-ext-area-interface-neighbor-state {
+    description
+      "Operational state parameters relating an individual neighbor
+      system on an interface within an OSPF area";
+
+    leaf neighbor-id {
+      type yang:dotted-quad;
+      description
+        "Neighbor router Id";
+    }
+
+    leaf neighbor-address {
+      type inet:ip-address;
+      description
+        "Neighbor Ip address address";
+    }
+
+    leaf area-id {
+      type oc-ospf-types:ospf-area-identifier;
+      description
+        "Aread id of this neighborship.";
+    }
+
+    leaf interface-name {
+      type string;
+      description
+        "Interface on which this neighborship is present";
+    }
+
+    leaf interface-address {
+      type inet:ip-address;
+      description
+        "Address of Local Interface on which this neighborship is present";
+    }
+
+    leaf designated-router-other {
+      type yang:dotted-quad;
+      description
+        "The designated router other for the adjacency. This device
+        advertises the Network LSA for broadcast and NBMA networks.";
+    }
+
+    leaf database-summary-queue-length {
+      type uint32;
+      description
+        "The number of DB summary LSAs that are currently in the queue to be
+        retransmitted to the neighbor";
+    }
+
+    leaf link-state-request-queue-length {
+      type uint32;
+      description
+        "The number of LSA requests that are currently in the queue to be
+        retransmitted to the neighbor";
+    }
+
+    leaf thread-inactivity-timer {
+      type boolean;
+      description
+        "Thread Inactivity Timer.";
+    }
+
+    leaf thread-db-description-retransmission {
+      type boolean;
+      description
+        "Thread Database Description Retransmision.";
+    }
+
+    leaf thread-ls-request-retransmission {
+      type boolean;
+      description
+        "Thread Link State Request Retransmission";
+    }
+
+    leaf thread-ls-update-retransmission {
+      type boolean;
+      description
+        "Thread Link State Update Retransmission.";
+    }
+
+    leaf bfd-state {
+      type boolean;
+      description
+        "BFD is enabled or disabled";
+    }
+
+    leaf bfd-status {
+      type string;
+      description
+        "BFD is up/down/unknown etc";
+    }
+
+    leaf bfd-peer-type {
+      type string;
+      description
+        "BFD peer is single-hop or multihop etc";
+    }
+
+    leaf bfd-peer-last-update-time {
+      type string;
+      description
+        "BFD peer last update time";
+    }
+
+    leaf gr-active-helper {
+      type boolean;
+      default false;
+      description
+        "GR active helper";
+    }
+    
+    leaf gr-helper-status {
+      type string;
+      description
+        "GR helper status";
+    }
+
+    leaf gr-grace-interval {
+      type uint32;
+      description
+        "GR grace interval";
+    }
+
+    leaf gr-restart-reason {
+      type string;
+      description
+        "GR restart reason";
+    }
+
+    leaf gr-helper-reject-reason {
+      type string;
+      description
+        "GR helper reject reason";
+    }
+
+    leaf gr-helper-exit-reason {
+      type string;
+      description
+        "GR helper exit reason";
+    }
+    
+    leaf gr-actual-grace-interval {
+      type uint32;
+      description
+        "Actual Grace Interval time set for neighbour";
+    }
+    
+    leaf gr-remaining-grace-interval {
+      type uint32;
+      description
+        "Remaining Grace Interval time for neighbour";
+    }
+
+    uses ospf-ext-area-interface-neighbor-option-byte-state;
+  }
+
+  grouping ospf-ext-area-interface-neighbors-state {
+    description
+      "Parameters related to OSPF adjacency state";
+
+    container neighbours {
+      config false;
+      description
+        "Enclosing container for the list of neighbors that
+        an adjacency has been established with on the interface";
+
+      list neighbour {
+        key "neighbor-id neighbor-address";
+
+        description
+          "Enclosing container for the list of neighbors that
+          an adjacency has been established with on the interface";
+
+        leaf neighbor-id {
+          type leafref {
+            path "../state/neighbor-id";
+          }
+            description
+              "Neighbor router-id";
+        }
+
+        leaf neighbor-address {
+          type leafref {
+            path "../state/neighbor-address";
+          }
+            description
+              "Ipv4 address configured on the neighbor";
+        }
+
+        container state {
+          config false;
+          description
+            "State information for the ospf neighbor (includes interface neighbor
+            and virtual-links neighbor)";
+
+          uses ospf-ext-area-interface-neighbor-state;
+          uses oc-ospf-cmn:ospf-area-interface-neighbor-state;
+        }
+      }
+    }
+  }  
+
+}
+

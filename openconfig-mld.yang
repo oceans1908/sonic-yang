@@ -1,0 +1,773 @@
+module openconfig-mld {
+
+    yang-version "1";
+
+    // namespace
+    namespace "http://openconfig.net/yang/mld";
+
+    prefix "oc-mld";
+
+    // import some basic types/interfaces
+    import openconfig-mld-types { prefix oc-mld-types; }
+    import openconfig-types { prefix "oc-types"; }
+    import openconfig-acl { prefix "oc-acl"; }
+    import openconfig-extensions { prefix "oc-ext"; }
+    import openconfig-interfaces { prefix oc-if; }
+    import openconfig-inet-types { prefix oc-inet; }
+    import ietf-inet-types { prefix "inet"; }
+
+    // meta
+    organization
+      "OpenConfig working group";
+
+    contact
+      "OpenConfig working group
+      www.openconfig.net";
+
+    description
+      "An OpenConfig model for Internet Group Management Protocol (MLD).";
+
+    oc-ext:openconfig-version "0.1.0";
+
+    revision "2021-09-13" {
+        description
+          "Initial revision.";
+        reference "0.1.0";
+    }
+
+    // OpenConfig specific extensions for module metadata.
+    oc-ext:regexp-posix;
+    oc-ext:catalog-organization "openconfig";
+    oc-ext:origin "openconfig";
+
+    grouping admin-config {
+        description
+          "Re-usable grouping to enable or disable a particular feature.";
+
+        leaf enabled {
+            type boolean;
+            default false;
+            description
+              "When set to true, the functionality within which this
+              leaf is defined is enabled, when set to false it is
+              explicitly disabled.";
+        }
+    }
+
+    grouping mld-interface-config {
+        description
+          "Configuration data for MLD on each interface.";
+
+        leaf interface-id {
+            type oc-if:interface-id;
+            description
+              "Reference to an interface on which MLD is enabled.";
+        }
+
+        uses admin-config;
+
+        leaf version {
+            type oc-mld-types:mld-version;
+            description
+              "MLD Version.";
+        }
+
+        leaf query-interval {
+            type oc-mld-types:mld-interval-type;
+            description
+              "Interval at which the router sends the MLD membership
+              queries.";
+        }
+
+        leaf filter-prefixes {
+            type string;
+            // TODO work out what this should be.
+            // On Juniper it's a "policy" and on Cisco a sort of "class map"
+            description
+              "List used to filter joins.";
+        }
+    }
+
+    grouping mld-counters-per-version {
+        description
+          "Counters for each MLD protocol version.";
+
+        container state {
+            config false;
+            description
+              "Counters for each MLD protocol version.";
+
+            leaf v1 {
+                type uint32;
+                description
+                  "MLD v1.";
+            }
+            leaf v2 {
+                type uint32;
+                description
+                  "MLD v2.";
+            }
+        }
+    }
+
+    grouping mld-interface-counters {
+        description
+          "State and session data for MLD on each interface.";
+
+
+        container counters {
+            description
+              "Counters avaiable on a per interface bases for MLD.";
+
+            container queries {
+                description
+                  "MLD membership queries.";
+
+                container sent {
+                    description
+                      "Number of MLD membership queries sent.";
+                    uses mld-counters-per-version;
+                }
+
+                container received {
+                    description
+                      "Number of MLD membership queries received.";
+                    uses mld-counters-per-version;
+                }
+            }
+
+            container reports {
+                description
+                  "Number of MLD membership reports received.";
+                uses mld-counters-per-version;
+            }
+        }
+    }
+
+    grouping mld-snooping-state {
+        description
+          "MLD membership snooping state.";
+
+        leaf group {
+            type inet:ipv6-address;
+            description
+              "Multicast address.";
+        }
+
+        leaf source {
+            type inet:ipv6-address;
+            description
+              "Source address of multicast.";
+        }
+
+        leaf reporter {
+            type inet:ipv6-address;
+            description
+              "Address of the last reporter.";
+        }
+    }
+
+    grouping mld-snooping-structural {
+        description
+          "MLD membership information determined through snooping.";
+
+        container membership-groups {
+            description
+              "List of MLD Membership information.";
+
+            list group {
+                key "group";
+                config false;
+                description
+                  "Multicast group membership.";
+
+                leaf group {
+                    type leafref {
+                        path "../state/group";
+                    }
+                    description
+                      "Multicast address.";
+                }
+
+                container state {
+                    config false;
+                    description
+                      "Multicast group membership.";
+
+                    uses mld-snooping-state;
+                }
+            }
+        }
+    }
+
+    grouping mld-interface-state {
+        description
+          "MLD interface state.";
+
+        leaf query-expires {
+            type oc-types:timeticks64;
+            description
+              "This timestamp indicates the time that the next query is sent.
+              The value is the timestamp in seconds relative to
+              the Unix Epoch (Jan 1, 1970 00:00:00 UTC).";
+        }
+    }
+
+    grouping mld-interface-top {
+        description
+          "Configuration and state data for MLD on each interface.";
+
+        container interfaces {
+            description
+              "The interfaces on which MLD is configured.";
+
+            list interface {
+                key "interface-id";
+                description
+                  "This container defines interface MLD configuration and
+                  state information.";
+
+                leaf interface-id {
+                    type leafref {
+                        path "../config/interface-id";
+                    }
+                    description
+                      "Reference to an interface on which MLD is enabled.";
+                }
+
+                container config {
+                    description
+                      "MLD interface configuration.";
+
+                    uses mld-interface-config;
+                }
+
+                container state {
+                    config false;
+                    description
+                      "This container defines state information for MLD
+                      interfaces.";
+
+                    uses mld-interface-state;
+                    uses mld-interface-config;
+                    uses mld-flags-config;
+                    uses mld-querier-config;
+                    uses mld-timers-config;
+                }
+
+                uses mld-interface-counters;
+                uses mld-snooping-structural;
+                uses oc-if:interface-ref;
+            }
+        }
+    }
+
+    grouping mld-ssm-maps-config {
+        description
+          "A Source Specific Multicast (SSM) mapping. This allows
+          MLD v2 hosts to be able to join in SSM environments
+          by translating MLD v2 reports into MLD v3 reports.
+          The request in an MLD v2 join is sent toward the source
+          address found by matching the multicast address.";
+
+        leaf source {
+            type inet:ipv6-address;
+            description
+              "Multicast source address.";
+        }
+
+        leaf ssm-ranges {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/" +
+                    "oc-acl:config/oc-acl:name";
+            }
+            description
+              "List of accepted source specific multicast (SSM) address
+              ranges.";
+        }
+    }
+
+    grouping mld-global-config {
+        description
+          "This grouping defines global config options for MLD.";
+
+    }
+
+    grouping mld-global-top {
+        description
+          "Top level grouping for global MLD configuration.";
+
+        container ssm {
+            description
+              "Source specific multicast (SSM).";
+
+            container mappings {
+                description
+                  "A list of source specific multicast (SSM) mappings.";
+
+                list mapping {
+                    key "source";
+                    description
+                      "A Source Specific Multicast (SSM) mapping. This allows
+                      MLD v2 hosts to be able to join in SSM environments
+                      by translating MLD v2 reports into MLD v3 reports.
+                      The request in an MLD v2 join is sent toward the source
+                      address found by matching the multicast address.";
+
+                    leaf source {
+                        type leafref {
+                            path "../config/source";
+                        }
+                        description
+                          "Multicast source address.";
+                    }
+
+                    container config {
+                        description
+                          "Configuration for SSM maps.";
+                        uses mld-ssm-maps-config;
+                    }
+
+                    container state {
+                        config false;
+                        description
+                          "State for SSM maps.";
+                        uses mld-ssm-maps-config;
+                    }
+                }
+            }
+        }
+    }
+
+    grouping mld-top {
+        description
+          "Top-level grouping for MLD.";
+
+        container mld {
+            description
+              "Top-level MLD configuration and operational state.";
+
+            container global {
+                description
+                  "Global MLD configuration and operational state.";
+                uses mld-global-top;
+            }
+
+            uses mld-interface-top;
+            //uses mld-state-config;
+        }
+    }
+
+    grouping mld-attr-config {
+        description "MLD interface join attribute group";
+        leaf mcastgrpaddr {
+            type oc-inet:ipv6-address;
+            description "Multicast group address";
+        }
+        leaf srcaddr {
+            type oc-inet:ipv6-address;
+            description "Source address";
+        }
+    }
+
+    grouping mld-query-config {
+        description "MLD interface query fields";
+        leaf last-member-query-count {
+            type uint16 {
+                range 1..7;
+            }
+            description
+                "Interval at which the router sends the MLD member query message toward
+                   the upstream neighbor.";
+        }
+
+        leaf last-member-query-interval {
+            type uint32 {
+                range "1..255";
+            }
+            units milliseconds;
+            description
+                 "Interval at which the router sends the MLD last member query message toward
+                     the upstream neighbor.";
+        }
+
+        leaf query-max-response-time {
+            type uint16 {
+                range "10..250";
+            }
+            units "seconds";
+            description
+                "MLD Query Max Response Time.";
+        }
+    }
+
+    grouping mld-config {
+        description "MLD interface configuration";
+        container mld {
+            description "MLD interface config container";
+
+            container joins {
+                description "MLD joins container";
+                list join {
+                    key "mcastgrpaddr srcaddr";
+                    description "List of MLD join config";
+                    leaf mcastgrpaddr {
+                        type leafref {
+                            path "../config/mcastgrpaddr";
+                        }
+                        description "Multicast group address";
+                    }
+                    leaf srcaddr {
+                        type leafref {
+                            path "../config/srcaddr";
+                        }
+                        description "Source address";
+                    }
+                    container config {
+                        description "Config container for join config";
+                        uses mld-attr-config;
+                    }
+                    container state {
+                        config false;
+                        description "State container for join state";
+                        uses mld-attr-config;
+                    }
+                }
+            }
+            container config {
+                description "Config container for mld config";
+                uses mld-interface-config;
+                uses mld-query-config;
+            }
+            container state {
+                config false;
+                description "State container for mld state";
+                uses mld-interface-config;
+                uses mld-query-config;
+            }
+        }
+    }
+
+    grouping mld-sources-config {
+       description "MLD sources information";
+       container sources {
+           config false;
+           description "MLD sources list";
+           list source {
+               key "interface-id src-addr mcastgrp-addr";
+               description "MLD interface source fields";
+               leaf interface-id {
+                   type string;
+                   description "Interface name";
+               }
+               leaf mcastgrp-addr {
+                    type oc-inet:ip-address;
+                    description "Multicast Group Address";
+               }
+               leaf src-addr {
+                    type oc-inet:ip-address;
+                    description "Source Address";
+               }
+               container state {
+                    config false;
+                    description "MLD interface source fields";
+                    leaf interface-id {
+                        type string;
+                        description "Interface name";
+                    }
+                    leaf mcastgrp-addr {
+                        type oc-inet:ip-address;
+                        description "Multicast Group Address";
+                    }
+                    leaf src-addr {
+                        type oc-inet:ip-address;
+                        description "Source Address";
+                    }
+                    leaf ip-addr {
+                       type oc-inet:ipv6-address;
+                       description "Configured Ip Address";
+                    }
+                    leaf uptime {
+                       type string;
+                       description
+                           "Interval for which the MLD interface is up from.";
+                    }
+                    leaf source-forwarding{
+                       type string;
+                       description
+                          "MLD filter to enable or disable forwarding on this source";
+                    }
+                    leaf timer {
+                       type string;
+                       description
+                           "Interval for which the MLD next query will be sent";
+                    }
+               }
+           }
+       }
+    }
+
+    grouping mld-groups-config {
+       description "MLD groups information";
+       container groups {
+           config false;
+           description "MLD groups list";
+           list group {
+               key "interface-id mcastgrp-addr";
+               description "MLD interface group fields";
+               leaf interface-id {
+                   type string;
+                   description "Interface name";
+               }
+               leaf mcastgrp-addr {
+                    type oc-inet:ipv6-address;
+                    description "Multicast Group Address";
+               }
+               container state {
+                    config false;
+                    description "MLD interface group fields";
+                    leaf interface-id {
+                       type string;
+                       description "Interface name";
+                    }
+                    leaf mcastgrp-addr {
+                       type oc-inet:ipv6-address;
+                       description "Multicast Group Address";
+                    }
+                    leaf ip-addr {
+                       type oc-inet:ipv6-address;
+                       description "Configured Ip Address";
+                    }
+                    leaf uptime {
+                       type string;
+                       description
+                           "Interval for which the MLD interface is up from.";
+                    }
+                    leaf version{
+                       type oc-mld-types:mld-version;
+                       description
+                          "MLD version";
+                    }
+                    leaf sources-count{
+                       type uint16;
+                       description
+                          "Number of sources configured under this multicast group";
+                    }
+                    leaf mode{
+                       type string;
+                       description
+                          "Filter to exclude or include a source in the join";
+                    }
+                    leaf timer {
+                       type string;
+                       description
+                           "Interval for which the MLD next query will be sent";
+                    }
+               }
+           }
+       }
+    }
+
+    grouping mld-state-config {
+       description "MLD state information";
+       container statistics {
+          description "MLD statistics information";
+          uses mld-interface-counters;
+          uses mld-counters-config;
+       }
+       uses mld-sources-config;
+       uses mld-groups-config;
+       uses mld-interface-top;
+    }
+
+    grouping mld-timers-config {
+        description "MLD interface timer fields";
+        container timers {
+            description
+                "Timers for MLD interface";
+
+            leaf group-membership-interval {
+                type uint16;
+                description
+                   "Group Membership Interval";
+            }
+
+            leaf last-member-query-count {
+                type uint16 {
+                    range 1..7;
+                }
+                default 2;
+                description
+                   "Last Member Query Count";
+            }
+
+            leaf last-member-query-time {
+                type uint32 {
+                    range "1..255";
+                }
+                units milliseconds;
+                description
+                   "Last Member Query Time";
+            }
+
+            leaf older-host-present-interval {
+                type uint16;
+                description
+                   "Older Host Present Interval";
+            }
+
+            leaf querier-present-interval {
+                type uint16;
+                description
+                   "Querier Present Interval";
+            }
+
+            leaf query-interval {
+                type uint16;
+                description
+                   "Query Interval";
+            }
+
+            leaf query-response-interval {
+                type uint16;
+                description
+                   "Query Response Interval";
+            }
+
+            leaf robustness-variable {
+                type uint8;
+                description
+                   "Robustness Variable";
+            }
+
+            leaf startup-query-interval {
+                type uint16;
+                description
+                   "Startup Query Interval";
+            }
+        }
+    }
+
+    grouping mld-querier-config {
+        description "MLD interface querier fields";
+        container querier {
+            description
+                "Querier fields for MLD interface";
+
+            leaf querier-type {
+                type string;
+                description
+                   "Querier Type";
+            }
+            leaf query-startup-count {
+                type uint32;
+                description
+                   "Query Startup Count";
+            }
+            leaf query-timer {
+                type string;
+                description
+                   "Query Timer";
+            }
+            leaf query-general-timer {
+                type string;
+                description
+                   "Query General Timer";
+            }
+            leaf ip-addr {
+                type oc-inet:ip-address;
+                description
+                   "Configured Interface Ip Address";
+            }
+            leaf status {
+                type string;
+                description
+                    "Interface state up/down";
+            }
+        }
+    }
+
+    grouping mld-counters-config {
+        description "MLD interface mtrace counters fields";
+        container mtrace-counters {
+            description
+                "Mtrace request,response counters";
+            container state {
+                config false;
+                description "MLD interface counters state information";
+                leaf mtrace-request {
+                    type uint32;
+                    description
+                        "Multicast trace request count";
+                }
+
+                leaf mtrace-response {
+                    type uint32;
+                    description
+                        "Multicast trace response count";
+                }
+
+                leaf unsupported {
+                    type uint32;
+                    description
+                        "Packet stats received for unsupported MLD version on host side";
+                }
+           }
+        }
+    }
+
+    grouping mld-flags-config {
+       description "MLD interface flags fields";
+       container flags {
+           description
+               "Flags for MLD interface";
+
+           leaf all-multicast {
+               type string;
+               description
+                   "All Multicast flags enabled status";
+           }
+
+           leaf broadcast {
+               type string;
+               description
+                   "Broadcast flags enabled status";
+           }
+
+           leaf deleted {
+               type string;
+               description
+                   "Deleted flags enabled status";
+           }
+
+           leaf index {
+               type uint32;
+               description
+                   "Interface index";
+           }
+
+           leaf multicast {
+               type string;
+               description
+                   "Multicast flags enabled status";
+           }
+
+           leaf multicast-loop {
+               type string;
+               description
+                   "Multicast-loop flags enabled status";
+           }
+
+           leaf promiscous {
+               type string;
+               description
+                   "Promiscous flags enabled status";
+           }
+
+       }
+    }
+
+
+    // data definition statements
+
+}

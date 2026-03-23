@@ -1,0 +1,34 @@
+module openconfig-ptp-rpc-annot {
+    yang-version "1";
+
+    // namespace
+    namespace "http://openconfig.net/yang/annotation/openconfig-ptp-rpc-annot";
+
+    prefix "openconfig-ptp-rpc-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+    import openconfig-ptp-rpc {prefix oc-ptp-rpc; }
+
+    // meta
+    organization
+       "SONiC";
+
+    contact
+       "SONiC";
+
+    description
+       "SONIC ptp rpc annot";
+
+    revision 2024-04-27 {
+       description
+          "Initial revision";
+    }
+
+    deviation /oc-ptp-rpc:debug-ptp {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_debug_ptp_bind";
+            sonic-ext:user-role-priv "rpc:netadmin";
+        }
+    }
+
+}

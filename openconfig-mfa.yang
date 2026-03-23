@@ -1,0 +1,407 @@
+module openconfig-mfa {
+
+  yang-version "1.1";
+
+  namespace "http://openconfig.net/yang/mfa/extension";
+
+  prefix "oc-mfa";
+
+  //import some basic types
+  import openconfig-types { prefix oc-types; }
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-system { prefix oc-sys; }
+  import openconfig-pki { prefix oc-pki; }
+  import openconfig-aaa { prefix oc-aaa; }
+  import openconfig-aaa-types { prefix oc-aaa-types; }
+
+  // meta
+  organization "SONiC";
+  contact "SONiC";
+
+  description
+      "This module defines configuration and operational state
+      data related to Multi-Factor Authentication with
+      RSA SecurID";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2024-09-27" {
+      description
+         "Include support for CAC-PIV authentication method.";
+      reference "0.2.0";
+  }
+
+  revision "2024-01-16" {
+      description
+         "Multifactor Authentication Support with RSA SecurID";
+      reference "0.1.0";
+  }
+
+  //identity statements
+  identity TWO_FA_METHOD_TYPE {
+      base oc-aaa-types:AAA_METHOD_TYPE;
+      description
+          "The group of all MULTI-FACTOR AUTHENTICATION servers.";
+  }
+
+  identity RSASECURID_ALL {
+      base TWO_FA_METHOD_TYPE;
+      description
+          "The group of all RSA-SECURID servers.";
+  }
+
+
+  rpc set-log-level {
+      description
+          "This procedure sets log level for MFA";
+      input {
+          leaf log-debug {
+              type string {
+                  pattern "enable|disable" {
+                      error-message "Incorrect log level";
+                  }
+                  oc-ext:posix-pattern '^(enable|disable)$';
+              }
+              description
+                  "Sets log level to DEBUG if true, INFO if not.";
+          }
+      }
+
+      output {
+          leaf error {
+              type string;
+              description
+                  "Result of RPC Operation";
+          }
+      }
+  }
+
+  grouping mfa-global-config {
+      description
+          "Global MFA configuration data for communicating
+          with MFA service";
+
+      leaf key-seed {
+          type string;
+          default "sonic";
+          description
+              "Seed for generating the key (secret) that is
+              used for making the data secure in MFA service";
+      }
+
+      leaf key-seed-encrypted {
+          type boolean;
+          default false;
+          description
+              "Indicates if key seed is in encrypted format";
+      }
+
+      leaf mfa-security-profile {
+          type leafref {
+              path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+          }
+          description
+              "Security profile associating CA certificates for
+              CIAM service";
+      }
+
+      leaf client-secret {
+          type oc-types:routing-password;
+          description
+              "Secret that can be used as part of basic authorization
+              header for invoking REST API of CIAM service";
+      }
+
+      leaf client-secret-encrypted {
+          type boolean;
+          default false;
+          description
+              "Indicates if client secret is in encrypted format";
+      }
+  }
+
+  grouping mfa-global-top {
+      description
+          "Top-level grouping for MFA data";
+
+      container mfa-global {
+          description
+              "Top-level container for MFA data";
+
+          container config {
+              description
+                  "Config data for MFA server";
+              uses mfa-global-config;
+          }
+
+          container state {
+             config false;
+             description
+                 "State data for MFA server";
+             uses mfa-global-config;
+          }
+      }
+  }
+
+  grouping rsa-global-config {
+      description
+          "Configuration data for RSA SecurId server";
+
+      leaf rsa-security-profile {
+          type leafref {
+              path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+          }
+          description
+              "Configures security profile for RSA SecurID
+              Server";
+      }
+  }
+
+  grouping rsa-server-config {
+      description
+          "Configuration data for a RSA SecureID server";
+
+      leaf hostname {
+          type oc-inet:host;
+          description
+              "Hostname/ip-address of RSA server";
+      }
+
+      leaf port-number {
+          type uint16 {
+              range 1025..49151 {
+                  error-message "Invalid port number (must be in range 1025..49151)";
+              }
+          }
+          default 5555;
+          description
+              "Port number of the RSA SecurID server";
+      }
+
+      leaf client-id {
+          type string;
+          description
+              "Unique identifier of the system as a client of
+              SecurID service, assigned by SecurID service";
+      }
+
+      leaf client-key {
+          type string;
+          description
+              "Key associated with the client-id, assigned by
+              SecurID service";
+      }
+
+      leaf client-key-encrypted {
+          type boolean;
+          default false;
+          description
+              "Indicates if client key is in encrypted format";
+      }
+
+      leaf connection-timeout {
+          type uint16 {
+              range "1..30"{
+                  error-message "Invalid timeout value (must be in range 1..30)";
+              }
+          }
+          default 20;
+          description
+              "Timeout in seconds for connection to the
+              SecurID server";
+      }
+
+      leaf read-timeout {
+          type uint16 {
+              range "1..150"{
+                  error-message "Invalid timeout value (must be in range 1..150)";
+              }
+          }
+          default 120;
+          description
+              "Timeout in seconds to read from the SecurID
+              server";
+      }
+
+  }
+
+
+  grouping rsa-config-top {
+      description
+          "Top-level grouping for RSA server data";
+
+      container rsa-global {
+          description
+              "Top-level container for RSA server data";
+
+          container config {
+              description
+                  "Config data for RSA security-profile";
+                  uses rsa-global-config;
+              }
+
+          container state {
+              config false;
+              description
+                 "State data for RSA security-profile";
+                  uses rsa-global-config;
+          }
+      }
+
+      container rsa-servers {
+          description
+              "Container for RSA server hostname RSA data";
+
+          list rsa-server {
+              key "hostname";
+              description
+                  "The list of rsa-servers on the device";
+
+              leaf hostname {
+                  type leafref {
+                      path "../config/hostname";
+                  }
+                  description
+                      "References the hostname of the rsa-server";
+              }
+
+              container config {
+                  description
+                      "Configuration data for each RSA secureid
+                      server";
+                  uses "rsa-server-config";
+              }
+
+              container state {
+                  config false;
+                  description
+                      "Operational state data for each RSA
+                      secureid server";
+                  uses "rsa-server-config";
+
+              }
+          }
+      }
+  }
+
+  grouping cac-piv-config {
+      description
+          "Configuration data for a CAC-PIV";
+
+      leaf cacpiv-security-profile {
+          type leafref {
+              path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+          }
+          description
+              "Configures security profile for verifying SSH";
+      }
+
+      leaf cert-username-field {
+          type string {
+              pattern "common-name|common-name-or-user-principal-name|user-principal-name" {
+                  error-message "Invalid username format";
+                  error-app-tag cacpiv-username-pattern-invalid;
+              }
+              oc-ext:posix-pattern "common-name|common-name-or-user-principal-name|user-principal-name";
+          }
+          default "common-name-or-user-principal-name";
+          description
+              "Certificate field that represents username for matching with SSH login username";
+      }
+
+      leaf cert-username-match {
+          type string {
+              pattern "10digit-username|first-name|username-as-is|username-without-domain" {
+                  error-message "Invalid match option";
+                  error-app-tag cert-username-match-invalid;
+              }
+              oc-ext:posix-pattern "10digit-username|first-name|username-as-is|username-without-domain";
+          }
+          default "username-as-is";
+          description
+              "Match option to parse the username from respective certificate field";
+     }
+  }
+
+  grouping cac-piv-top {
+      description
+          "Top-level grouping for CAC-PIV data";
+
+      container cac-piv-global {
+          description
+              "Container for CAC-PIV data";
+
+          container config {
+              description
+                  "Configuration data for CAC-PIV";
+              uses "cac-piv-config";
+          }
+
+          container state {
+              config false;
+              description
+                  "Operational state data for CAC-PIV";
+              uses "cac-piv-config";
+          }
+      }
+  }
+
+  grouping mfa-top {
+      description
+          "Top level grouping for MFA module";
+
+      container mfa {
+          description "Top level container for MFA module";
+
+	  uses mfa-global-top;
+          uses rsa-config-top;
+          uses cac-piv-top;
+      }
+  }
+  uses mfa-top;
+
+
+  grouping aaa-authentication-ext-config {
+    description
+      "Grouping for AAA authentication configuration data extension.";
+
+    leaf mfa-authentication-method {
+      type union {
+        type identityref {
+          base TWO_FA_METHOD_TYPE;
+        }
+        type string;
+      }
+      must "not(contains(../authentication-method, 'cac-piv'))" {
+        error-message "MFA is not applicable when CAC-PIV is configured as first factor for authentication";
+      }
+      description
+        "Authentication using RSA SecurID.";
+    }
+
+    leaf login-mfa-console {
+      type string {
+              pattern "enable|disable" {
+                  error-message "Incorrect input";
+              }
+              oc-ext:posix-pattern '^(enable|disable)$';
+          }
+      description
+        "Enable/Disable multi-factor-authentication on console";
+    }
+  }
+
+  //augment statements
+  augment "/oc-sys:system/oc-sys:aaa/oc-sys:authentication/oc-sys:config" {
+    description
+      "AAA authentication configuration extension.";
+    uses aaa-authentication-ext-config;
+  }
+
+  augment "/oc-sys:system/oc-sys:aaa/oc-sys:authentication/oc-sys:state" {
+    description
+      "AAA authentication configuration extension.";
+    uses aaa-authentication-ext-config;
+  }
+}

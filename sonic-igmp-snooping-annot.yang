@@ -1,0 +1,28 @@
+module sonic-igmp-snooping-annot {
+
+    yang-version "1";
+
+    namespace "http://openconfig.net/yang/annotation/sonic-igmp-snooping-annot";
+    prefix "sigmps-annot";
+
+    import sonic-igmp-snooping { prefix sigmps; }
+    import sonic-extensions { prefix sonic-ext; }
+
+    deviation /sigmps:sonic-igmp-snooping/sigmps:CFG_L2MC_STATIC_GROUP_TABLE/sigmps:CFG_L2MC_STATIC_GROUP_TABLE_LIST/sigmps:out-intf {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+
+    deviation /sigmps:sonic-igmp-snooping/sigmps:CFG_L2MC_STATIC_MEMBER_TABLE/sigmps:CFG_L2MC_STATIC_MEMBER_TABLE_LIST/sigmps:out-intf {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+
+    deviation /sigmps:sonic-igmp-snooping/sigmps:CFG_L2MC_MROUTER_TABLE/sigmps:CFG_L2MC_MROUTER_TABLE_LIST/sigmps:mrouter-intf {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+}

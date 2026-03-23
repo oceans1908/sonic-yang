@@ -1,0 +1,24 @@
+module sonic-error-database-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/serrdb-annot";
+    prefix "serrdb-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-error-database { prefix sedb; }
+
+    deviation /sedb:sonic-error-database/sedb:ERROR_VLAN_STACKING_TABLE/sedb:ERROR_VLAN_STACKING_TABLE_LIST/sedb:ifname {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+
+    deviation /sedb:sonic-error-database/sedb:ERROR_VLAN_MEMBER_TABLE/sedb:ERROR_VLAN_MEMBER_TABLE_LIST/sedb:vlan_member {
+        deviate add {
+            sonic-ext:value-transformer "alias_value_xfmr";
+        }
+    }
+
+}
+

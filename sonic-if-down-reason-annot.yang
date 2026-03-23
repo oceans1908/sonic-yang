@@ -1,0 +1,24 @@
+module sonic-if-down-reason-annot {
+
+    yang-version "1.1";
+
+    namespace "http://openconfig.net/yang/annotation/if-down-reason-annot";
+    prefix "if-down-reason-annot";
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-if-down-reason { prefix if-down-reason; }
+
+    deviation /if-down-reason:sonic-if-down-reason/if-down-reason:IF_REASON_EVENT {
+      deviate add {
+          sonic-ext:db-name "APPL_DB";
+      }
+    }
+
+    deviation /if-down-reason:sonic-if-down-reason/if-down-reason:IF_REASON_EVENT/if-down-reason:IF_REASON_EVENT_LIST/if-down-reason:timestamp {
+      deviate add {
+          sonic-ext:value-transformer "utc_to_localtime_value_xfmr";
+      }
+    }
+
+}
+

@@ -1,0 +1,1028 @@
+module sonic-snmp {
+  namespace "http://github.com/Azure/sonic-snmp";
+  prefix ssnmp;
+  yang-version 1.1;
+
+  import ietf-yang-types {
+    prefix yang;
+  }
+
+  import ietf-inet-types {
+    prefix inet;
+  }
+
+  import sonic-port {
+      prefix sport;
+  }
+
+  import sonic-portchannel {
+      prefix spc;
+  }
+
+  import sonic-vlan {
+      prefix svlan;
+  }
+
+  import sonic-mgmt-port {
+      prefix smgmt;
+  }
+
+  import sonic-loopback {
+      prefix lo;
+  }
+
+  import sonic-interface {
+    prefix subif;
+  }
+
+  import sonic-common {
+    prefix scommon;
+  }
+  import sonic-port {
+      prefix prt;
+  }
+
+  import sonic-extension {
+      prefix sonic-ext;
+  }
+
+  import sonic-vrf {
+      prefix vrf;
+  }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "SONIC SNMP";
+
+  revision 2025-01-16 {
+    description
+      "Added SHA2 auth key options for snmp user.";
+  }
+
+  revision 2020-11-03 {
+    description
+      "Added RPC for statistics.";
+  }
+
+  revision 2019-11-12 {
+    description
+      "Initial revision.";
+  }
+
+  /* Definitions from ietf-snmp-common.yang. That model cannot be imported
+     because it "belongs" to ietf-snmp.
+   */
+  typedef admin-string {
+    type string {
+      length "0..255";
+    }
+    description
+      "Represents SnmpAdminString as defined in RFC 3411.
+
+      Note that the size of an SnmpAdminString is measured in
+      octets, not characters.";
+
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks.
+         SNMP-FRAMEWORK-MIB.SnmpAdminString";
+  }
+
+  typedef identifier {
+    type admin-string {
+      length "1..32";
+    }
+    description
+      "Identifiers are used to name items in the SNMP configuration
+      datastore.";
+  }
+
+  typedef context-name {
+    type admin-string {
+      length "0..32";
+    }
+    description
+      "The context type represents an SNMP context name.";
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef security-name {
+    type admin-string {
+      length "1..32";
+    }
+    description
+      "The security-name type represents an SNMP security name.";
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef security-model {
+    type union {
+      type enumeration {
+        enum v2c { value 2; }
+        enum usm { value 3; }
+        enum tsm { value 4; }
+      }
+      type int32 {
+        range "1..2147483647";
+      }
+    }
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef security-model-or-any {
+    type union {
+      type enumeration {
+        enum any { value 0; }
+      }
+      type security-model;
+    }
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef security-level {
+    type enumeration {
+      enum no-auth-no-priv { value 1; }
+      enum auth-no-priv    { value 2; }
+      enum auth-priv       { value 3; }
+    }
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef engine-id {
+    type yang:hex-string {
+      pattern '([0-9a-fA-F]){2}(:([0-9a-fA-F]){2}){4,31}';
+    }
+    description
+      "The engine ID specified as a list of colon-specified
+      hexadecimal octets, e.g., '80:00:02:b8:04:61:62:63'.";
+    reference
+      "RFC 3411: An Architecture for Describing Simple Network
+         Management Protocol (SNMP) Management Frameworks";
+  }
+
+  typedef wildcard-object-identifier {
+    type string;
+    description
+      "The wildcard-object-identifier type represents an SNMP object
+      identifier where subidentifiers can be given either as a label,
+      in numeric form, or a wildcard, represented by an asterisk
+      ('*').";
+  }
+
+  typedef tag-value {
+    type string {
+      length "0..255";
+    }
+    description
+      "Represents SnmpTagValue as defined in RFC 3413.
+
+      Note that the size of an SnmpTagValue is measured in
+      octets, not characters.";
+    reference
+      "RFC 3413: Simple Network Management Protocol (SNMP)
+         Applications.
+         SNMP-TARGET-MIB.SnmpTagValue";
+  }
+
+  typedef view-name {
+    type ssnmp:identifier;
+    description
+      "The view-name type represents an SNMP VACM view name.";
+  }
+
+  typedef group-name {
+    type ssnmp:identifier;
+    description
+      "The group-name type represents an SNMP VACM group name.";
+  }
+
+  container sonic-snmp {
+
+    container SNMP_SERVER {
+      list SNMP_SERVER_LIST {
+        key index;
+
+        leaf index {
+          type enumeration {
+            enum SYSTEM;
+          }
+        }
+
+        leaf sysContact {
+          type string {
+             length "1..255";
+          }
+          description
+            "SNMP System Contact.";
+        }
+
+        leaf sysLocation {
+          type string {
+             length "1..255";
+          }
+          description
+            "SNMP System Location.";
+        }
+
+        leaf traps {
+          type scommon:mode-enable;
+          description
+            "SNMP System Global Trap enable.If this is enbled, then other individual traps
+			enable/disable configuration are ignored.";
+        }
+        leaf authenticationFailureTrap {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and authenticationFailureTrap cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable SNMP authentication failure trap. This is valid only if 'traps' field is
+			  disable or not configured.";
+        }
+        leaf linkDownTrap {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and linkDownTrap cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable link-down trap. This is valid only if 'traps' field is
+			   disable or not configured.";
+        }
+        leaf linkUpTrap {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and linkUpTrap cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable link-up trap. This is valid only if 'traps' field is
+			   disable or not configured.";
+        }
+        leaf configChangeTrap {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and configChangeTrap cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable configuration change trap. This is valid only if 'traps' field is
+			   disable or not configured.";
+        }
+        leaf ospfTraps {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and ospfTraps cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable OSPF module traps, This is valid only if 'traps' field is
+			   disable or not configured.";
+        }
+        leaf bgpTraps {
+            must "not(../traps) or (../traps != 'enable')" {
+                   error-message "Global trap and bgpTraps cannot be configured together";
+            }
+            type boolean;
+            description
+              "enable/disable BGP module traps, This is valid only if 'traps' field is
+			   disable or not configured.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_INTERFACE_TRAPS {
+      list SNMP_SERVER_INTERFACE_TRAPS_LIST {
+        key "ifname";
+        description
+          "List of interfaces.";
+
+        leaf ifname {
+          type union {
+              type leafref {
+                  path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+              }
+              type leafref {
+                  path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+              }
+          }
+          description
+              "interface name.";
+        }
+
+        leaf trap_status {
+          type boolean;
+          description
+            "enable/disable traps for this port state events.
+			Port events considered are:
+			1) Link up/down";
+        }
+      }
+    }
+
+    container SNMP_AGENT_ADDRESS_CONFIG {
+      list SNMP_AGENT_ADDRESS_CONFIG_LIST {
+        key "ip port interface";
+
+        leaf ip {
+          type inet:ip-address;
+          sonic-ext:custom-validation ValidateIPAddress;
+          description
+            "The IPv4 or IPv6 address of the SNMP agent.";
+        }
+
+        leaf port {
+          type inet:port-number {
+              range "161|1024..65535" {
+                  error-message "snmp agent port must be [161, 1024-65535]";
+              }
+          }
+          default 161;
+          description
+            "UDP listening port number.";
+        }
+
+        leaf interface {
+          sonic-ext:custom-validation ValidateSnmpAgentMgmtVrf;
+          type union {
+              type enumeration{
+                  enum mgmt;
+                  enum default;
+              }
+              type leafref {
+                  path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+             }
+             type leafref {
+                  path "/sport:sonic-port/sport:PORT/sport:PORT_LIST/sport:ifname";
+             }
+             type leafref {
+                 path "/smgmt:sonic-mgmt-port/smgmt:MGMT_PORT/smgmt:MGMT_PORT_LIST/smgmt:ifname";
+             }
+             type leafref {
+                 path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+             }
+             type leafref {
+                 path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+             }
+          }
+          description
+            "Listening interface";
+        }
+        leaf name {
+          type string {
+            length "0..64";
+          }
+          description
+            "The entry name";
+        }
+      }
+    }
+
+    container SNMP_SERVER_COMMUNITY {
+      list SNMP_SERVER_COMMUNITY_LIST {
+        key index;
+        description
+          "List of communities.";
+
+        leaf index {
+          type string {
+              length "4..32";
+              pattern '[^ @,\\' +"'#]" +'[^ @,\\' +"']*" {
+                  error-message 'Invalid snmp community string (Valid chars are ASCII printable except SPACE, single quote,"@", ",", "\" and "#" in the beginning)';
+              }
+          }
+          description
+            "Index into the community list which must be the community name.";
+        }
+
+        leaf securityName {
+          type security-name;
+          description
+            "The group this community is a member of. For communities with no
+             group association, securityName should be set to 'None'.";
+          default "None";
+        }
+      }
+    }
+
+    container SNMP_SERVER_VIEW {
+      list SNMP_SERVER_VIEW_LIST {
+        key name;
+        description
+          "Definition of MIB views.";
+
+        leaf name {
+          type view-name;
+          description
+            "The name of this VACM MIB view.";
+        }
+
+        leaf-list include {
+          type wildcard-object-identifier;
+          description
+            "A family of subtrees included in this MIB view.";
+        }
+
+        leaf-list exclude {
+          type wildcard-object-identifier;
+          description
+            "A family of subtrees excluded in this MIB view.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_GROUP {
+      list SNMP_SERVER_GROUP_LIST {
+        key name;
+        description
+          "VACM groups.
+
+           Groups are explicitly defined in this list. Group members are defined
+           in the 'member' list and access for the group is defined in the
+           'access' list.";
+
+        leaf name {
+          type group-name;
+          description
+            "The name of this SNMP VACM group.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_GROUP_MEMBER {
+      list SNMP_SERVER_GROUP_MEMBER_LIST {
+        key "groupName securityName";
+        description
+          "A member of this VACM group.
+
+           A specific combination of securityName and securityModel MUST NOT be
+           present in more than one group.";
+
+        leaf groupName {
+          description "SNMP VACM group name.";
+          type leafref {
+            path "/ssnmp:sonic-snmp/SNMP_SERVER_GROUP/SNMP_SERVER_GROUP_LIST/name";
+          }
+        }
+
+        leaf securityName {
+          type security-name;
+          description
+            "The securityName of a group member.";
+        }
+
+        leaf securityModel {
+          type security-model;
+          description
+            "The security models under which this securityName is a member of this group.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_GROUP_ACCESS {
+      list SNMP_SERVER_GROUP_ACCESS_LIST {
+        key "groupName context securityModel securityLevel";
+        description
+          "Definition of access rights for VACM group.";
+
+        leaf groupName {
+          description "SNMP group name";
+          type leafref {
+            path "/ssnmp:sonic-snmp/SNMP_SERVER_GROUP/SNMP_SERVER_GROUP_LIST/name";
+          }
+        }
+
+        leaf context {
+          type context-name;
+          description
+            "The context under which the access rights apply. For this version, this MUST be 'Default'.";
+        }
+
+        leaf contextMatch {
+          type enumeration {
+            enum exact { value 1; }
+            enum prefix { value 2; }
+          }
+          default "exact";
+        }
+
+        leaf securityModel {
+          type security-model-or-any;
+          description
+            "The security model under which the access rights apply.";
+        }
+
+        leaf securityLevel {
+          type security-level;
+          description
+            "The minimum security level under which the access rights apply.";
+        }
+
+        leaf readView {
+          type view-name;
+          description
+            "The name of the MIB view authorizing read access.";
+        }
+
+        leaf writeView {
+          type view-name;
+          description
+            "The name of the MIB view authorizing write access. As the MIBs are currently read-only, the value of this view-name is immaterial.";
+        }
+
+        leaf notifyView {
+          type view-name;
+          description
+            "The name of the MIB view authorizing notify access.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_USER {
+      list SNMP_SERVER_USER_LIST {
+        key name;
+        description
+          "SNMPv3 user list.";
+
+        leaf name {
+          type identifier;
+          description
+            "SNMPv3 user name.";
+        }
+
+        choice authentication {
+          case md5 {
+            leaf md5Key {
+              sonic-ext:custom-validation ValidateEncryptedKey;
+              sonic-ext:custom-validation ValidateSnmpUser;
+              type string;
+              description
+                "The presence of this key enables MD5 authentication for the user."; 
+            }
+          }
+          case sha1 {
+            leaf shaKey {
+              sonic-ext:custom-validation ValidateEncryptedKey;
+              sonic-ext:custom-validation ValidateSnmpUser;
+              type string;
+              description
+                "The presence of this key enables SHA1 authentication for the user."; 
+            }
+          }
+          case sha2-256 {
+            leaf sha2-256Key {
+              sonic-ext:custom-validation ValidateEncryptedKey;
+              sonic-ext:custom-validation ValidateSnmpUser;
+              type string;
+              description
+                "The presence of this key enables SHA2-256 authentication for the user."; 
+             }
+          }
+          case sha2-384 {
+            leaf sha2-384Key {
+              sonic-ext:custom-validation ValidateEncryptedKey;
+              sonic-ext:custom-validation ValidateSnmpUser;
+              type string;
+              description
+                "The presence of this key enables SHA2-384 authentication for the user."; 
+            }
+          }
+          case sha2-512 {
+            leaf sha2-512Key {
+              sonic-ext:custom-validation ValidateEncryptedKey;
+              sonic-ext:custom-validation ValidateSnmpUser;
+              type string;
+              description
+                "The presence of this key enables SHA2-512 authentication for the user."; 
+              }
+          }
+        }
+
+        choice privacy {            
+            case aes {
+                leaf aesKey {
+                  sonic-ext:custom-validation ValidateEncryptedKey;
+                  sonic-ext:custom-validation ValidateSnmpUser;
+                  type string;
+                  must "(../shaKey) or (../md5Key) or (../sha2-256Key) or (../sha2-384Key) or (../sha2-512Key)" {
+                    error-message "Privacy key requires authentication method.";
+                  }
+                  description
+                    "The presence of this key enables AES-128 encryption for the user.";
+                }
+            }
+            case des {
+                leaf desKey {
+                  type string;
+                  sonic-ext:custom-validation ValidateEncryptedKey;
+                  sonic-ext:custom-validation ValidateSnmpUser;
+                  must "(../shaKey) or (../md5Key) or (../sha2-256Key) or (../sha2-384Key) or (../sha2-512Key)" {
+                    error-message "Privacy key requires authentication method.";
+                  }
+                  description
+                    "The presence of this key enables DES encryption for the user.";
+                }
+            }
+        }
+      }
+    }
+
+    container SNMP_SERVER_PARAMS {
+      list SNMP_SERVER_PARAMS_LIST {
+        key name;
+        description
+          "List of target parameters.";
+
+        leaf name {
+          type identifier;
+          description
+            "The name associated to the target parameters. This needs to match
+             targetParams from the associated entry in the SNMP_SERVER_TARGET
+             list.";
+        }
+
+        leaf securityNameV2 {
+          type string {
+              length "4..32";
+              pattern '[^ @,\\' +"'#]" +'[^ @,\\' +"']*" {
+                  error-message 'Invalid snmp community string (Valid chars are ASCII printable except SPACE, single quote,"@", ",", "\" and "#" in the beginning)';
+              }
+          }
+          description
+            "The community name of the SNMPv2 target entry.";
+        }
+
+        leaf user {
+          type security-name;
+          description
+            "The user name of the SNMPv3 target entry.";
+        }
+
+        leaf security-level {
+          type security-level;
+          description
+            "The security level of the SNMPv3 target entry.";
+        }
+      }
+    }
+
+    container SNMP_SERVER_TARGET {
+      list SNMP_SERVER_TARGET_LIST {
+        key name;
+        sonic-ext:dependent-on "VRF_LIST";
+        description
+          "List of targets.";
+
+        leaf name {
+          type identifier;
+          description
+            "Administrative name of the target entry.";
+        }
+
+        leaf-list tag {
+          type tag-value;
+          sonic-ext:custom-validation ValidateSnmpTrapHostTag;
+          description
+            "Tag values used to select target addresses. Should be one of
+             TrapNotify or InformNotify.";
+        }
+
+        leaf timeout {
+          type uint32;
+          units "0.01 seconds";
+          description
+            "Needed only if this target can receive InformRequest-PDUs.";
+        }
+
+        leaf retries {
+          type uint8;
+          description
+            "Needed only if this target can receive InformRequest-PDUs.";
+        }
+
+        leaf targetParams {
+          mandatory true;
+          description
+            "The name associated to the target parameters. This needs to match
+             the name from the associated entry in the SNMP_SERVER_PARAMS list.";
+          type leafref {
+            path "/ssnmp:sonic-snmp/SNMP_SERVER_PARAMS/SNMP_SERVER_PARAMS_LIST/name";
+          }
+        }
+
+        leaf ip {
+          mandatory true;
+          type inet:ip-address;
+          sonic-ext:custom-validation ValidateIPAddress;
+          description
+            "The IPv4 or IPv6 address of the target.";
+        }
+
+        leaf port {
+          type inet:port-number;
+          default 162;
+          description
+            "UDP port number.";
+        }
+
+        leaf src_intf {
+             type union {
+                  type leafref {
+                      path "/sport:sonic-port/sport:PORT/sport:PORT_LIST/sport:ifname";
+                  }
+                  type leafref {
+                      path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                  }
+                  type leafref {
+                      path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                  }
+                  type leafref {
+                      path "/lo:sonic-loopback/lo:LOOPBACK/lo:LOOPBACK_LIST/lo:name";
+                  }
+                  type leafref {
+                      path "/smgmt:sonic-mgmt-port/smgmt:MGMT_PORT/smgmt:MGMT_PORT_LIST/smgmt:ifname";
+                  }
+                  type leafref {
+                      path "/subif:sonic-interface/subif:VLAN_SUB_INTERFACE/subif:VLAN_SUB_INTERFACE_LIST/subif:id";
+                  }
+             }
+        }
+      }
+    }
+
+    container SNMP_SERVER_ENGINE {
+      list SNMP_SERVER_ENGINE_LIST {
+        key "id";
+
+        leaf id {
+          type enumeration {
+            enum GLOBAL;
+          }
+        }
+
+        leaf engine-id {
+          type engine-id;
+          description
+            "The local SNMP engine's administratively assigned unique
+             identifier. If this leaf is not set, the device automatically
+             calculates an engine ID, as described in RFC 3411.";
+        }
+      }
+    }
+
+  }
+
+  // RPC statements
+  rpc clear-counters {
+      description
+        "RPC to clear SNMP server statistics";
+  }
+
+  rpc show-counters {
+      description
+        "RPC to retrieve SNMP server statistics";
+      output {
+          container counters {
+            description
+              "SNMP server statistics";
+
+              leaf snmpInPkts {
+                  type yang:counter32;
+                  description
+                    "The total number of Messages delivered to the
+                      SNMP entity from the transport service";
+              }
+
+              leaf snmpOutPkts {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Messages which were
+                      passed from the SNMP protocol entity to the
+                        transport service.";
+              }
+
+              leaf snmpInBadVersions {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Messages which were
+                        delivered to the SNMP protocol entity and were for
+                            an unsupported SNMP version.";
+              }   
+
+              leaf snmpInBadCommunityNames {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Messages delivered to
+                      the SNMP protocol entity which used a SNMP
+                        community name not known to said entity.";
+              }                            
+
+              leaf snmpInBadCommunityUses {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Messages delivered to
+                      the SNMP protocol entity which represented an SNMP
+                        operation which was not allowed by the SNMP
+                            community named in the Message.";
+              }
+
+              leaf snmpInASNParseErrs {
+                  type yang:counter32;
+                  description
+                      "The total number of ASN.1 or BER errors
+                        encountered by the SNMP protocol entity when
+                            decoding received SNMP Messages.";
+              }             
+
+              leaf snmpInTooBigs {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP PDUs which were
+                        delivered to the SNMP protocol entity and for
+                            which the value of the error-status field is
+                                `tooBig'.";
+              }     
+
+              leaf snmpInNoSuchNames {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP PDUs which were
+                      delivered to the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `noSuchName'.";
+              }     
+
+              leaf snmpInBadValues {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP PDUs which were
+                      delivered to the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `badValue'.";
+              }     
+
+              leaf snmpInReadOnlys {
+                  type yang:counter32;
+                  description
+                    "The total number valid SNMP PDUs which were
+                      delivered to the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `readOnly'.  It should be noted that it is a
+                      protocol error to generate an SNMP PDU which
+                      contains the value `readOnly' in the error-status
+                      field, as such this object is provided as a means
+                      of detecting incorrect implementations of the snmp";
+              }     
+
+              leaf snmpInGenErrs {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP PDUs which were
+                      delivered to the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `genErr'.";
+              }     
+
+              leaf snmpInTotalReqVars {
+                  type yang:counter32;
+                  description
+                    "The total number of MIB objects which have been
+                      retrieved successfully by the SNMP protocol entity
+                      as the result of receiving valid SNMP Get-Request
+                      and Get-Next PDUs.";
+              }     
+
+              leaf snmpInTotalSetVars {
+                  type yang:counter32;
+                  description
+                    "The total number of MIB objects which have been
+                      altered successfully by the SNMP protocol entity
+                      as the result of receiving valid SNMP Set-Request
+                      PDUs.";
+              }     
+
+              leaf snmpInGetRequests {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Get-Request PDUs which
+                      have been accepted and processed by the SNMP
+                      protocol entity.";
+              }     
+
+              leaf snmpInGetNexts {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Get-Next PDUs which have
+                      been accepted and processed by the SNMP protocol
+                      entity.";
+              }     
+
+              leaf snmpInSetRequests {
+                  type yang:counter32;
+                  description
+                    "The total number of SNMP Set-Request PDUs which
+                      have been accepted and processed by the SNMP
+                      protocol entity.";
+              }     
+
+              leaf snmpInGetResponses {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Get-Response PDUs which
+                      have been accepted and processed by the SNMP
+                      protocol entity.";
+              }     
+
+              leaf snmpInTraps {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Trap PDUs which have
+                      been accepted and processed by the SNMP protocol
+                      entity.";
+              }     
+
+              leaf snmpOutTooBigs {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP PDUs which were
+                      generated by the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `tooBig.'";
+              }         
+
+              leaf snmpOutNoSuchNames {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP PDUs which were
+                      generated by the SNMP protocol entity and for
+                      which the value of the error-status is
+                      `noSuchName'.";
+              }    
+
+              leaf snmpOutBadValues {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP PDUs which were
+                      generated by the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `badValue'.";
+              }    
+
+              leaf snmpOutGenErrs {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP PDUs which were
+                      generated by the SNMP protocol entity and for
+                      which the value of the error-status field is
+                      `genErr'.";
+              }    
+
+              leaf snmpOutGetRequests {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Get-Request PDUs which
+                      have been generated by the SNMP protocol entity.";
+              } 
+
+              leaf snmpOutGetNexts {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Get-Next PDUs which have
+                      been generated by the SNMP protocol entity.";
+              }
+
+              leaf snmpOutSetRequests {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Set-Request PDUs which
+                      have been generated by the SNMP protocol entity.";
+              }   
+
+              leaf snmpOutGetResponses {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Get-Response PDUs which
+                      have been generated by the SNMP protocol entity.";
+              }   
+
+              leaf snmpOutTraps {
+                  type yang:counter32;
+                  description
+                      "The total number of SNMP Trap PDUs which have
+                      been generated by the SNMP protocol entity.";
+              }   
+          }
+      }
+  }
+}

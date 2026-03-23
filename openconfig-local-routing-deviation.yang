@@ -1,0 +1,81 @@
+module openconfig-local-routing-deviation {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/local-routing/extension";
+
+  prefix "oc-local-routing-dev";
+
+  import openconfig-network-instance { prefix oc-netinst; }
+  import openconfig-extensions { prefix "oc-ext"; }
+
+  organization
+    "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    www.openconfig.net";
+
+  description
+        "This module describes a YANG model for local routing
+        configuration extensions.";
+
+  oc-ext:openconfig-version "0.1.1";
+
+  revision "2023-10-13" {
+    description
+      "Static-route description attribute not-supported.";
+    reference "0.1.1";
+  }
+
+  revision "2021-06-17" {
+    description
+      "Add SONiC specific local routing deviations.";
+    reference "0.1.0";
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:config/oc-netinst:set-tag {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:state/oc-netinst:set-tag {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:config/oc-netinst:description {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:state/oc-netinst:description {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:next-hops/oc-netinst:next-hop/oc-netinst:config/oc-netinst:recurse {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:next-hops/oc-netinst:next-hop/oc-netinst:state/oc-netinst:recurse {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:next-hops/oc-netinst:next-hop/oc-netinst:interface-ref/oc-netinst:config/oc-netinst:subinterface {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:next-hops/oc-netinst:next-hop/oc-netinst:interface-ref/oc-netinst:state/oc-netinst:subinterface {
+
+      deviate not-supported;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:static-routes/oc-netinst:static/oc-netinst:next-hops/oc-netinst:next-hop/oc-netinst:enable-bfd {
+      deviate not-supported;
+  }
+}

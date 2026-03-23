@@ -1,0 +1,467 @@
+module sonic-frr-nd {
+    namespace "http://github.com/Azure/sonic-frr-nd";
+    prefix snd;
+    yang-version 1.1;
+
+    import ietf-yang-types {
+        prefix "ietf-yang";
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-port {
+        prefix "sonic-prt";
+    }
+
+    import sonic-portchannel {
+        prefix "sonic-pch";
+    }
+
+    import sonic-vlan {
+        prefix "sonic-vlan";
+    }
+
+    import sonic-loopback {
+        prefix "sonic-lbk";
+    }
+
+    import sonic-interface {
+        prefix sonic-if;
+    }
+
+    import ietf-inet-types {
+        prefix "ietf-inet";
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC OSPFv2 common YANG attributes";
+
+    revision 2020-07-26 {
+        description
+            "Change for sonic-loopback.yang.";
+    }
+    revision 2020-03-21 {
+        description
+            "Initial revision.";
+    }
+
+    identity ND_ROUTER_PREFERENCE {
+        description
+            "neighbor-discovery router-preference types";
+    }
+
+    identity HIGH {
+        base "ND_ROUTER_PREFERENCE";
+        description
+            "neighbor-discovery router-preference type is high";
+    }
+
+    identity MEDIUM {
+        base "ND_ROUTER_PREFERENCE";
+        description
+            "neighbor-discovery router-preference type is medium";
+    }
+
+    identity LOW {
+        base "ND_ROUTER_PREFERENCE";
+        description
+            "neighbor-discovery router-preference type is low";
+    }
+
+    typedef nd-interface {
+        type union {
+            type string {
+                pattern "null";
+            }
+            type leafref {
+                path "/sonic-prt:sonic-port/sonic-prt:PORT/sonic-prt:PORT_LIST/sonic-prt:ifname";
+            }
+            type leafref {
+                path "/sonic-pch:sonic-portchannel/sonic-pch:PORTCHANNEL/sonic-pch:PORTCHANNEL_LIST/sonic-pch:name";
+            }
+            type leafref {
+                path "/sonic-vlan:sonic-vlan/sonic-vlan:VLAN/sonic-vlan:VLAN_LIST/sonic-vlan:name";
+            }
+            type leafref {
+                path "/sonic-lbk:sonic-loopback/sonic-lbk:LOOPBACK/sonic-lbk:LOOPBACK_LIST/sonic-lbk:name";
+            }
+            type leafref {
+                path "/sonic-if:sonic-interface/sonic-if:VLAN_SUB_INTERFACE/sonic-if:VLAN_SUB_INTERFACE_LIST/sonic-if:id";
+            }
+        }
+        description 
+            "neighbor discovery Interface name";
+    }
+
+    container sonic-frr-nd {
+        container ND_PREFIX {
+            description
+                "Neighbor discovery Ipv6 prefix configuration table for an interface.";
+
+            list ND_PREFIX_LIST {
+
+                key "name prefix";
+                sonic-ext:custom-validation ValidateL2Intf;
+                leaf name {
+                    type nd-interface;
+                    description
+                        "The name of the interface on which neighbor discovery is happening for this Ipv6 prefix";
+                }
+
+                leaf prefix {
+                    type ietf-inet:ipv6-prefix;
+                    description
+                        "Configuring the IPv6 prefix to include in router advertisements.";
+                }
+
+                /*leaf mask {
+                    type uint8;
+                    description
+                        "The mask for the IPv6 prefix to include in router advertisements.";
+                }*/
+
+                leaf valid-lifetime {
+                    type uint32 {
+                        range "0..4294967295";
+                    }
+                    units seconds;
+                    description
+                        "Valid lifetime in seconds";
+                }
+
+                leaf preferred-lifetime {
+                    type uint32 {
+                        range "0..4294967295";
+                    }
+                    units seconds;
+                    description
+                        "Preferred lifetime in seconds";
+                    must "(current()/../valid-lifetime and current() <= current()/../valid-lifetime)" {
+                        error-message "Invalid preferred lifetime";
+                    }
+                }
+
+                leaf no-autoconfig {
+                    type boolean;
+                    description
+                        "indicates to hosts on the local link that the specified prefix
+                        cannot be used for IPv6 autoconfiguration Default: not set, i.e.
+                        prefix can be used for autoconfiguration";
+                }
+                leaf off-link {
+                    type boolean;
+                    description
+                        "indicates that advertisement makes no statement about on-link or off-link
+                        properties of the prefix. Default: not set, i.e. this prefix can
+                        be used for on-link determination.";
+                }
+
+                leaf router-address {
+                    type boolean;
+                    description
+                        "indicates to hosts on the local link that the specified prefix contains
+                        a complete IP address by setting R flag. Default: not set, i.e. hosts do
+                        not assume a complete IP address is placed.";
+                }
+            } //ND_PREFIX_LIST
+        }//ND_PREFIX
+
+
+        container ND_RDNSS {
+            description
+                "neighbor discovery recursive DNS server configuration table for an interface.";
+
+            list ND_RDNSS_LIST {
+
+                key "name address";
+                sonic-ext:custom-validation ValidateL2Intf;
+
+                leaf name {
+                    type nd-interface;
+                    description
+                        "The name of the interface on which neighbor discovery is happening for this RDNSS";
+                }
+
+                leaf address {
+                    type ietf-inet:ipv6-address;
+                    description "Recursive DNS server address to advertise using the RDNSS
+                        (type 25) option described in RFC8106. Can be specified more than once to
+                        advertise multiple addresses. Note that hosts may choose to limit the
+                        number of RDNSS addresses to track.";
+                }
+
+                leaf valid-lifetime {
+                    type uint32 {
+                        range "0..4294967295";
+                    }
+                    units seconds;
+                    description
+                        "Valid lifetime in seconds";
+                }
+
+            } //ND_RDNSS_LIST
+        } //ND_RDNSS
+
+        container ND_DNSSL {
+            description
+                "Neighbor discovery domain name search list configuration table for an interface.";
+
+            list ND_DNSSL_LIST {
+
+                key "name dnssl-name";
+                sonic-ext:custom-validation ValidateL2Intf;
+
+                leaf name {
+                    type nd-interface;
+                    description
+                        "The name of the interface on which neighbor discovery is happening for this DNSSL";
+                }
+
+                leaf dnssl-name {
+                    type string;
+                    description "Advertise DNS search list using the DNSSL (type 31) option
+                        described in RFC8106. Specify more than once to advertise
+                        multiple domain name suffixes. Host implementations may limit
+                        the number of honored search list entries.";
+                }
+
+                leaf valid-lifetime {
+                    type uint32 {
+                        range "0..4294967295";
+                    }
+                    units seconds;
+                    description
+                        "Valid lifetime in seconds";
+                }
+            } //ND_DNSSL_LIST
+        } //ND_DNSSL
+
+
+        container ND_CFG_MSG {
+            description
+                "Neighbor discovery configuration table for an interface.";
+
+            list ND_CFG_MSG_LIST {
+
+                key "name";
+                sonic-ext:custom-validation ValidateL2Intf;
+
+                leaf name {
+                    type nd-interface;
+                    description
+                        "The name of the interface on which neighbor discovery is happening for these configurations";
+                }
+
+                leaf ra-retrans-interval {
+                    type uint32 {
+                        range "0..4294967295";
+                    }
+                    description
+                        "The value to be placed in the Retrans Timer field in the Router
+                        Advertisement messages sent by the router.  The value zero means
+                        unspecified (by this router). This is in milliseconds.";
+                }
+
+                leaf interval {
+                    type uint32 {
+                        range "1..1800";
+                    }
+                    units seconds;
+                    description
+                        "The maximum time allowed between sending unsolicited multicast router 
+                        advertisements from the interface, in seconds. ";
+                    must "(not(current()/../lifetime)) or (current()/../lifetime and current() <= current()/../lifetime)" {
+                        error-message "This ra-interval would conflict with configured ra-lifetime!";
+                    }
+                    must "(not(current()/../min-ra-interval)) or (current()/../min-ra-interval and current() > current()/../min-ra-interval)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                    must "(not(current()/../min-ra-interval-msec)) or (current()/../min-ra-interval-msec and current()* 1000 > current()/../min-ra-interval-msec)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                }
+
+                leaf ra-interval-msec {
+                    type uint32 {
+                        range "70..1800000";
+                    }
+                    description
+                        "The maximum time allowed between sending unsolicited multicast router 
+                        advertisements from the interface, in milliseconds. ";
+                    must "(not(current()/../lifetime)) or (current()/../lifetime and current() <= current()/../lifetime * 1000)" {
+                        error-message "This ra-interval would conflict with configured ra-lifetime!!";
+                    }
+                    must "(not(current()/../min-ra-interval)) or (current()/../min-ra-interval and current() > current()/../min-ra-interval * 1000)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                    must "(not(current()/../min-ra-interval-msec)) or (current()/../min-ra-interval-msec and current() > current()/../min-ra-interval-msec)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                }
+
+                leaf min-ra-interval {
+                    type uint32 {
+                        range "1..1350";
+                    }
+                    units seconds;
+                    description
+                        "The minimum time allowed between sending unsolicited multicast router
+                        advertisements from the interface, in seconds. ";
+                    must "(not(current()/../lifetime)) or (current()/../lifetime and current() <= current()/../lifetime)" {
+                        error-message "This ra-interval would conflict with configured ra-lifetime!";
+                    }
+                    must "(not(current()/../interval)) or (current()/../interval and current() <= current()/../interval)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                    must "(not(current()/../ra-interval-msec)) or (current()/../ra-interval-msec and current()* 1000 <= current()/../ra-interval-msec)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+
+                }
+
+                leaf min-ra-interval-msec {
+                    type uint32 {
+                        range "30..1350000";
+                    }
+                    units milliseconds;
+                    description
+                        "The minimum time allowed between sending unsolicited multicast router
+                        advertisements from the interface, in milliseconds. ";
+                    must "(not(current()/../lifetime)) or (current()/../lifetime and current() <= current()/../lifetime * 1000)" {
+                        error-message "This ra-interval would conflict with configured ra-lifetime!!";
+                    }
+                    must "(not(current()/../ra-interval-msec)) or (current()/../ra-interval-msec and current() <= current()/../ra-interval-msec)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                    must "(not(current()/../interval)) or (current()/../interval and current() <= current()/../interval * 1000)" {
+                        error-message "RA Interval should be greater than the Min RA Interval!";
+                    }
+                }
+
+                leaf ra-hop-limit {
+                    type uint8 {
+                        range "0..255";
+                    }
+                    description
+                        "The value to be placed in the hop count field of router advertisements 
+                        sent from the interface, in hops. Indicates the maximum diameter of the 
+                        network. Setting the value to zero indicates that the value is 
+                        unspecified by this router.  ";
+                }
+
+                leaf lifetime {
+                    type uint32 {
+                        range "0..9000";
+                    }
+                    units seconds;
+                    description
+                        "The value to be placed in the Router Lifetime field of router advertisements 
+                        sent from the interface, in seconds. Indicates the usefulness of the router 
+                        as a default router on this interface. Setting the value to zero indicates 
+                        that the router should not be considered a default router on this interface. ";
+                    must "(not(current()/../interval) and current() >= 600) or (current()/../interval and current() >= current()/../interval)" {
+                        error-message "This ra-lifetime would conflict with configured ra-interval or would be less than default value of max ra-interval.";
+                    }
+                }
+
+                leaf reachable-time {
+                    type uint32 {
+                        range "0..3600000";
+                    }
+                    description
+                        "The value to be placed in the Reachable Time field in the Router Advertisement 
+                        messages sent by the router, in milliseconds. The configured time enables the 
+                        router to detect unavailable neighbors. ";
+                }
+
+                leaf home-agent-preference {
+                    type uint16 {
+                        range "0..65535";
+                    }
+                    description
+                        "The value to be placed in Home Agent Option, when Home Agent config flag is set, 
+                        which indicates to hosts Home Agent preference. The default value of 0 stands for 
+                        the lowest preference possible. ";
+                }
+
+                leaf home-agent-lifetime {
+                    type uint16 {
+                        range "0..65520"; 
+                    }
+                    description
+                        "The value to be placed in Home Agent Option, when Home Agent config flag is set, 
+                        which indicates to hosts Home Agent Lifetime. The default value of 0 means to 
+                        place the current Router Lifetime value.";
+                }
+
+                leaf mtu {
+                    type uint32 {
+                        range "0..65535";
+                    }
+                    description
+                        "Include an MTU (type 5) option in each RA packet to assist the attached hosts in 
+                        proper interface configuration. The announced value is not verified to be 
+                        consistent with router interface MTU.";
+                }
+
+                leaf router-preference {
+                    type identityref {
+                        base "ND_ROUTER_PREFERENCE";
+                    }
+                    description
+                        "Set default router preference in IPv6 router advertisements per RFC4191. Default: medium"; 
+                }
+
+
+                leaf suppress {
+                    type boolean;
+                    description "When enabled, Don’t send router advertisement messages. 
+                        The no form of this command enables sending RA messages.";
+                }
+
+                leaf ra-fast-retrans {
+                    type boolean;
+                    description "When enabled, allows faster transmissions of RA packets in 
+                        order to speed";
+                }
+
+                leaf managed-config {
+                    type boolean;
+                    description "Set/unset flag in IPv6 router advertisements which indicates 
+                        to hosts that they should use managed (stateful) protocol for 
+                        addresses autoconfiguration in addition to any addresses 
+                        autoconfigured using stateless address autoconfiguration";
+                }
+
+                leaf other-config {
+                    type boolean;
+                    description "Set/unset flag in IPv6 router advertisements which indicates to 
+                        hosts that they should use administered (stateful) protocol to 
+                        obtain autoconfiguration information other than addresses";
+                }
+
+                leaf home-agent-config {
+                    type boolean;
+                    description "Set/unset flag in IPv6 router advertisements which indicates to 
+                        hosts that the router acts as a Home Agent and includes a Home Agent Option";
+                }
+
+                leaf adv-interval-option {
+                    type boolean;
+                    description "Include an Advertisement Interval option which indicates to hosts 
+                        the maximum time, in milliseconds, between successive unsolicited 
+                        Router Advertisements";
+                }
+
+            } //ND_CFG_MSG_LIST
+        } //ND_CFG_MSG
+    } //sonic-frr-nd
+}

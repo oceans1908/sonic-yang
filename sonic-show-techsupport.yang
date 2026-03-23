@@ -1,0 +1,140 @@
+module sonic-show-techsupport {
+	namespace "http://github.com/Azure/sonic-show-techsupport";
+	prefix sshwtchspt;
+    yang-version 1.1;
+
+	import sonic-extension {
+		prefix sonic-ext;
+	}
+
+    import ietf-inet-types {
+        prefix "inet";
+    }
+
+	organization
+		"SONiC";
+
+	contact
+		"SONiC";
+
+	description
+		"SONiC TECH SUPPORT INFORMATION";
+
+	revision 2022-08-22 {
+		description
+			"Add EXPORT Container";
+	}
+	revision 2019-10-15 {
+		description
+			"Initial revision.";
+	}
+
+	container sonic-show-techsupport {
+
+	    container SHOW_TECHSUPPORT {
+                sonic-ext:db-name "STATE_DB";
+                sonic-ext:key-delim "|";
+                config false;
+
+                list SHOW_TECHSUPPORT_LIST {
+                    key "global";
+
+                    leaf global {
+                        type enumeration {
+                            enum GLOBAL;
+                        }
+                        description
+                            "Global status table key.";
+                    }
+	            leaf progress-state {
+	               type string;
+	               description
+	                   "Progress state or status of collection of techical support information";
+	            }
+	            leaf output-filename {
+	                type string;
+	                description
+                            "Name of the host compressed tar file containing the collected
+                            technical support information";
+	            }
+	            leaf timeinfo-filename {
+	                type string;
+	                description
+                            "Name of the temporary file containing a list of collected items and
+                            the time taken to collect them.";
+	            }
+	        }
+	    }
+
+        container EXPORT {
+
+            list EXPORT_LIST {
+                key "name";
+                max-elements 1;
+
+                leaf name{
+                   type enumeration {
+                       enum export;
+                   }
+                   description
+                       "table key.";
+                }
+
+                leaf destdir{
+                    type string;
+                    mandatory true;
+                    description
+                        "the remote directory";
+                }
+                leaf servername{
+                    type inet:ipv4-address;
+                    mandatory true;
+                    description
+                        "the remote server ip address";
+                }
+                leaf username{
+                    type string;
+                    mandatory true;
+                    description
+                        "the remote server login username";
+                }
+                leaf password{
+                    type string;
+                    mandatory true;
+                    description
+                        "the remote server login password";
+                }
+                leaf protocol{
+                    type string {
+                        pattern "scp|sftp" {
+                            error-message "Invalid protocol setting";
+                        }
+                    }
+                    mandatory true;
+                }
+                leaf config{
+                    type string {
+                        pattern "enable|disable" {
+                            error-message "Invalid config mode setting";
+                        }
+                    }
+                    mandatory true;
+                    description
+                        "Enable or Disable TechSupport Export";
+                }
+                leaf interval{
+                    type uint32 {
+                        range "0|30..1440" {
+                            error-message "Invalid interval range";
+                        }
+                    }
+                    mandatory true;
+                    units "minutes";
+                    description
+                        "Time interval at which periodic techsupport is exported.
+                               Disable is 0; Default is 30 minutes";
+                }
+            }
+        }
+	}
+}

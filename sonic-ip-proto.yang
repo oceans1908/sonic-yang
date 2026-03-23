@@ -1,0 +1,115 @@
+module sonic-ip-proto {
+    namespace "http://github.com/Azure/sonic-ip-proto";
+    prefix sn-ipproto;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-vrf {
+        prefix svrf;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC Ip Proto Route map YANG";
+
+    revision 2024-01-11 {
+        description
+            "Added support for ip proto routemap.";
+    }
+
+    typedef sonic-ip-proto-name {
+        type enumeration {
+            enum ANY {
+                description "Any of the ip protocols";
+            }
+            enum BGP {
+                description "Border Gateway Protocol (BGP)";
+            }
+            enum CONNECTED {
+                description "Connected routes";
+            }
+            enum KERNEL {
+                description "Kernel routes";
+            }
+            enum OSPF {
+                description "Open Shortest Path First (OSPFv2) for IPv4 only";
+            }
+            enum STATIC {
+                description "Statically configured routes";
+            }
+            enum TABLE {
+                description "Non-main Kernel Routing Table";
+            }
+        }
+        description
+        "IP protocol names types.";
+    }
+
+    container sonic-ip-proto {
+        container IPV4_PROTOCOL_RMAP {
+            list IPV4_PROTOCOL_RMAP_LIST {
+                key "vrf name";
+
+                leaf vrf {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                    description "Network-instance/VRF name";
+                }
+
+                leaf name {
+                    type sonic-ip-proto-name;
+                }
+
+                leaf route-map {
+                    type string;
+                }
+
+            }
+        }
+
+        container IPV6_PROTOCOL_RMAP {
+            list IPV6_PROTOCOL_RMAP_LIST {
+                key "vrf name";
+
+                leaf vrf {
+                    type union {
+                        type string {
+                            pattern "default";
+                        }
+                        type leafref {
+                            path "/svrf:sonic-vrf/svrf:VRF/svrf:VRF_LIST/svrf:vrf_name";
+                        }
+                    }
+                    description "Network-instance/VRF name";
+                }  
+
+                leaf name {
+                    type sonic-ip-proto-name;
+                }
+                
+                leaf route-map {
+                    type string;
+                }
+              
+            }
+        }
+    }
+}

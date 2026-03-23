@@ -1,0 +1,541 @@
+module openconfig-loadshare-mode-ext {
+
+  yang-version "1.1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/loadshare/extension";
+
+  prefix "oc-lb-mode-ext";
+
+  // import some basic types/interfaces
+  import openconfig-extensions { prefix "oc-ext"; }
+  import openconfig-inet-types { prefix "oc-inet"; }
+  
+  // meta
+  organization
+    "OpenConfig working group";
+
+  contact
+    "SONiC";
+
+  description
+    "Load share mode config"; 
+
+  oc-ext:openconfig-version "0.2.0";
+
+  revision "2020-10-08" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+
+  revision "2024-01-08" {
+    description
+      "Adding Hash Algorithm config.";
+    reference "0.2.0";
+  }
+
+  revision "2024-08-15" {
+    description "UDF hash config";
+    reference "0.2.0";
+  }
+
+    typedef hash-algorithm {
+        type enumeration {
+           enum CRC {
+              description "CRC based hash algorithm";
+           }
+           enum XOR {
+              description "XOR-based hash algorithm";
+           }
+           enum CRC_32LO {
+              description "Lower 16-bits of CRC32 based hash algorithm";
+           }
+           enum CRC_32HI {
+              description "Higher 16-bits of CRC32 based hash algorithm";
+           }
+           enum CRC_CCITT {
+              description "CRC using CCITT polynomial based hash algorithm";
+           }
+           enum CRC_XOR {
+              description "Combination of CRC and XOR based hash algorithm";
+           }
+           enum JENKINS_HASH_LO {
+              description "Lower bits of Jenkins hash based hash algorithm";
+           }
+           enum JENKINS_HASH_HI {
+              description "Higher bits of Jenkins hash based hash algorithm";
+           }       
+        }
+        description "Hash algorithm";
+    }
+
+    grouping loadshare-mode-config {
+        description "Load share mode configuration";
+        container seed-attrs {
+           description "ECMP seed attributes";
+
+           container config {
+               description "ECMP hash seed configuration";
+               uses oc-lb-mode-ext:hash-mode-seed-attr-config;
+           }
+
+           container state {
+               config false;
+               description "State container for ECMP hash seed";
+               uses oc-lb-mode-ext:hash-mode-seed-attr-config;
+           }
+       }
+     
+       container ipv4-attrs {
+           description "ECMP load share IPV4 attr container";
+               container config {
+                   description "ECMP ipv4 load share config";
+                   uses oc-lb-mode-ext:hash-mode-ipv4-attr-config;
+               }
+               container state {
+                   config false;
+                   description "State container for ECMP ipv4 attributes";
+                   uses oc-lb-mode-ext:hash-mode-ipv4-attr-config;
+               }
+       } 
+       container ipv6-attrs {
+            description "ECMP load share IPV4 attr container";
+            container config {
+                description "ECMP ipv6 load share attrubute configuration";
+                uses oc-lb-mode-ext:hash-mode-ipv6-attr-config;
+            }
+            container state {
+                config false;
+                description "State container for ECMP loadshare ipv6 attributes";
+                uses oc-lb-mode-ext:hash-mode-ipv6-attr-config;
+            }
+       }
+       container hash-algorithm {
+           description
+               "ECMP load share algorithm configuration";
+
+           container config {
+               description "hash algorithm configuration";
+               uses oc-lb-mode-ext:algorithm;
+           }
+
+           container state {
+               config false;
+               description "State container for hash algorithm";
+               uses oc-lb-mode-ext:algorithm;
+           }
+       }
+       container rh-global-attrs {
+           description
+               "Resilient hashing global config";
+
+           container config {
+               description "Resilient hash global configuration";
+               uses oc-lb-mode-ext:rh-global-config;
+           }
+           container state {
+               config false;
+               description "State container for rh-global attributes";
+               uses oc-lb-mode-ext:rh-global-config;
+               leaf efficiency {
+                   type uint32 {
+                       range "0..16777215";
+                   }
+                   description "Load share rh optimization";
+               }
+               leaf count {
+                   type uint32 {
+                       range "0..16777215";
+                   }
+                   description "Load share rh prefix count";
+               }
+
+           }
+       }
+       container rh-attrs {
+           description "ECMP resilient hashing attributes";
+           list rh-attr {
+               key "vrf prefix";
+               description "ECMP resilient hashing attributes list";
+
+               leaf prefix {
+                   type leafref {
+                       path "../config/prefix";
+                   }
+                   description
+                       "Reference to the RH Prefix list key";
+            }
+
+            leaf vrf {
+                type leafref {
+                    path "../config/vrf";
+                }
+                description
+                    "Reference to the RH vrf list key";
+            }
+            container config {
+                description "ECMP Resilient Hashing configuration";
+                uses oc-lb-mode-ext:hash-mode-rh-attr-config;
+            }
+
+            container state {
+                config false;
+                description "State container for ECMP Resilient Hashing";
+                uses oc-lb-mode-ext:hash-mode-rh-attr-config;
+                leaf-list match-prefix {
+                    type oc-inet:ip-prefix;
+                    max-elements 256;
+                    description
+                    "Matching routes for configured prefix";
+                }
+            }
+         }
+       }
+       container offset-attrs {
+           description "ECMP offset attributes";
+
+           container config {
+               description "ECMP hash offset configuration";
+               uses oc-lb-mode-ext:hash-mode-offset-attr-config;
+           }
+
+           container state {
+               config false;
+               description "State container for ECMP hash offset";
+               uses oc-lb-mode-ext:hash-mode-offset-attr-config;
+           }
+       }
+       container roce-attrs {
+           description "ECMP roce attributes";
+
+           container config {
+               description "ECMP hash roce configuration";
+               uses oc-lb-mode-ext:hash-mode-roce-attr-config;
+           }
+
+           container state {
+               config false;
+               description "State container for ECMP hash roce";
+               uses oc-lb-mode-ext:hash-mode-roce-attr-config;
+           }
+       }
+       container ingress-port {
+           description "ECMP ingress port attributes";
+
+           container config {
+               description "ECMP hash ingress port configuration";
+               uses oc-lb-mode-ext:hash-mode-ingress-port-config;
+           }
+
+           container state {
+               config false;
+               description "State container for ECMP hash ingress port";
+               uses oc-lb-mode-ext:hash-mode-ingress-port-config;
+           }
+       }
+       container udf-attrs {
+           description "ECMP hash user-defined fields";
+
+           list udf-attr {
+               key "udf-name";
+               description "ECMP hash user-defined field attributes";
+
+               leaf udf-name {
+                   type leafref {
+                       path "../config/udf-name";
+                   }
+                   description "User-defined field name";
+               }
+
+               container config {
+                   description "ECMP hash udf configuration";
+                   uses oc-lb-mode-ext:hash-mode-udf-attr-config;
+               }
+
+               container state {
+                   config false;
+                   description "State container for ECMP hash udf";
+                   uses oc-lb-mode-ext:hash-mode-udf-attr-config;
+               }
+           }
+       }
+    }
+
+    grouping hash-mode-seed-attr-config {
+        description "ECMP hash mode seed configuration";
+
+        leaf hash {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf ecmp-hash-seed {
+           type uint32 {
+               range "0..16777215";
+           }
+           description
+               "Seed value for IP ECMP hash configuration";
+        }
+    }
+
+    grouping hash-mode-ipv4-attr-config {
+        description "ECMP hash mode IPv4 fields";
+
+        leaf ipv4 {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf ipv4-l4-src-port {
+          type boolean;
+          default true;
+          description
+              "This leaf indicates whether to include src-port in hashing .";
+        }
+
+        leaf ipv4-l4-dst-port {
+          type boolean;
+          default true;
+          description
+              "This leaf indicates whether to include dst-port in hashing .";
+        }
+
+        leaf ipv4-src-ip {
+          type boolean;
+          default true;
+          description
+              "This leaf indicates whether to include src-ip in hashing .";
+        }
+
+        leaf ipv4-dst-ip {
+          type boolean;
+          default true;
+          description
+              "This leaf indicates whether to include dst-ip in hashing .";
+        }
+
+        leaf ipv4-ip-proto {
+          type boolean;
+          default true;
+          description
+              "This leaf indicates whether to include protocol in hashing .";
+        }
+
+        leaf ipv4-symmetric {
+          type boolean;
+          default false;
+          description
+              "This leaf indicates whether to enable symmetric hashing for IPv4 flows .";
+        }
+    }
+
+    grouping hash-mode-ipv6-attr-config {
+        description "ECMP hash mode IPV6 fields";
+
+        leaf ipv6 {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf ipv6-l4-src-port {
+            type boolean;
+            default true;
+            description
+                "This leaf indicates whether to include src-port in hashing .";
+        }
+
+        leaf ipv6-l4-dst-port {
+            type boolean;
+            default true;
+            description
+                "This leaf indicates whether to include dst-port in hashing .";
+        }
+
+        leaf ipv6-src-ip {
+            type boolean;
+            default true;
+            description
+                "This leaf indicates whether to include src-ip in hashing .";
+        }
+
+        leaf ipv6-dst-ip {
+            type boolean;
+            default true;
+            description
+                "This leaf indicates whether to include dst-ip in hashing .";
+        }
+
+        leaf ipv6-next-hdr {
+            type boolean;
+            default true;
+            description
+                "This leaf indicates whether to include protocol in hashing .";
+        }
+
+        leaf ipv6-flow-label {
+            type boolean;
+            default false;
+            description
+                "This leaf indicates whether to include flow-label in hashing .";
+        }
+
+        leaf ipv6-symmetric {
+            type boolean;
+            default false;
+            description
+                "This leaf indicates whether to enable symmetric hashing for IPv6 flows .";
+        }
+    }
+
+    grouping algorithm {
+        description "Load share hash algorithm";
+        leaf algorithm {
+            type hash-algorithm;
+            description "Hash algorithm";
+        }
+    }
+    grouping hash-mode-ingress-port-config {
+        description "Load share hash ingress port";
+        
+        leaf hash {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf ingress-port {
+            type boolean;
+            description "This leaf indicates whether to include ingress-port in hashing calculation.";
+        }
+    }
+
+    grouping rh-global-config {
+        description "Load share rh global config";
+        leaf threshold {
+            type uint32 {
+                range "1..16777215";
+            }
+            description "Load share rh nhg-optimization threshold";
+        }
+    }
+    grouping hash-mode-rh-attr-config {
+        description "ECMP hash mode RH configuration";
+
+        leaf vrf {
+            type string;
+            description "Key vrf name";
+        }
+
+        leaf prefix {
+            type oc-inet:ip-prefix;
+            description
+               "Key IP Prefix for IP ECMP RH configuration";
+          }
+
+        leaf size {
+           type uint16;
+           description
+               "Size value for IP ECMP RH configuration";
+        }
+
+        leaf seed {
+           type uint32 {
+                range "0..4294967295";
+            }
+           description
+               "Seed value for IP ECMP RH configuration";
+        }
+    }
+
+    grouping hash-mode-offset-attr-config {
+        description "ECMP hash mode offset configuration";
+
+        leaf hash {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf ecmp-hash-offset {
+           type uint16 {
+               range "0..15";
+           }
+           description
+               "Offset value for IP ECMP hash configuration";
+        }
+
+        leaf ecmp-hash-flow-based {
+            type boolean;
+            description
+                "ecmp hash flow based(auto offset) enable flag.";
+        }
+    }
+
+    grouping hash-mode-roce-attr-config {
+        description "ECMP hash mode roce configuration";
+
+        leaf hash {
+            type string;
+            description "Key node identifier";
+        }
+
+        leaf qpn {
+            type boolean;
+            description
+                "ecmp hash mode roce qpn enable flag.";
+        }
+    }
+
+    grouping hash-mode-udf-attr-config {
+        description "ECMP hash udf configuration";
+
+        leaf udf-name {
+            type string;
+            description "User-defined field name";
+        }
+
+        leaf udf-offset {
+            type uint16;
+            description "User-defined field offset post IP header";
+        }
+
+        leaf udf-size {
+            type uint16;
+            description "User-defined field size";
+        }
+
+        leaf l3-proto {
+            type uint8;
+            description "L3 protocol to match traffic flows";
+        }
+
+        leaf l4-dst-port {
+            type uint16;
+            description "L4 dst port to match traffic flows";
+        }
+    }
+
+    grouping loadshare-mode-ext-top {
+        description
+            "Top level container for ECMP load share configuration";
+
+        container loadshare {
+            description "Load share mode IPv4/IPv6/seed configuration";
+
+            container config {
+                description "ECMP hash seed configuration";
+            }
+
+            container state {
+                config false;
+                description "State container for ECMP hash seed";
+            }
+            uses loadshare-mode-config;
+        }
+    }
+
+    // data definition statements
+    uses loadshare-mode-ext-top;
+
+    // augment statements
+
+}

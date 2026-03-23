@@ -1,0 +1,56 @@
+module sonic-vxlan-annot {
+
+    yang-version "1.1";
+
+    namespace "http://github.com/Azure/sonic-vxlan-annot";
+    prefix "svxlan-annot"; 
+
+    import sonic-extensions { prefix sonic-ext; }
+    import sonic-vxlan { prefix svxlan; }
+
+    // meta
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC vxlan";
+
+    revision 2019-11-22 {
+        description
+            "Initial revision.";
+    }
+
+    deviation /svxlan:sonic-vxlan/svxlan:VXLAN_TUNNEL_TABLE/svxlan:VXLAN_TUNNEL_TABLE_LIST  {
+        deviate add {
+            sonic-ext:db-name "STATE_DB";
+        }
+    }
+
+    deviation /svxlan:sonic-vxlan/svxlan:VXLAN_REMOTE_VNI_TABLE/svxlan:VXLAN_REMOTE_VNI_TABLE_LIST  {
+        deviate add {
+            sonic-ext:db-name "APPL_DB";
+        }
+    }
+
+    deviation /svxlan:sonic-vxlan/svxlan:VXLAN_FDB_TABLE/svxlan:VXLAN_FDB_TABLE_LIST  {
+        deviate add {
+            sonic-ext:db-name "APPL_DB";
+        }
+    }
+
+    deviation /svxlan:vxlan_fdb_table_count  {
+        deviate add {
+            sonic-ext:rpc-callback "rpc_show_vxlan_fdb_count";
+        }
+    }
+
+    deviation /svxlan:sonic-vxlan/svxlan:VXLAN_TUNNEL_MAP/svxlan:VXLAN_TUNNEL_MAP_LIST {
+        deviate add {
+            sonic-ext:user-role-priv "write:netadmin";
+        }
+    }
+}
+

@@ -1,0 +1,250 @@
+module sonic-neighbor {
+    namespace "http://github.com/Azure/sonic-neighbor";
+    prefix snbrs;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import ietf-yang-types {
+        prefix yang;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-mgmt-port {
+        prefix smt;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONiC yang for NEIGH_TABLE";
+
+    revision 2019-10-10 {
+        description
+            "Initial revision.";
+    }
+
+    rpc clear-neighbors {
+        input {
+            leaf family {
+                default "IPv4";
+                type enumeration {
+                    enum IPv4;
+                    enum IPv6;
+                }
+                description "Address family (IPv4/IPv6). Default: IPv4";
+            }
+
+            leaf vrf {
+                type string {
+                    length "3..15";
+                    pattern "mgmt|Vrf[0-9A-Za-z_-]" {
+                        error-message "Invalid VRF name";
+                        error-app-tag vrf-name-arp-invalid;
+                    }
+                }
+            }
+
+            leaf all_vrfs {
+                type  boolean;
+                default false;
+                description
+                    "Flag to clear ARP/NDP entries from all VRFs";
+            }
+
+            choice option {
+                leaf ip {
+                    type inet:ip-prefix;
+                    description
+                        "Parameter for deleting ARP/NDP entries related to the given IPv4/IPv6 address.
+                        Note: If both 'ip' and 'ifname' are not provided, all dynamic enties will be cleared from the ARP/NDP table.";
+                }
+
+                leaf ifname {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                    }
+                    description
+                        "Interface name: Parameter for deleting ARP  entries
+                        related to the given inteface name. Valid inputs are:
+                        Ethernet<port-number>/Vlan<Vlan ID>/PortChannel<port-channel ID>/eth<interface ID>.
+                        For example: Ethernet0, Vlan100, PortChannel10, eth0.
+                        Note: In absence of 'ip', 'ifname' and 'vrf' name, the ARP/NDP table of the default VRF will be flushed.";
+                }
+            }
+        }
+
+        output {
+            leaf response {
+                type string;
+                description
+                    "Success / Failure in clearing up the  ARP/NDP entries";
+            }
+        }
+    }
+
+    container sonic-neighbor {
+
+		container NEIGH_GLOBAL {
+			list NEIGH_GLOBAL_LIST {
+				key "name";
+
+				leaf name {
+					type enumeration {
+						enum Values;
+					}
+					description "Key node identifier";
+				}
+
+				leaf ipv4_arp_timeout {
+					type uint16 {
+						range "60..14400" {
+							error-message "Invalid ARP timeout value";
+						}
+					}
+					default 1800;
+					description "ARP timeout value";
+				}
+
+				leaf ipv6_nd_cache_expiry {
+					type uint16 {
+						range "60..14400" {
+							error-message "Invalid ND cache expiry value";
+						}
+					}
+					default 1800;
+					description "ND cache expiry value";
+				}
+                                leaf num_local_neigh {
+					type uint32 {
+						range "0..32000" {
+							error-message "Invalid number of reserved local neighbors";
+						}
+					}
+					default 2000;
+					description "Number of reserved local neighbors";
+				}
+
+                                leaf ipv4_drop_neighbor_aging_time {
+					type uint16 {
+						range "60..14400" {
+							error-message "Invalid IPv4 drop-neighbor aging time";
+						}
+					}
+					default 300;
+					description "IPv4 drop-neighbor aging time";
+				}
+
+                                leaf ipv6_drop_neighbor_aging_time {
+					type uint16 {
+						range "60..14400" {
+							error-message "Invalid IPv6 drop-neighbor aging time";
+						}
+					}
+					default 300;
+					description "IPv6 drop-neighbor aging time";
+				}
+                
+				leaf ipv4_nbr_block_rem_unreach {
+					type  boolean;                    
+					description "Block the installation of unresolved IPv4 neighbors on tunnels";
+				}
+
+				leaf ipv6_nbr_block_rem_unreach {
+					type  boolean;                   
+					description "Block the installation of unresolved IPv6 neighbors on tunnels";
+				}
+
+			}
+		}
+
+        container NEIGH_TABLE {
+            config false;
+
+            list NEIGH_TABLE_LIST {
+
+                key "ifname ip";
+
+                leaf ifname {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                    }
+                    description
+                        "Valid inputs are:
+                        Ethernet<port-number>/Vlan<Vlan ID>/PortChannel<port-channel ID>/eth<interface ID>.
+                        For example: Ethernet0, Vlan100, PortChannel10, eth0";
+                }
+
+                leaf ip {
+                    type inet:ip-prefix;
+                    description "IP address";
+                }
+
+                leaf neigh {
+                    type yang:mac-address;
+                    description "MAC address of the neighbor";
+                }
+
+                leaf family {
+                    default "IPv4";
+                    type enumeration {
+                        enum IPv4;
+                        enum IPv6;
+                    }
+                    description "Address family (IPv4/IPv6)";
+                }
+
+                leaf isrouter {
+                    type boolean;
+                    description
+                        "It is an Optional field and will be available only for IPv6 Neighbors acts as a router.";
+                }
+
+                leaf state {
+                    type uint16;
+                    description
+                        "Current state of the neighbor";
+               }
+           }
+        }
+    }
+}

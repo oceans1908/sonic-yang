@@ -1,0 +1,102 @@
+module openconfig-ptp-rpc {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/openconfig-ptp-rpc/extension";
+
+  prefix "oc-ptp-rpc"; 
+
+
+  import openconfig-extensions { prefix oc-ext; }
+  // meta
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module defines RPCs for PTP exec commands";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2024-04-13" {
+    description
+      "Initial revision";
+    reference "0.1.0";
+  }
+
+
+  typedef ptp-debug-option {
+     type enumeration {
+         enum "ALL" {
+            value 1;
+            description
+               "All debug logs of system,stack and servo.";
+         }
+         enum "BMCA" {
+           value 2;
+           description
+              "BMCA (Best Master Clock Algorithm) logs.";
+         }
+         enum "PROTOCOL" {
+           value 3;
+           description
+              "PTP protocol engine and transport layer logs.";
+         }
+         enum "SERVO" {
+           value 4;    
+           description
+              "Servo and PLL logs.";
+         }
+         enum "SYSTEM" {
+           value 5;
+           description
+              "System and task logs.";
+         }
+         enum "TIMESTAMPS" {
+           value 6;
+           description
+              "Timestamp related logs.";
+         }
+     }
+     description
+         "Debug logs options of PTP stack.";
+  }
+
+//rpc for exec commands
+
+    rpc debug-ptp {
+        description
+            "Debug logs of PTP stack.";
+        input {
+            leaf debug-option {
+                type ptp-debug-option;
+            description
+                "Options to Enable debug logs of PTP stack.";
+            }
+            leaf debug-level {
+                type uint8 {
+                    range "0..5";
+                }
+                default 1;
+                description 
+                    "Debug level of the debug option. 0 for disable";
+           }
+           leaf enable {
+                type boolean;
+                default true;
+            description
+                "Enable/Disable the debugging for PTP.";
+            }
+        }
+        output {
+            leaf status {
+                type string;
+            description
+                "Denotes the Status of debug PTP.";
+            }
+        }
+    }
+}

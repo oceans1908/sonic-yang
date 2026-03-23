@@ -1,0 +1,259 @@
+module openconfig-network-instance-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/network-instance/extension";
+
+  prefix "oc-netinst-ext";
+  
+  import ietf-yang-types { prefix ietf; }
+  import sonic-codegen { prefix sonic-codegen; }
+  // import some basic types
+  import openconfig-network-instance { prefix "oc-netinst"; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-interfaces { prefix "oc-if"; }
+  import openconfig-yang-types { prefix "oc-yang"; }
+
+  organization
+      "SONiC";
+
+  contact
+      "SONiC";
+
+  description
+        "This module describes a YANG model for network instance
+        configuration extensions.";
+
+  oc-ext:openconfig-version "0.1.1";
+
+  revision "2024-11-13" {
+    description
+      "Adding support for fdb/pms-sticky-mac-table.";
+    reference "0.1.1";
+  }
+
+  revision "2023-01-05" {
+    description
+      "Deviating range and default value for fdb/state/mac-aging-time defined
+       in openconfig-network-instance-l2.yang.";
+    reference "0.1.0";
+  }
+  
+  revision "2020-10-05" {
+    description
+      "Deviating range and default value for mac-aging-time.";
+    reference "0.1.0";
+  }
+
+  grouping network-instance-ext-global-sag-config {
+
+    description
+      "Global static anycast gateway config";
+
+	  leaf anycast-mac {
+		  type ietf:mac-address;
+
+		  description
+			  "static anycast gateway MAC addresses";
+
+	  }
+
+    leaf ipv4-enable {
+      type boolean;
+		  default true;
+
+      description
+        "static anycast gateway IPv4 enable";
+    }
+
+    leaf ipv6-enable {
+      type boolean;
+		  default true;
+
+      description
+        "static anycast gateway IPv6 enable";
+    }
+
+    leaf rmac-forwarding {
+        type string {
+            pattern 'disable|enable';
+            oc-ext:posix-pattern '^disable|enable$';
+        }
+        description
+            "static anycast gateway interfaces with router mac as source mac enable";
+    }
+  }
+
+  grouping network-instance-ext-global-sag-top {
+    description
+      "Global static anycast gateway";
+	  container global-sag {
+		  container config {
+			  uses network-instance-ext-global-sag-config;
+
+        description
+          "Global static anycast gateway config";
+		  }
+		  container state {
+			  config false;
+			  uses network-instance-ext-global-sag-config;
+
+        description
+          "Global static anycast gateway state";
+		  }
+
+      description
+        "Static anycast gateway";
+	  }
+  }
+
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance" {
+      description
+          "Global Anycast Gateway";
+      uses network-instance-ext-global-sag-top;
+  }
+
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:config/oc-netinst:mac-aging-time {
+      sonic-codegen:lint-ignore "Deviated to be aligned with other vendors.";
+      deviate replace {
+          type uint32 {
+              range 0..1000000{
+                  error-message "Invalid MAC-aging value 0-1000000";
+              }
+          }
+      }
+      deviate add {
+          default 600;
+      }
+  }
+  
+  deviation /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb/oc-netinst:state/oc-netinst:mac-aging-time {
+      sonic-codegen:lint-ignore "Deviated to be aligned with other vendors.";
+      deviate replace {
+          type uint32 {
+              range 0..1000000{
+                  error-message "Invalid MAC-aging value 0-1000000";
+              }
+          }
+      }
+      deviate add {
+          default 600;
+      }
+  }
+
+
+  grouping network-instance-ext-rif-counters-config {
+
+    description
+      "Configuration for rif counter interval";
+        leaf rif-counter-interval {
+          type uint32;
+          description
+            "The current number of routes installed for the address family.";
+        }
+  }
+
+
+  grouping network-instance-ext-rif-counters-top {
+    description
+      "Configuration and operational state parameters relating
+      to a rif interval network instance";
+
+    container rif-counters {
+      description
+        "Operational state and configuration parameters relating to
+         rif counters interval of the network instance";
+
+      container config {
+        description
+          "Configuration parameters relating to the rif counters interval";
+        uses network-instance-ext-rif-counters-config;
+      }
+      container state {
+        config false;
+        description
+          "Global rif counter interval state";
+        uses network-instance-ext-rif-counters-config;
+	}
+
+    }
+  }
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance" {
+      description
+          "Rif counters interval";
+      uses network-instance-ext-rif-counters-top;
+  }
+
+  grouping network-instance-ext-pms-sticky-mac-table-top {
+    description
+      "Top-level grouping for Port MAC Security sticky MAC table list";
+
+    container pms-sticky-mac-table {
+      config false;
+
+      description
+        "Table of Port Mac Security sticky MAC addresses and corresponding VLANs in the bridge domain";
+
+      container entries {
+        description
+          "Enclosing container for list of Port MAC Security Sticky MAC table entries";
+
+        list entry {
+          key "mac-address vlan";
+          description
+            "List of Port MAC Security sticky MAC addresses";
+
+          leaf mac-address {
+            type leafref {
+              path "../state/mac-address";
+            }
+            description
+              "Reference to mac-address list key";
+          }
+
+          leaf vlan {
+            type leafref {
+              path "../state/vlan";
+            }
+            description
+              "Reference to vlan list key";
+          }
+
+          container state {
+            config false;
+
+            description
+              "Operational state data for Port MAC Security Sticky MAC table entries";
+
+            leaf mac-address {
+              type oc-yang:mac-address;
+              description
+                "MAC address for the Port MAC Security Sticky MAC table entry";
+            }
+
+            leaf vlan {
+              type leafref {
+                path "/oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:vlans/oc-netinst:vlan/oc-netinst:config/oc-netinst:vlan-id";
+              }
+              description
+                "VLAN on which the MAC address is present.";
+            }
+
+            leaf port {
+              type leafref {
+                path "/oc-if:interfaces/oc-if:interface/oc-if:name";
+              }
+              description "Interface on which the MAC address is learnt.";
+            }
+          }
+        }
+      }
+    }
+  }
+
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:fdb" {
+      description "Port MAC Security Sticky FDB";
+      uses network-instance-ext-pms-sticky-mac-table-top;
+  }
+}

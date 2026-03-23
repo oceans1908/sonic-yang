@@ -1,0 +1,217 @@
+module sonic-sflow {
+    namespace "http://github.com/Azure/sonic-sflow";
+    prefix sflow;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-common {
+        prefix scommon;
+    }
+    import sonic-port {
+        prefix prt;
+    }
+    import sonic-vlan {
+        prefix svlan;
+    }
+    import sonic-loopback {
+        prefix lo;
+    }
+    import sonic-mgmt-port {
+        prefix smt;
+    }
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "Database schema for SONiC Sflow feature";
+
+    revision 2024-09-16 {
+        description
+            "Added sFlow Max header size attribute.";
+    }
+
+    revision 2023-01-12 {
+        description
+            "Added custom-validation for Sflow collector & default values for non-mandatory attributes.";
+    }
+
+    revision 2020-07-26 {
+        description
+            "Change for sonic-loopback.yang.";
+    }
+
+    revision 2020-06-23 {
+        description
+            "Add default and mgmt VRF.
+             Increase collector name to 32 characters.";
+    }
+
+    revision 2019-09-09 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-sflow {
+        container SFLOW_COLLECTOR {
+            list SFLOW_COLLECTOR_LIST {
+                max-elements 2;
+                sonic-ext:custom-validation ValidateSflowCollectorCfg;
+                key "collector_name";
+
+                leaf collector_name {
+                    type string {
+                        length 1..64;
+                    }
+                }
+
+                leaf collector_ip {
+                    mandatory true;
+                    type inet:ip-address;
+                }
+
+
+                leaf collector_port {
+                    type inet:port-number;
+                    default 6343;
+                }
+
+                leaf collector_vrf {
+                    type string {
+                            pattern "default|mgmt";
+                    }
+                    default "default";
+                    description "Network-instance/VRF name";
+                    sonic-ext:custom-validation ValidateSflowVrf;
+                }
+
+            }
+        }
+
+        container SFLOW_SESSION {
+            list SFLOW_SESSION_LIST {
+                key "ifname";
+
+                leaf ifname {
+                    type leafref {
+                        path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                    }
+                }
+
+                leaf admin_state {
+                    type scommon:admin-status;
+                }
+
+                leaf sample_rate {
+                    type uint32 {
+                        range "256..8388608" {
+                            error-message "sFlow polling interval must be [256-8388608]";
+                        }
+                    }
+                }
+            }
+        }
+
+        container SFLOW {
+            list SFLOW_LIST {
+                key "sflow_key";
+                leaf sflow_key {
+                    type enumeration {
+                        enum global;
+                    }
+                }
+
+                leaf admin_state {
+                    type scommon:admin-status;
+                }
+
+                leaf polling_interval {
+                    type uint16 {
+                        range "0|5..300" {
+                            error-message "Unsupported polling interval. Polling interval must be between 5-300 (0 to disable)";
+                        }
+                    }
+                }
+
+               leaf max_header_size {
+                   type uint16 {
+                       range "128|256|384|512|640|768|896|1024" {
+                           error-message "sFlow max header size must be a multiple of 128.";
+                           error-app-tag sflow-max-header-size-invalid;
+                       }
+                   }
+                   units bytes;
+                   default 128;
+                   description
+                       "Sets the maximum number of bytes to be copied from a
+                        sampled packet.";
+                   reference
+                       "RFC 3176 - InMon Corporation's sFlow: A Method for
+                        Monitoring Traffic in Switched and Routed Networks";
+               }
+
+                leaf agent_id {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/smt:sonic-mgmt-port/smt:MGMT_PORT/smt:MGMT_PORT_LIST/smt:ifname";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/lo:sonic-loopback/lo:LOOPBACK/lo:LOOPBACK_LIST/lo:name";
+                        }
+                    }
+                    description "Interface name";
+                }
+
+                leaf sample_rate {
+                    type uint32 {
+                        range "256..8388608" {
+                            error-message "sFlow sample rate must be [256-8388608]";
+                        }
+                    }
+                    units "1/sample_rate packets";
+                    description "Sets the packet sampling rate.  The rate is expressed as an integer N, where the intended sampling rate is 1/N packets.";
+                }
+            }
+       }
+
+       container SFLOW_SESSION_TABLE {
+           config false;
+           list SFLOW_SESSION_TABLE_LIST {
+               key "ifname";
+
+               leaf ifname {
+                   type leafref {
+                       path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                   }
+               }
+
+               leaf admin_state {
+                   type scommon:admin-status;
+               }
+
+               leaf sample_rate {
+                   type uint32 {
+                       range "256..8388608" {
+                           error-message "sFlow polling interval must be [256-8388608]";
+                       }
+                   }
+               }
+           }
+       }
+    }
+}

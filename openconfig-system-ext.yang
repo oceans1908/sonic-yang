@@ -1,0 +1,944 @@
+module openconfig-system-ext {
+
+    yang-version "1";
+
+    namespace "http://openconfig.net/yang/system/extension";
+
+    prefix "oc-sys-ext";
+
+    import openconfig-network-instance { prefix oc-ni; }
+    import openconfig-system { prefix oc-sys; }
+    import openconfig-inet-types { prefix oc-inet; }
+    import openconfig-kdump { prefix oc-kdump; }
+    import openconfig-switch-resource { prefix oc-swresource; }
+    import openconfig-interfaces { prefix "oc-if"; }
+    import openconfig-infra { prefix "oc-infra"; }
+    import openconfig-systemd-coredump { prefix oc-systemd-coredump; }
+    import openconfig-system-logging { prefix "oc-log"; }
+    import openconfig-extensions { prefix "oc-ext"; }
+    import sonic-codegen { prefix sonic-codegen; }
+    import openconfig-adaptive-routing-switching { prefix oc-ars; }
+    import openconfig-pki { prefix oc-pki; }
+
+    // meta
+    organization "OpenConfig working group";
+
+    oc-ext:openconfig-version "0.25.0";
+
+    contact
+        "OpenConfig working group
+        netopenconfig@googlegroups.com";
+
+    description
+        "Model for managing system extensions.";
+
+    revision 2024-12-30 {
+        description
+            "Add login concurrent session limit attribute.";
+        reference "0.25.0";
+    }
+
+    revision 2024-12-11 {
+        description
+            "Add SSH server attributes.";
+        reference "0.24.0";    
+    }
+
+    revision 2024-09-06 {
+        description
+            "Add Host Key algorithms attribute for SSH Server.";
+        reference "0.23.0";
+    }
+
+    revision 2024-08-21 {
+        description
+            "Logging security profile.";
+        reference "0.22.0";
+    }
+
+    revision 2024-08-13 {
+        description
+            "Add SSH Client Attributes.";
+        reference "0.21.0";
+    }
+
+    revision 2024-04-06 {
+        description
+            "Add Auditd System Attributes.";
+        reference "0.20.0";
+    }
+
+    revision 2024-01-12 {
+        description
+            "Add Login - Password Attributes.";
+        reference "0.19.0";
+    }
+
+    revision 2023-12-27 {
+        description
+            "Add Auto-breakout Attributes.";
+        reference "0.18.0";
+    }
+
+    revision 2023-12-15 {
+        description
+            "Add Banner Attributes.";
+        reference "0.17.0";
+    }
+
+    revision 2023-12-15 {
+        description
+            "Add Login Attribute - exec-timeout.";
+        reference "0.16.0";
+    }
+
+    revision 2023-12-06 {
+        description
+            "Add protocol option for syslog server.";
+        reference "0.15.0";
+    }
+
+    revision 2023-08-17 {
+        description
+            "Add Login Attributes.";
+        reference "0.14.0";
+    }
+
+    revision 2021-09-30 {
+        description
+            "Add OpenConfig POSIX pattern extensions.";
+        reference "0.13.0";
+
+    }  
+
+    revision 2020-12-07 {
+        description
+            "Add per NTP server minpoll and maxpoll.";
+        reference "0.12.0";
+    }
+
+    revision 2020-11-02 {
+        description
+            "Add NTP authentication.";
+        reference "0.11.0";
+    }
+
+    revision 2020-09-02 {
+        description
+            "Added the VRF name for DNS nameserver.";
+        reference "0.10.0";
+    }
+
+    revision 2020-06-29 {
+        description
+            "Fixed a few OC-Yang Lint/Conventions.";
+        reference "0.9.0";
+    }
+
+    revision 2020-06-10 {
+        description
+            "Add augments and deviations for NTP.";
+        reference "0.8.0";
+    }
+
+    revision 2020-06-02 {
+        description
+            "Moved RADIUS extensions to separate file.";
+        reference "0.4.0";
+    }
+
+    revision 2020-05-02 {
+        description
+            "Added DNS source IP support and allowed domain name as well for Radius/TACACS+ server configuration.";
+         reference "0.7.0";
+    }
+
+    revision 2020-03-30 {
+        description
+            "Added NAS-IP|IPV6-Address attribute for RADIUS.";
+        reference "0.2.0";
+    }
+
+    revision 2019-11-05 {
+        description
+            "Initial augment file.";
+         reference "0.7.0";
+    }
+
+    // augment statements
+
+    augment /oc-sys:system {
+        description "Kernel dump information";
+        uses oc-kdump:kdump-top;
+    }
+
+    augment /oc-sys:system {
+        description "Coredump information";
+        uses oc-systemd-coredump:systemd-coredump-top;
+    }
+
+    augment /oc-sys:system {
+        description "Switch Resources Management";
+        uses oc-swresource:switch-resource-top;
+    }
+
+    augment /oc-sys:system {
+        description "Adaptive Routing and Switching";
+        uses oc-ars:ars-top;
+    }
+
+    grouping system-ext-ssh-vrf-config {
+      description
+       "Configuration data for ssh server vrf";
+        leaf vrf-name {
+            type string {
+                pattern "Vrf[a-zA-Z0-9_-]+" {
+                    error-message "Invalid VRF name for SSH server";
+                    error-app-tag vrf-name-ssh-invalid;
+                }
+                oc-ext:posix-pattern '^Vrf[a-zA-Z0-9_-]+$';
+            }
+            description
+                "VRF name";
+        }
+        leaf port {
+            type uint16;
+            default 22;
+            description
+                "SSH port number";
+        }
+    }
+
+  grouping system-ext-ssh-global-config {
+    description
+      "Configuration data for a SSHD";
+
+    leaf max-auth-retries {
+      type uint8  {
+        range "0..10";
+      }
+      description
+        "Specifies the maximum number of authentication attempts permitted per connection";      
+    }
+
+    leaf disable-forwarding {
+      type boolean;
+      description
+        "Disables all forwarding features";      
+    }
+
+    leaf permit-root-login {
+      type boolean;
+      description
+        "Specifies whether root can log in using ssh";      
+    }
+
+    leaf permit-user-environment {
+      type boolean;
+      description
+        "Specifies whether ssh/environment are processed by sshd(8).";      
+    }
+
+    leaf permit-user-rc {
+      type boolean;
+      description
+        "Specifies whether any ssh/rc file is executed";      
+    }
+
+    leaf x11-forwarding {
+      type boolean;
+      description
+        "Specifies whether X11 forwarding is permitted";      
+    }
+
+    leaf ciphers {
+      type string;
+      default "aes128-ctr,aes192-ctr,aes256-ctr,chacha20-poly1305@openssh.com,aes128-gcm@openssh.com,aes256-gcm@openssh.com";
+      description
+        "Parameters regarding key exchange.";
+    }
+
+    leaf macs {
+      type string;
+      default "umac-128-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128@openssh.com,hmac-sha2-256,hmac-sha2-512";
+      description
+         "Parameters regarding message authentication code (MAC).";
+    }
+
+    leaf kexalgorithms {
+      type string;
+      default "curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group14-sha256";
+
+      description
+        "Parameters regarding key exchange.";
+    }
+
+    leaf hostkeyalgorithms {
+      type string;
+      default "rsa-sha2-256,rsa-sha2-512,ssh-rsa";
+
+      description
+        "Specifies Host Key algorithms.";
+    }
+
+    leaf password-authentication {
+        type boolean;
+        default "true";
+        description
+          "Specifies whether password authentication is permitted";
+    }
+
+    leaf publickey-authentication {
+        type boolean;
+        default "true";
+        description
+          "Specifies whether publickey authentication is permitted";
+    }
+ }
+    grouping system-ext-suppress-fib-config { 
+      description
+       "Configuration data for suppress fib pending feature";
+		leaf suppress-fib-pending {
+          description "Enable suppress pending FIB feature. BGP will wait for route
+                      FIB installation before announcing routes.";
+            type enumeration {
+              enum ENABLED {
+                description "Enable suppress pending FIB feature"; 
+              }
+              enum DISABLED {
+                description "Disable suppress pending FIB feature"; 
+              }
+            }
+            default DISABLED;
+		  }
+    }
+
+    augment "/oc-sys:system/oc-sys:ssh-server" {
+        description "Additional fields for ssh server";
+        container ssh-server-vrfs {
+          description
+           "Container for ssh server vrfs";
+            list ssh-server-vrf {
+                key "vrf-name";
+                max-elements 15;
+                description
+                  "list of ssh server vrf";
+
+                leaf vrf-name {
+                    type leafref {
+                        path "../config/vrf-name";
+                    }
+                    description "VRF name";
+                }
+
+                container config {
+                    description
+                      "Configuration data for ssh server vrf";
+                    uses system-ext-ssh-vrf-config;
+                }
+                container state {
+                    config false;
+                    description
+                      "Operational state data for ssh server vrf";
+                    uses system-ext-ssh-vrf-config;
+                }
+            }
+        }
+        container ssh-server-globals {
+          description
+            "Container for ssh server global values";
+          container config {
+            description "Global configuration data for the system";
+
+            uses system-ext-ssh-global-config;
+
+          }
+
+          container state {
+            config false;
+            description "Global operational state data for the system";
+
+            uses system-ext-ssh-global-config;
+          }
+        }
+    }
+
+    typedef server-address {
+        type oc-inet:host;
+        description
+            "The host type represents either an unzoned IP address or a DNS
+            domain name.";
+    }
+
+    deviation /oc-sys:system/oc-sys:config/oc-sys:domain-name {
+       deviate not-supported;
+    }
+
+    deviation /oc-sys:system/oc-sys:state/oc-sys:domain-name {
+       deviate not-supported;
+    }
+
+    deviation /oc-sys:system/oc-sys:config/oc-sys:hostname{
+	sonic-codegen:lint-ignore "Deviated to be aligned with klish.";
+	deviate replace {
+	    type string {
+                pattern "^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$" {
+		    error-message "Invalid hostname";
+		} 
+		
+	    }
+        }
+    }
+
+    deviation /oc-sys:system/oc-sys:config/oc-sys:login-banner {
+        deviate not-supported;
+    }
+
+    deviation /oc-sys:system/oc-sys:config/oc-sys:motd-banner {
+        deviate not-supported;
+    }
+
+    deviation /oc-sys:system/oc-sys:state/oc-sys:login-banner {
+        deviate not-supported;
+    }
+
+    deviation /oc-sys:system/oc-sys:state/oc-sys:motd-banner {
+        deviate not-supported;
+    }
+	// ssh-server deviations.
+
+    deviation /oc-sys:system/oc-sys:ssh-server/oc-sys:config {
+       deviate not-supported;
+    }
+    deviation /oc-sys:system/oc-sys:ssh-server/oc-sys:state {
+       deviate not-supported;
+    }
+
+	//syslog parameters
+    grouping system-ext-logging-remote-config {
+        description 
+			"Grouping for remote server source-interface and vrf configuration";
+        leaf source-interface {
+            type leafref {
+                path "/oc-if:interfaces/oc-if:interface/oc-if:name";
+            }
+            description
+                "Source interface ip to be used as source ip for sending syslog packets";
+        }
+        leaf vrf-name {
+            type leafref {
+                path "/oc-ni:network-instances/oc-ni:network-instance/oc-ni:name";
+            }
+            description
+                "VRF name";
+        }
+        leaf message-type {
+            type string;
+            description "type of messages that remote host receives";
+        }
+
+        leaf severity {
+          type oc-log:syslog-severity;
+          default NOTICE;
+          description
+            "Severity Level of messages that remote host receives
+
+            Logs upto the severity level specifed are sent
+            sent to remote syslog servers.";
+        }
+
+        leaf protocol {
+          default UDP;
+          type enumeration {
+            enum TCP {
+              description "TCP";
+            }
+            enum UDP {
+              description "UDP";
+            }
+            enum TLS {
+              description "TLS";
+            }
+          }
+          description "send syslog messages over TCP/UDP/TLS";
+       }
+    }
+
+    augment "/oc-sys:system/oc-sys:logging/oc-sys:remote-servers/oc-sys:remote-server/oc-sys:config" {
+        description "Additional parameters for remote server config";
+        uses system-ext-logging-remote-config;
+	}
+    augment "/oc-sys:system/oc-sys:logging/oc-sys:remote-servers/oc-sys:remote-server/oc-sys:state" {
+        description "Additional parameters for remote server state";
+        uses system-ext-logging-remote-config;
+	}
+    augment "/oc-sys:system/oc-sys:config" {
+        description "config parameters for suppress fib pending feature";
+        uses system-ext-suppress-fib-config;
+    }
+    augment "/oc-sys:system/oc-sys:state" {
+        description "state parameters for suppress fib pending feature";
+        uses system-ext-suppress-fib-config;
+	}
+    deviation /oc-sys:system/oc-sys:logging/oc-sys:remote-servers/oc-sys:remote-server/oc-sys:selectors {
+       deviate not-supported;
+    }
+    deviation /oc-sys:system/oc-sys:logging/oc-sys:remote-servers/oc-sys:remote-server/oc-sys:config/oc-sys:source-address {
+        deviate not-supported;
+	}
+    deviation /oc-sys:system/oc-sys:logging/oc-sys:remote-servers/oc-sys:remote-server/oc-sys:state/oc-sys:source-address {
+        deviate not-supported;
+	}
+
+    //infra paraemters
+    augment /oc-sys:system {
+        description "System infra";
+        uses oc-infra:infra-top;
+    }
+
+    grouping system-login-lockout-config {
+        description
+            "Login lockout configuration";
+
+        leaf console-exempt {
+            type boolean;
+            default "false";
+            description
+                "Exempt console logins from account lockout";
+        }
+
+        leaf lockout-period {
+            type uint16{
+                range 0..43200;
+            }
+            units minutes;
+            default "0";
+            description
+                "Account lockout period in minutes";
+        }
+
+        leaf max-retry {
+            type uint8{
+                range 0..16;
+            }
+            default "3";
+            description
+            "The number of maximum password retries";
+        }
+    }
+
+    grouping system-session-config {
+        description
+            "Login session configuration parameters";
+
+        leaf exec-timeout {
+            type uint16 {
+                range "0..3600";
+            }
+            default "600";
+            units "seconds";
+            description
+                "CLI session timeout value in seconds";
+        }
+    }
+
+    grouping system-concurrent-session-config {
+        description
+            "Login concurrent session configuration parameters";
+
+        leaf limit {
+            type uint8 {
+                range "1..12";
+            }
+            description
+                "Maximum number of concurrent sessions per user (Default: Unlimited)";
+        }
+    }
+
+    grouping system-login-passwd-character-attrs-config {
+        description
+            "Character restrictions for password";
+
+        leaf min-upper-case {
+            type uint8{
+                range 0..31;
+            }
+            description
+                "The minimum number of upper case characters required in the password";
+        }
+
+        leaf min-lower-case {
+            type uint8{
+                range 0..31;
+            }
+            description
+                "The minimum number of lower case characters required in the password";
+        }
+
+        leaf min-numerals {
+            type uint8{
+                range 0..31;
+            }
+            description
+                "The minimum number of numerics required in the password";
+        }
+
+        leaf min-special-char {
+            type uint8{
+                range 0..31;
+            }
+            description
+                "The minimum number of special characters required in the password";
+        }
+    }
+
+    grouping system-login-passwd-min-len-config {
+        description
+            "Minimum length configuration for system login password";
+
+        leaf min-len {
+            type uint8{
+                range 6..32;
+            }
+            default "8";
+            description
+                "The minimum number of characters required in a password";
+        }
+    }
+
+    grouping system-login-config-top {
+        description
+            "Top level system login parameters";
+        container login {
+            description
+                "Top-level container for login configuration settings";
+
+            container concurrent-session {
+                description
+                    "Top-level container for concurrent session configuration settings";
+
+                container config {
+                    description
+                        "Configuration data for concurrent session attributes";
+
+                    uses system-concurrent-session-config;
+                }
+
+                container state {
+                    config false;
+                    description
+                        "Operational data for concurrent session attributes";
+
+                    uses system-concurrent-session-config;
+                }
+            }
+
+            container lockout {
+                description
+                    "Lockout configuration for login attempts";
+                container config {
+                    description
+                        "Login lockout configuration data";
+
+                    uses system-login-lockout-config;
+                }
+                container state {
+                    config false;
+                    description
+                        "Login lockout operational data";
+
+                    uses system-login-lockout-config;
+                }
+            }
+
+            container session {
+                description
+                    "Top-level container for session configuration settings";
+
+                container config {
+                    description
+                        "Configuration data for session attributes";
+
+                    uses system-session-config;
+                }
+
+                container state {
+                    config false;
+                    description
+                        "Operational data for session attributes";
+
+                    uses system-session-config;
+                }
+            }
+
+            container password-attributes {
+                description
+                    "Password complexity configuration settings";
+
+                container config {
+                    description
+                        "Configuration data for password attributes";
+
+                    uses system-login-passwd-character-attrs-config;
+                    uses system-login-passwd-min-len-config;
+                }
+
+                container state {
+                    config false;
+                    description
+                        "Operational data for password attributes";
+
+                    uses system-login-passwd-character-attrs-config;
+                    uses system-login-passwd-min-len-config;
+                }
+            }
+
+        }
+    }
+
+    //login paraemters
+    augment /oc-sys:system {
+        description "System Login Patameters";
+        uses system-login-config-top;
+    }
+
+    grouping system-syslog-config {
+        description
+            "Grouping of the Global configuration parameters for syslog.";
+        leaf security-profile {
+            type leafref {
+                path "/oc-pki:pki/oc-pki:security-profiles/oc-pki:security-profile/oc-pki:config/oc-pki:profile-name";
+            }
+            description "SYSLOG security profile";
+        }
+    }
+
+    grouping system-syslog-config-top {
+        description
+            "The top-level configuration parameters for syslog.";
+
+        container syslog {
+            description
+                "This container holds the configuration settings for syslog.";
+
+            container config {
+                description
+                    "Configuration data for syslog attributes";
+
+                uses system-syslog-config;
+            }
+
+            container state {
+                config false;
+                description
+                    "Operational data for syslog attributes";
+
+                uses system-syslog-config;
+            }
+        }
+    }
+
+    //Syslog Parameters
+    augment /oc-sys:system {
+        description
+            "Syslog Parameters.";
+        uses system-syslog-config-top;
+    }
+
+    grouping system-banner-config {
+        description
+            "Grouping of the configuration parameters for system banners.";
+        leaf login-banner {
+            type string;
+            description
+                "Text displayed in banner before login";
+        }
+        leaf motd-banner {
+            type string;
+            description
+                "Text displayed in banner after login";
+        }
+        leaf login-banner-disable {
+            description
+                "Disables the display of the login banner when set to true. By default, it is set to false, meaning the login banner is displayed.";
+            type boolean;
+            default "false";
+        }
+        leaf motd-banner-disable {
+            description
+                "Disables the display of the Message of the Day (MOTD) banner when set to true. By default, it is set to false, meaning the MOTD banner is displayed.";
+            type boolean;
+            default "false";
+        }
+    }
+
+    grouping system-banner-config-top {
+        description
+            "The top-level configuration parameters for system banners.";
+
+        container banner {
+            description
+                "This container holds the configuration settings for system banners.";
+
+            container config {
+                description
+                    "Configuration data for banner attributes";
+
+                uses system-banner-config;
+            }
+
+            container state {
+                config false;
+                description
+                    "Operational data for banner attributes";
+
+                uses system-banner-config;
+            }
+        }
+    }
+
+    //Banner Parameters
+    augment /oc-sys:system {
+        description
+            "Banner Parameters.";
+        uses system-banner-config-top;
+    }
+
+    grouping system-ext-auto-breakout-config {
+      description
+       "Configuration data for auto-breakout feature";
+         leaf auto-breakout {
+            description "Enable or disable auto-breakout feature.
+                         Upon transceiver plugin event breakout will be applied
+                         based on transceiver capability. Disabled by default.";
+            type enumeration {
+              enum ENABLE {
+                description "Enable auto-breakout feature";
+              }
+              enum DISABLE {
+                description "Disable auto-breakout feature";
+              }
+            }
+            default DISABLE;
+         }
+    }
+
+    augment /oc-sys:system/oc-sys:config{
+        description "config parameters for auto-breakout feature";
+        uses system-ext-auto-breakout-config;
+    }
+
+    augment /oc-sys:system/oc-sys:state{
+        description "state parameters for auto-breakout feature";
+        uses system-ext-auto-breakout-config;
+    }
+
+  grouping system-ext-ssh-client-config {
+    description
+      "Configuration data for SSH client";
+
+    leaf ciphers {
+      type string;
+      description
+        "Encryption algorithms (Ciphers).";
+    }
+
+    leaf macs {
+      type string;
+      description
+        "Message Authentication Code algorithms (MAC).";
+    }
+
+    leaf kexalgorithms {
+      type string;
+      description
+        "Key Exchange algorithms (Kex).";
+    }
+  }
+
+  augment /oc-sys:system {
+    description
+      "SSH client Parameters.";
+
+    container ssh-client {
+      description
+        "Container for SSH client parameters";
+
+      container config {
+        description "Configuration data for SSH client";
+
+        uses system-ext-ssh-client-config;
+      }
+
+      container state {
+        config false;
+        description "Operational state data for SSH client";
+
+        uses system-ext-ssh-client-config;
+      }
+    }
+  }
+
+    //login paraemters
+    augment /oc-sys:system {
+        description "System Login Patameters";
+        uses system-auditd-system-config-top;
+    }
+
+    grouping system-auditd-system-config-top {
+        description "Auditd system config container grouping";
+        container auditd-system {
+            description
+            "Auditd system configuration";
+            container config {
+                description
+                "Auditd sytem configuration data";
+                    uses sys-ext-auditd-system-rules;
+            }
+            container state {
+                config false;
+                description
+                "Auditd system operational data";
+
+                uses sys-ext-auditd-system-rules;
+            }
+        }
+    }
+
+    typedef auditd-system-rules-type {
+        description "Auditd rules types";
+        type enumeration {
+            enum BASIC {
+                description
+                "Rules for monitoring sessions and packages updates";
+            }
+
+            enum DETAIL {
+                description
+                "Extensive rules for monitoring updates
+                 in users, groups, kernel modules, audit rules, cron jobs,
+                 configuration files, etc. including rules defined in Basic type";
+            }
+
+            enum CUSTOM {
+                description
+                "This mode allows user to configure their custom rules.
+                User to copy the custom rules file to config://auditd-custom.rules
+                prior to setting CUSTOM.";
+            }
+
+            enum NONE {
+                description
+                "No rules configured";
+            }
+        }
+    }
+
+    grouping sys-ext-auditd-system-rules {
+        description "Auditd system rules";
+        leaf audit-rules  {
+            type auditd-system-rules-type;
+            description "Audit rules type";
+        }
+    }
+}

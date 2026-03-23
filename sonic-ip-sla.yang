@@ -1,0 +1,499 @@
+module sonic-ip-sla {
+    namespace "http://github.com/Azure/sonic-ip-sla";
+        prefix sipsla;
+    yang-version 1.1;
+
+    import ietf-inet-types {
+        prefix inet;
+    }
+
+    import sonic-vrf {
+        prefix vrf;
+    }
+
+    import sonic-vlan {
+        prefix svlan;
+    }
+
+    import sonic-port {
+        prefix prt;
+    }
+
+    import sonic-portchannel {
+        prefix spc;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    import sonic-common {
+        prefix cmn;
+    }
+
+    import sonic-interface {
+        prefix sint;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC IPSLA";
+
+    revision 2019-10-01 {
+        description
+            "Initial revision.";
+    }
+
+    container sonic-ip-sla {
+        container IP_SLA {
+            list IP_SLA_LIST {
+                key "ip_sla_id";
+
+                leaf ip_sla_id {
+                    type uint16 {
+                        range "1..4095" {
+                            error-message "IP SLA ID out of range";
+                        }
+                    }
+                    description
+                      "ip sla id of IP SLA";
+                }
+
+                leaf enabled {
+                    type boolean;
+                    description
+                      "Ip sla enabled or not on the sla-id";
+                }
+
+
+                leaf frequency {
+                    type uint16 {
+                        range "1..300" {
+                            error-message "Frequency out of range";
+                        }
+                    }
+                    description
+                      "frequency of IP SLA";
+                }
+
+                leaf threshold {
+                    type uint16 {
+                        range "1..1000" {
+                            error-message "Threshold out of range";
+                        }
+                    }
+                    description
+                      "threshold of IP SLA";
+                }
+
+                leaf timeout {
+                    type uint16 {
+                        range "1..4095" {
+                            error-message "Timeout out of range";
+                        }
+                    }
+                    description
+                      "timeout of IP SLA";
+                }
+                leaf tcp_source_port {
+                    type uint16 {
+                        range "1..65535" {
+                            error-message "Timeout out of range";
+                        }
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+                    description
+                      "tcp source port of IP SLA";
+                }
+
+                leaf tcp_dst_port {
+                    type uint16 {
+                        range "1..65535" {
+                            error-message "Timeout out of range";
+                        }
+                    }
+
+		    sonic-ext:custom-validation ValidateTcpPort;
+                    description
+                      "tcp destination port of IP SLA";
+
+                }
+
+                leaf tcp_source_interface {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+                        }
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+
+                    description
+                      "tcp source interface of IP SLA";
+                }
+
+
+                leaf tcp_source_ip {
+                    type inet:ip-address;
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+                    description
+                      "tcp source ip of IP SLA";
+                }
+
+                leaf tcp_dst_ip {
+                    type inet:ip-address;
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+                    description
+                      "tcp destination ip of IP SLA";
+                }
+
+                leaf tcp_ttl {
+                    type uint16 {
+                        range "1..256" {
+                            error-message "tcp_ttl out of range";
+                        }
+                    }
+
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+
+                    description
+                      "tcp TTL of IP SLA";
+                }
+
+                leaf tcp_tos {
+                    type uint16 {
+                        range "1..256" {
+                            error-message "tcp_tos out of range";
+                        }
+                    }
+
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../icmp_source_ip)) and " +
+                           "(not(current()/../icmp_source_interface)) and " +
+                           "(not(current()/../icmp_dst_ip)) and " +
+                           "(not(current()/../icmp_size)) and " +
+                           "(not(current()/../icmp_ttl)) and " +
+                           "(not(current()/../icmp_tos)) and " +
+                           "(not(current()/../icmp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+
+                    description
+                      "tcp tos of IP SLA";
+                }
+                leaf tcp_vrf {
+                    type leafref {
+                        path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+                        }
+
+                        must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                               "((not(current()/../icmp_source_ip)) and " +
+                               "(not(current()/../icmp_source_interface)) and " +
+                               "(not(current()/../icmp_dst_ip)) and " +
+                               "(not(current()/../icmp_size)) and " +
+                               "(not(current()/../icmp_ttl)) and " +
+                               "(not(current()/../icmp_tos)) and " +
+                               "(not(current()/../icmp_vrf)))"
+                                {
+                                    error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                    error-app-tag ip-sla-invalid-config;
+                                }
+
+                    description
+                      "vrf for tcp connect of IP SLA";
+                }
+
+                leaf icmp_source_interface {
+                    type union {
+                        type leafref {
+                            path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                        }
+                        type leafref {
+                            path "/spc:sonic-portchannel/spc:PORTCHANNEL/spc:PORTCHANNEL_LIST/spc:name";
+                        }
+                        type leafref {
+                            path "/svlan:sonic-vlan/svlan:VLAN/svlan:VLAN_LIST/svlan:name";
+                        }
+                        type leafref {
+                            path "/sint:sonic-interface/sint:VLAN_SUB_INTERFACE/sint:VLAN_SUB_INTERFACE_LIST/sint:id";
+                        }
+                    }
+
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                             "((not(current()/../tcp_dst_ip)) and " +
+                              "(not(current()/../tcp_dst_port)) and " +
+                              "(not(current()/../tcp_source_ip)) and " +
+                              "(not(current()/../tcp_source_port)) and " +
+                              "(not(current()/../tcp_source_interface)) and " +
+                              "(not(current()/../tcp_ttl)) and " +
+                              "(not(current()/../tcp_tos)) and " +
+                              "(not(current()/../tcp_vrf)))"
+                              {
+                                  error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                  error-app-tag ip-sla-invalid-config;
+                              }
+
+                    description
+                      "icmp source interface of IP SLA";
+                }
+
+                leaf icmp_source_ip {
+                    type inet:ip-address;
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+                    description
+                      "icmp source ip of IP SLA";
+                }
+
+
+                leaf icmp_dst_ip {
+                    type inet:ip-address;
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                          {
+                              error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                              error-app-tag ip-sla-invalid-config;
+                          }
+		    sonic-ext:custom-validation ValidateIcmpDstIp;
+                    description
+                      "icmp destination ip of IP SLA";
+                }
+                leaf icmp_size {
+                    type uint16 {
+                        range "1..9200" {
+                            error-message "icmp_size out of range";
+                        }
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                          {
+                              error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                              error-app-tag ip-sla-invalid-config;
+                          }
+                    description
+                      "icmp size of IP SLA";
+                }
+                leaf icmp_ttl {
+                    type uint16 {
+                        range "1..256" {
+                            error-message "icmp_ttl out of range";
+                        }
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                          {
+                              error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                              error-app-tag ip-sla-invalid-config;
+                          }
+                    description
+                      "icmp TTL of IP SLA";
+                }
+
+                leaf icmp_tos {
+                    type uint16 {
+                        range "1..256" {
+                            error-message "icmp_tos out of range";
+                        }
+                    }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                          {
+                              error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                              error-app-tag ip-sla-invalid-config;
+                          }
+                    description
+                      "icmp tos of IP SLA";
+                }
+
+                leaf icmp_vrf {
+                    type leafref {
+                        path "/vrf:sonic-vrf/vrf:VRF/vrf:VRF_LIST/vrf:vrf_name";
+                        }
+                    must "(/cmn:operation/cmn:operation = 'DELETE') or " +
+                           "((not(current()/../tcp_dst_ip)) and " +
+                           "(not(current()/../tcp_dst_port)) and " +
+                           "(not(current()/../tcp_source_ip)) and " +
+                           "(not(current()/../tcp_source_port)) and " +
+                           "(not(current()/../tcp_source_interface)) and " +
+                           "(not(current()/../tcp_ttl)) and " +
+                           "(not(current()/../tcp_tos)) and " +
+                           "(not(current()/../tcp_vrf)))"
+                            {
+                                error-message "Cannot configure both TCP and ICMP parameters in a SLA";
+                                error-app-tag ip-sla-invalid-config;
+                            }
+
+                    description
+                      "vrf for icmp echo of IP SLA";
+                }
+            }
+        }
+    }
+
+
+    rpc get-ipsla-history {
+        description
+            "RPC to retrieve IP SLA history.";
+
+        input {
+            leaf ip_sla_id {
+                type uint16 {
+                    range "1..4095" {
+                        error-message "IP SLA ID out of range";
+                    }
+                }
+            }
+        }
+
+        output {
+            list IPSLA_HISTORY {
+
+                key "timestamp";
+
+                leaf timestamp {
+                    type string;
+                }
+
+                leaf event {
+                    type string;
+                }
+            }
+        }
+    }
+
+
+    rpc clear-ipsla-counters {
+        description
+            "RPC to clear IP SLA counters.";
+
+        input {
+            leaf ip_sla_id {
+                type string;
+                description
+                    "Parameter for clearing IP SLA counters - all or IP SLA index";
+            }
+        }
+
+        output {
+            leaf status {
+                type int32;
+                description
+                    "The status of the operation execution request.";
+            }
+            leaf status-detail {
+                type string;
+                description
+                    "The detailed status of the operation execution request.";
+            }
+        }
+    }
+}

@@ -1,0 +1,375 @@
+module sonic-port {
+    namespace "http://github.com/Azure/sonic-port";
+    prefix prt;
+
+    import sonic-common {
+        prefix scommon;
+    }
+
+    import sonic-extension {
+        prefix sonic-ext;
+    }
+
+    organization
+        "SONiC";
+
+    contact
+        "SONiC";
+
+    description
+        "SONIC PORT";
+
+    revision 2023-08-30 {
+        description
+            "Added validation for PFC-asym attribute";
+    }
+
+    revision 2023-01-19 {
+        description
+            "Added custom validation for fec attribute";
+    }
+
+    revision 2021-07-05 {
+        description
+            "Added media fec attribute";
+    }
+
+    revision 2020-08-04 {
+        description
+            "Added fec attribute";
+    }
+
+    revision 2019-05-15 {
+        description
+            "Initial revision.";
+    }
+
+    grouping errdisable_link_flap_config {
+        description
+        "Groups ErrDisable Link-flap configurations ";
+
+		leaf error-disable {
+        	type string;
+		}
+
+        leaf flap-threshold {
+            type uint8 {
+                range 1..50;
+            }
+            default 5;
+            description
+              "This interval is the number of times that the port’s
+               link state goes from up to down and down to up
+               before the recovery-timeout is activated";
+        }
+
+        leaf sampling-interval {
+          type uint32 {
+            range 1..65535;
+          }
+          units seconds;
+          default 10;
+          description
+            "This time period is the amount of time during which
+             the specified flap-threshold can be crossed. If the flap-threshold
+             is crossed during this sampling-time, port will be error-disabled.";
+        }
+
+        leaf recovery-interval {
+          type uint32 {
+            range 0..65534;
+          }
+          units seconds;
+          default 300;
+          description
+            "This period of time is the amount of time the port remains disabled
+             (down) before it becomes enabled. Entering 0 indicates that the
+             port will stay down until an administrative override occurs.";
+        }
+
+    }
+    container sonic-port {
+
+        container PORT {
+
+            list PORT_LIST {
+                key "ifname";
+                    sonic-ext:custom-validation ValidateDpbStatus;
+                    sonic-ext:custom-validation ValidateSwitchPortConfig;
+                    sonic-ext:custom-validation ValidateL3ConfigExists;
+                    sonic-ext:custom-validation ValidateL2ConfigExists;
+                    sonic-ext:custom-validation ValidateL2PTandVlanConfigExists;
+
+                leaf ifname {
+                    type string {
+                        pattern "Ethernet([1-3][0-9]{3}|[1-9][0-9]{2}|[1-9][0-9]|[0-9])|Eth([1-9]/(([1-9][0-9]{0,})|(([1-9][0-9]{0,})/([1-9][0-9]{0,}))))" {
+                            error-message "Invalid interface name";
+                            error-app-tag interface-name-invalid;
+                        }
+                    }
+                }
+
+                leaf index {
+                    type uint16;
+                }
+
+                leaf autoneg {
+                    type scommon:mode-on-off;
+                    sonic-ext:custom-validation ValidateAnLtConfig;
+                }
+
+                leaf oper_speed {
+                    type string;
+                }
+
+                leaf speed {
+                    type uint64;
+                    sonic-ext:custom-validation ValidateSpeedForPOMember;
+                    sonic-ext:custom-validation ValidateSpeedForARSPortLoad;
+                }
+
+                leaf duplex {
+                    type scommon:duplex-mode;
+                    sonic-ext:custom-validation ValidateIntfDuplexMode;
+                }
+
+                leaf fec {
+                    type scommon:fec-mode;
+                    sonic-ext:custom-validation ValidateIntfFECMode;
+                }
+
+                leaf media-fec-mode {
+                    type scommon:media-fec-mode-type;
+                }
+
+                leaf valid_speeds {
+                    type string;
+                }
+
+                leaf alias {
+                    type string;
+                }
+
+                leaf description {
+                    type string;
+                }
+
+                leaf mtu{
+                    type uint32 {
+                        range "1312..9216" {
+                            error-message "Invalid MTU value";
+                            error-app-tag mtu-invalid;
+                        }
+                    }
+                    sonic-ext:custom-validation ValidateMtuForPOMemberCount;
+                }
+
+                leaf lanes {
+                    type string;
+                }
+
+                leaf admin_status {
+                    type scommon:admin-status;
+                }
+
+                leaf pfc_asym {
+                    type enumeration {
+                        enum on;
+                        enum off;
+                    }
+                }
+
+                leaf link_training {
+                    type scommon:mode-on-off;
+                    sonic-ext:custom-validation ValidateAnLtConfig;
+                }
+
+                leaf adv_speeds {
+                    type string;
+                    sonic-ext:custom-validation ValidateAdvSpeedConfig;
+                }
+
+                leaf diag_mode {
+                    type string;
+                }
+
+                leaf unreliable_los {
+                    type scommon:mode-on-off-auto;
+                }
+
+                leaf override_unreliable_los {
+                    type string;
+                }
+
+                leaf ecd_mode {
+                    type scommon:mode-on-off-auto;
+                    sonic-ext:custom-validation ValidateLPOConfig;
+                }
+
+                leaf precoding {
+                    type scommon:mode-enable;
+                    sonic-ext:custom-validation ValidateLPOConfig;
+                }
+
+
+		leaf-list tagged_vlans{
+		    type string;
+		    description
+			"List of tagged VLANs to be associated with port";
+		}
+		leaf access_vlan{
+		    type string;
+		    description
+			"Access VLAN to be associated with port";
+		}
+                leaf dhcpv4_snooping_trust {
+                      type scommon:mode-enable;
+                }
+                leaf dhcpv6_snooping_trust {
+                      type scommon:mode-enable;
+                }
+				uses errdisable_link_flap_config;
+
+                leaf default_lossless_buffer_profile {
+                    type boolean;
+                       default true;
+		                description
+                        "Default lossless buffer profile on port";
+                }
+                leaf high-wattage-optics-enable {
+                    type boolean;
+                    default false;
+                    description
+                        "Enable/Disable high-wattage optics on the interface.";
+                }
+            }
+        }
+        container PORT_TABLE {
+            config false;
+
+            list PORT_TABLE_LIST {
+                key "ifname";
+
+                leaf ifname {
+                    type leafref {
+                        path "/prt:sonic-port/prt:PORT/prt:PORT_LIST/prt:ifname";
+                    }
+                }
+
+                leaf index {
+                    type uint16;
+                }
+
+                leaf autoneg {
+                    type string;
+                }
+
+                leaf oper_speed {
+                    type string;
+                }
+
+                leaf duplex {
+                    type string;
+                }
+
+                leaf lanes {
+                    type string;
+                }
+
+                leaf mtu {
+                    type uint32 {
+                        range "1312..9216" {
+                            error-message "Invalid MTU value";
+                            error-app-tag mtu-invalid;
+                        }
+                    }
+                }
+
+                leaf valid_speeds {
+                    type string;
+                }
+
+                leaf alias {
+                    type string;
+                }
+
+                leaf oper_status {
+                    type scommon:oper-status;
+                }
+
+                leaf reason {
+                    type scommon:down-reason;
+                }
+
+                leaf admin_status {
+                    type scommon:admin-status;
+                }
+
+                leaf description {
+                    type string;
+                }
+
+                leaf speed {
+                    type uint64;
+                }
+
+                leaf port_load_interval {
+                    type uint16;
+                }
+
+                leaf fec {
+                    type scommon:fec-mode;
+                }
+
+                leaf media-fec-mode {
+                    type scommon:media-fec-mode-type;
+                }
+
+                leaf link_training {
+                    type string;
+                }
+
+                leaf adv_speeds {
+                    type string;
+                }
+                leaf high-wattage-optics-enable {
+                    type boolean;
+                    default false;
+                    description
+                        "Enable/Disable high-wattage optics on the interface.";
+                }
+                leaf max-port-power{
+                    type decimal64 {
+                        fraction-digits 2;
+                    }
+                    description "The maximum power the port is allowed to provide (in watts)";
+                  units "W";
+                }
+
+                leaf unreliable_los {
+                    type string;
+                }
+
+                leaf override_unreliable_los {
+                    type string;
+                }
+
+                leaf default_lossless_buffer_profile {
+                    type boolean;
+                       default true;
+		                description
+                        "Default lossless buffer profile on port";
+                }
+
+                leaf ecd_mode {
+                    type scommon:mode-on-off-auto;
+                }
+
+                leaf precoding {
+                    type scommon:mode-enable;
+                }
+
+            }
+        }
+    }
+}
