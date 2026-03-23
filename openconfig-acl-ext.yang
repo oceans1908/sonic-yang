@@ -1,0 +1,1407 @@
+module openconfig-acl-ext {
+
+    yang-version 1.1;
+
+    namespace "http://openconfig.net/yang/acl/extension";
+
+    prefix "oc-acl-ext";
+
+    import openconfig-packet-match-types { prefix oc-pkt-match-types; }
+    import openconfig-acl { prefix oc-acl; }
+    import openconfig-inet-types { prefix oc-inet; }
+    import openconfig-extensions { prefix oc-ext; }
+    import openconfig-packet-match { prefix oc-match; }
+
+    // meta
+    organization "SONiC";
+
+    contact
+        "SONiC
+        https://github.com/Azure/SONiC";
+
+    description
+        "This model describes the acl extensions.";
+
+    oc-ext:openconfig-version "0.2.0";
+
+    revision 2021-08-16 {
+        description
+            "Added support for object groups.";
+
+        reference "0.2.0";
+    }
+
+    revision 2020-02-08 {
+        description
+            "Initial augment file.";
+
+        reference "0.1.0";
+    }
+
+    // augment statements
+    identity TRANSIT {
+        base oc-acl:FORWARDING_ACTION;
+        description
+            "Allow the packet to be forwarded. Do not allow the packets to be trapped to CPU.";
+    }
+
+    identity DISCARD {
+        base oc-acl:FORWARDING_ACTION;
+        description
+            "Drop packet without sending any ICMP error message. Do not allow the packets to be trapped to CPU.";
+    }
+
+    identity DO_NOT_NAT {
+       base oc-acl:FORWARDING_ACTION;
+       description
+         "Do not do NAT on the incoming packet";
+    }
+
+    identity VLAN_TAG_FORMAT_TYPE {
+        description
+            "Base identity for types of vlan tags format";
+    }
+
+    identity UNTAGGED {
+        base VLAN_TAG_FORMAT_TYPE;
+        description
+            "Untagged Vlan format";
+    }
+
+    identity SINGLE_TAGGED {
+        base VLAN_TAG_FORMAT_TYPE;
+        description
+            "Single Tagged Vlan format";
+    }
+
+    identity DOUBLE_TAGGED {
+        base VLAN_TAG_FORMAT_TYPE;
+        description
+            "Double Tagged Vlan format";
+    }
+
+    identity MULTI_TAGGED {
+        base VLAN_TAG_FORMAT_TYPE;
+        description
+            "Multi Tagged Vlan format";
+    }
+
+    identity ACL_SOURCE_TYPE {
+        description
+            "Base identity for source types of ACLs";
+    }
+
+    identity ACL_USER_CREATED {
+        base ACL_SOURCE_TYPE;
+        description
+            "User created ACLs";
+    }
+
+    identity ACL_PAC_CREATED {
+        base ACL_SOURCE_TYPE;
+        description
+            "Port-Authentication-Control(PAC) created ACLs";
+    }
+
+    identity OBJECT_GROUP_TYPE {
+        description
+            "Base identity for types of object groups";
+    }
+
+    identity NETWORK_TYPE {
+        base OBJECT_GROUP_TYPE;
+        description
+            "Object groups with network type";
+    }
+
+    identity OBJECT_GROUP_AF_TYPE {
+        description
+            "Base identity for ip types of network-type object groups";
+    }
+
+    identity AF_IPV4 {
+        base OBJECT_GROUP_AF_TYPE;
+        description
+            "Object groups of network type with IPv4 addresses";
+    }
+
+    identity AF_IPV6 {
+        base OBJECT_GROUP_AF_TYPE;
+        description
+            "Object groups of network type with IPv6 addresses";
+    }
+
+    identity ACL_BINDING_STATUS {
+        description
+            "Status for the ACL binding on an interface";
+    }
+
+    identity ACL_BINDING_ACTIVE {
+        base ACL_BINDING_STATUS;
+        description
+            "Indicates that the ACL is active on the interface";
+    }
+
+    identity ACL_BINDING_INACTIVE {
+        base ACL_BINDING_STATUS;
+        description
+            "Indicates that the ACL is inactive on the interface";
+    }
+
+    identity ACL_BINDING_IN_PROGRESS {
+        base ACL_BINDING_STATUS;
+        description
+            "Indicates that the ACL binding is in progress on the interface";
+    }
+
+    identity ACL_BINDING_PARTIAL {
+        base ACL_BINDING_STATUS;
+        description
+            "Indicates that the ACL binding is partially applied on the interface";
+    }
+
+    grouping acl-ext-ethernet-header-config {
+        description
+            "Grouping for Layer 2 header extension fields";
+
+        leaf pcp {
+            type uint8 {
+                range "0..7";
+            }
+            description "IEEE 802 Priority Code Point";
+        }
+        leaf pcp-mask {
+            type uint8 {
+                range "0..7";
+            }
+            description "IEEE 802 Priority Code Point";
+        }
+        leaf dei {
+            type uint8 {
+                range "0..1";
+            }
+            description "IEEE 802 Drop Eligible Indicator";
+        }
+        leaf vlanid {
+            type uint16 {
+                range "1..4094";
+            }
+            description "VLAN ID";
+        }
+        leaf vlan-tag-format {
+            type identityref {
+                base VLAN_TAG_FORMAT_TYPE;
+            }
+            description "VLAN Tags Format";
+        }
+    }
+
+    grouping "acl-ext-transport-fields-config" {
+        description
+            "Grouping for ICMP header fields";
+
+        leaf icmp-type {
+            type uint8;
+            description "ICMP or ICMPv6 Type";
+        }
+        leaf icmp-code {
+            type uint8;
+            description "ICMP or ICMPv6 Code";
+        }
+
+        leaf tcp-session-established {
+            type boolean;
+            description
+                "Match the traffic which is part of TCP session which is established.
+                Match on TCP flags may not be be allowed if this configuration is 
+                used";
+        }
+    }
+
+    augment /oc-acl:acl {
+        description
+            "Container for acl object groups.";
+
+        uses acl-ext-dynamic-object-groups-top;
+    }
+
+    augment "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:l2/oc-acl:config" {
+        description
+            "Augmentation to support configuration of additional Layer2 header fields";
+
+        uses acl-ext-ethernet-header-config;
+    }
+
+    augment "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:l2/oc-acl:state" {
+        description
+            "Augmentation to support operational state of additional Layer2 header fields";
+
+        uses acl-ext-ethernet-header-config;
+    }
+    
+    augment "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:transport/oc-acl:config" {
+        description
+            "Augmentation to support configuration of additional TCP header fields";
+
+        uses acl-ext-transport-fields-config;
+    }
+
+    augment "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:transport/oc-acl:state" {
+        description
+            "Augmentation to support operational state of additional TCP header fields";
+
+        uses acl-ext-transport-fields-config;
+    }
+
+    grouping acl-ext-config {
+        description
+            "Global configuration data for ACLs";
+
+        leaf counter-capability {
+            type identityref {
+                base oc-acl:ACL_COUNTER_CAPABILITY;
+            }
+
+            description
+                "System reported indication of how ACL counters are reported by the target";
+        }
+    }
+
+    augment /oc-acl:acl/oc-acl:config {
+        description
+            "Augmentation to support configuration of counter capability";
+
+        uses acl-ext-config;
+    }
+
+    grouping "acl-ext-ip-fields-config" {
+        description
+            "Grouping for IP header fields";
+
+        leaf ecn {
+            type uint8 {
+                range "0..3";
+            }
+
+            description
+                "ECN codepoint";
+        }
+        leaf ecn-mask {
+            type uint8 {
+                range "0..3";
+            }
+
+            description
+                "ECN codepoint";
+        }
+    }
+
+    augment /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:config {
+        description
+            "Augmentation to support configuration of additional IP header fields";
+
+        uses acl-ext-ip-fields-config;
+    }
+    augment /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:state {
+        description
+            "Augmentation to support operational state of additional IP header fields";
+
+        uses acl-ext-ip-fields-config;
+    }
+    augment /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config {
+        description
+            "Augmentation to support configuration of additional IP header fields";
+
+        uses acl-ext-ip-fields-config;
+    }
+    augment /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state {
+        description
+            "Augmentation to support operational state of additional IP header fields";
+
+        uses acl-ext-ip-fields-config;
+    }
+
+    typedef ip-protocol-type-ext {
+        type union {
+            type uint8;
+            type identityref {
+                base oc-pkt-match-types:IP_PROTOCOL;
+            }
+        }
+
+        description
+            "The IP protocol number may be expressed as a valid protocol
+            number (integer) or using a protocol type defined by the
+            IP_PROTOCOL identity";
+    }
+
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:config/oc-acl:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:state/oc-acl:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config/oc-acl:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state/oc-acl:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:config/oc-acl:hop-limit {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:state/oc-acl:hop-limit {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config/oc-acl:source-flow-label {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config/oc-acl:destination-flow-label {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config/oc-acl:hop-limit {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state/oc-acl:source-flow-label {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state/oc-acl:destination-flow-label {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state/oc-acl:hop-limit {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:input-interface {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:actions/oc-acl:config/oc-acl:log-action {
+		deviate not-supported;
+	}
+	deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:actions/oc-acl:state/oc-acl:log-action {
+		deviate not-supported;
+	}
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:mpls {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:config/oc-acl:dscp-set {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv4/oc-acl:state/oc-acl:dscp-set {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:config/oc-acl:dscp-set {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:ipv6/oc-acl:state/oc-acl:dscp-set {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv4/oc-acl-ext:state/oc-acl-ext:dscp-set {
+        deviate not-supported;
+    }
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv6/oc-acl-ext:state/oc-acl-ext:dscp-set {
+        deviate not-supported;
+    }
+
+
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv4/oc-acl-ext:state/oc-acl-ext:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv6/oc-acl-ext:state/oc-acl-ext:protocol {
+        deviate replace {
+            type ip-protocol-type-ext;
+        }
+    }
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv4/oc-acl-ext:state/oc-acl-ext:hop-limit {
+		deviate not-supported;
+	}
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv6/oc-acl-ext:state/oc-acl-ext:source-flow-label {
+		deviate not-supported;
+	}
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv6/oc-acl-ext:state/oc-acl-ext:destination-flow-label {
+		deviate not-supported;
+	}
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:ipv6/oc-acl-ext:state/oc-acl-ext:hop-limit {
+		deviate not-supported;
+	}
+    deviation /oc-acl:acl/oc-acl-ext:dynamic-acl-sets/oc-acl-ext:dynamic-acl-set/oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:actions/oc-acl-ext:state/oc-acl-ext:log-action {
+		deviate not-supported;
+	}
+
+    grouping acl-ext-global-acl-entries-config {
+        description
+            "Configuration data global ACLs";
+    }
+
+    grouping acl-ext-global-acl-entries-state {
+        description
+            "Operational state data for global ACL entries";
+
+        leaf sequence-id {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/" +
+                    "oc-acl:acl-set[oc-acl:name=current()/../../../../set-name]" +
+                    "[oc-acl:type=current()/../../../../type]/" +
+                    "oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:sequence-id";
+            }
+
+            description
+                "Reference to an entry in the ACL set applied globally";
+        }
+
+        uses oc-acl:acl-counters-state;
+    }
+
+    grouping acl-ext-global-acl-entries-top {
+        description
+            "Top-level grouping for global ACL entries";
+
+        container acl-entries {
+            config false;
+            description
+                "Enclosing container for list of references to ACLs";
+
+            list acl-entry {
+                key "sequence-id";
+                description
+                    "List of ACL entries assigned globally";
+
+                leaf sequence-id {
+                    type leafref {
+                        path "../state/sequence-id";
+                    }
+                    description
+                        "Reference to global acl entry key";
+                }
+
+                // no config container since the enclosing container is
+                // read-only
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data for global ACL entries";
+
+                    uses acl-ext-global-acl-entries-config;
+                    uses acl-ext-global-acl-entries-state;
+                }
+            }
+        }
+    }
+
+    grouping acl-ext-global-ingress-acl-config {
+        description
+            "Configuration data for global ingress ACLs";
+
+        leaf set-name {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:config/oc-acl:name";
+            }
+            description
+                "Reference to the ACL set name applied on ingress";
+        }
+
+        leaf type {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set[oc-acl:name=current()/../set-name]" +
+                    "/oc-acl:config/oc-acl:type";
+            }
+            description
+                "Reference to the ACL set type applied on ingress";
+        }
+    }
+
+    grouping acl-ext-global-ingress-acl-state {
+        description
+            "Operational state data for global ingress ACL";
+    }
+
+    grouping acl-ext-global-ingress-acl-top {
+        description
+            "Top-level grouping for global ingress ACL data";
+
+        container ingress-acl-sets {
+            description
+                "Enclosing container the list of ingress ACLs globally";
+
+            list ingress-acl-set {
+                key "set-name type";
+                description
+                    "List of ingress ACLs";
+
+                leaf set-name {
+                    type leafref {
+                        path "../config/set-name";
+                    }
+                    description
+                        "Reference to set name list key";
+                }
+
+                leaf type {
+                    type leafref {
+                        path "../config/type";
+                    }
+                    description
+                        "Reference to type list key";
+                }
+
+                container config {
+                    description
+                        "Configuration data ";
+
+                    uses acl-ext-global-ingress-acl-config;
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data for global ingress ACLs";
+
+                    uses acl-ext-global-ingress-acl-config;
+                    uses acl-ext-global-ingress-acl-state;
+                }
+
+                uses acl-ext-global-acl-entries-top;
+            }
+        }
+    }
+
+    grouping acl-ext-global-egress-acl-config {
+        description
+            "Configuration data for global egress ACLs";
+
+        leaf set-name {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:config/oc-acl:name";
+            }
+            description
+                "Reference to the ACL set name applied on egress";
+        }
+
+        leaf type {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set[oc-acl:name=current()/../set-name]" +
+                    "/oc-acl:config/oc-acl:type";
+            }
+            description
+                "Reference to the ACL set type applied on egress";
+        }
+    }
+
+    grouping acl-ext-global-egress-acl-state {
+        description
+            "Operational state data for global egress ACL";
+    }
+
+    grouping acl-ext-global-egress-acl-top {
+        description
+            "Top-level grouping for global egress ACL data";
+
+        container egress-acl-sets {
+            description
+                "Enclosing container the list of egress ACLs globally";
+
+            list egress-acl-set {
+                key "set-name type";
+                description
+                    "List of egress ACLs";
+
+                leaf set-name {
+                    type leafref {
+                        path "../config/set-name";
+                    }
+                    description
+                        "Reference to set name list key";
+                }
+
+                leaf type {
+                    type leafref {
+                        path "../config/type";
+                    }
+                    description
+                        "Reference to type list key";
+                }
+
+                container config {
+                    description
+                        "Configuration data ";
+
+                    uses acl-ext-global-egress-acl-config;
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data for global egress ACLs";
+
+                    uses acl-ext-global-egress-acl-config;
+                    uses acl-ext-global-egress-acl-state;
+                }
+
+                uses acl-ext-global-acl-entries-top;
+            }
+        }
+    }
+
+    grouping acl-ext-global-acl-top {
+        description
+            "Top-level grouping for Global ACL data";
+
+        container config {
+            description
+                "Configuration for ACL per-interface data";
+        }
+
+        container state {
+            config false;
+
+            description
+                "Operational state for ACL per-interface data";
+        }
+
+        uses acl-ext-global-ingress-acl-top;
+        uses acl-ext-global-egress-acl-top;
+    }
+
+    grouping acl-ext-ctrl-plane-ingress-acl-config {
+        description
+            "Configuration data for control plane ingress ACLs";
+
+        leaf set-name {
+            type leafref {
+                path "/oc-acl:acl/oc-acl:acl-sets/oc-acl:acl-set/oc-acl:config/oc-acl:name";
+            }
+            description
+                "Reference to the ACL set name applied on ingress";
+        }
+
+        leaf type {
+            type identityref {
+                base oc-acl:ACL_TYPE;
+            }   
+            description
+                "Reference to the ACL set type applied on ingress";
+        }
+    }
+
+    grouping acl-ext-ctrl-plane-ingress-acl-top {
+        description
+            "Top-level grouping for control plane ingress ACL data";
+
+        container ingress-acl-sets {
+            description
+                "Enclosing container the list of ingress control plane ACLs";
+
+            list ingress-acl-set {
+                key "set-name type";
+                description
+                    "List of ingress ACLs";
+
+                leaf set-name {
+                    type leafref {
+                        path "../config/set-name";
+                    }
+                    description
+                        "Reference to set name list key";
+                }
+
+                leaf type {
+                    type leafref {
+                        path "../config/type";
+                    }
+                    description
+                        "Reference to type list key";
+                }
+
+                container config {
+                    description
+                        "Configuration data ";
+
+                    uses acl-ext-ctrl-plane-ingress-acl-config;
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data";
+
+                    uses acl-ext-ctrl-plane-ingress-acl-config;
+                }
+            }
+        }
+    }
+
+    grouping acl-ext-ctrl-plane-acl-top {
+        description
+            "Top-level grouping for Control Plane ACL data";
+
+        container config {
+            description
+                "Configuration for ACL per-interface data";
+        }
+
+        container state {
+            config false;
+
+            description
+                "Operational state for ACL per-interface data";
+        }
+
+        uses acl-ext-ctrl-plane-ingress-acl-top;
+    }
+
+    grouping acl-ext-access-list-entries-state {
+        description
+            "Operational state data for ACL entries";
+
+        leaf sip-object-group {
+            type leafref {
+                path "/oc-acl:acl/oc-acl-ext:dynamic-object-groups/oc-acl-ext:dynamic-object-group/oc-acl-ext:state/oc-acl-ext:group-name";
+            }
+            description
+                "Source IP Object Group associated to the ACL entry";
+        }
+    }
+
+    grouping acl-ext-acl-source-state {
+        description
+            "Grouping for ACLs source type";
+
+        leaf source {
+            type identityref {
+                base ACL_SOURCE_TYPE;
+            }
+            description
+                "Source of the ACL mentions whether it is created by user
+                 or port-authentication control(PAC).";
+        }
+    }
+
+    grouping acl-ext-acl-state {
+        description
+            "Grouping for ACLs related information in state container";
+
+        leaf priority {
+            type uint16;
+            description
+                "Binding priority of the ACLs";
+        }
+
+        leaf binding-status {
+            type identityref {
+                base ACL_BINDING_STATUS;
+            }
+            description
+                "Indicates the status of ACL binding on the interface";
+        }
+    }
+
+    grouping acl-ext-object-group-entry-state {
+        description
+            "Object group entry config data";
+
+        leaf entry-name {
+            type string;
+
+            description
+                "Object group entry name";
+        }
+
+        leaf ip {
+            when "../../../../state/af-type = 'AF_IPV4'";
+            type oc-inet:ipv4-address;
+
+            description
+                "IPv4 address";
+        }
+
+        leaf ipv6 {
+            when "../../../../state/af-type = 'AF_IPV6'";
+            type oc-inet:ipv6-address;
+
+            description
+                "IPv6 address";
+        }
+    }
+
+    grouping acl-ext-object-group-entries-top {
+        description
+            "Object group entries top container";
+
+        container object-group-entries {
+            config false;
+            description
+                "Container enclosing all the object group entries configuration";
+
+            list object-group-entry {
+                key "entry-name";
+                description
+                    "List of the entries configured in the object-group";
+
+                leaf entry-name {
+                    type leafref {
+                        path "../state/entry-name";
+                    }
+
+                    description
+                        "Reference to Object group entry name key";
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Object group entries operational state";
+
+                    uses acl-ext-object-group-entry-state;
+                }
+            }
+        }
+    }
+
+    grouping acl-ext-object-group-state {
+        description
+            "Object group config data";
+
+        leaf group-name {
+            type string;
+
+            description
+                "Name of the object group";
+        }
+
+        leaf group-type {
+            type identityref {
+                base OBJECT_GROUP_TYPE;
+            }
+            mandatory true;
+
+            description
+                "Type of the object group";
+        }
+
+        leaf af-type {
+            type identityref {
+                base OBJECT_GROUP_AF_TYPE;
+            }
+            must "current()/../group-type = 'NETWORK_TYPE'" {
+                error-message "Address-family can be configured only when Object group is Network type";
+            }
+
+            description
+                "Object group address-family type";
+        }
+    }
+
+    grouping acl-ext-dynamic-object-groups-top {
+        description
+            "Dynamically created Object groups top container";
+
+        container dynamic-object-groups {
+            config false;
+            description
+                "Container enclosing all the dynamically created object groups configuration";
+
+            list dynamic-object-group {
+                key "group-name";
+                description
+                    "List of object groups. Each group contains information about the group type, group entries etc.";
+
+                leaf group-name {
+                    type leafref {
+                        path "../state/group-name";
+                    }
+                    description
+                        "Reference to the Name of the object group key";
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Object group operational state";
+
+                    uses acl-ext-object-group-state;
+                }
+
+                uses acl-ext-object-group-entries-top;
+            }
+        }
+    }
+
+    grouping acl-ext-dynamic-ingress-acl-entries-state {
+        description
+            "Operational state data for dynamic ingress ACL entries";
+
+        leaf sequence-id {
+            type union {
+                type leafref {
+                    path "/oc-acl:acl/oc-acl:acl-sets/" +
+                        "oc-acl:acl-set[oc-acl:name=current()/../../../../set-name]" +
+                        "[oc-acl:type=current()/../../../../type]/" +
+                        "oc-acl:acl-entries/oc-acl:acl-entry/oc-acl:sequence-id";
+                }
+                type leafref {
+                    path "/oc-acl:acl/oc-acl-ext:dynamic-acl-sets/" +
+                        "oc-acl-ext:dynamic-acl-set[oc-acl-ext:name=current()/../../../../set-name]" +
+                        "[oc-acl-ext:type=current()/../../../../type]/" +
+                        "oc-acl-ext:acl-entries/oc-acl-ext:acl-entry/oc-acl-ext:sequence-id";
+                }
+            }
+
+            description
+                "Reference to an entry in the ACL set applied ingress dynamically";
+        }
+
+        uses oc-acl:acl-counters-state;
+    }
+
+    grouping acl-ext-interface-dynamic-ingress-acl-entries-top {
+        description
+            "Top-level grouping for dynamic ingress ACL entries";
+
+        container acl-entries {
+            config false;
+            description
+                "Enclosing container for list of references to ACLs";
+
+            list acl-entry {
+                key "sequence-id";
+
+                description
+                    "List of ACL entries assigned ingress dynamically";
+
+                leaf sequence-id {
+                    type leafref {
+                        path "../state/sequence-id";
+                    }
+                    description
+                        "Reference to ACL entry key ";
+                }
+
+                // no config container since the enclosing container is
+                // read-only
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data for dynamic ingress ACL entries";
+
+                    uses acl-ext-dynamic-ingress-acl-entries-state;
+                }
+            }
+        }
+    }
+
+    grouping acl-ext-interface-dynamic-ingress-acl-top {
+        description
+            "Top-level grouping for per-interface dynamic ingress ACL type data";
+
+        container security-ingress-acl-sets {
+            config false;
+
+            description
+                "Enclosing container the list of dynamic ingress ACLs type on the
+                 interface";
+
+            list security-ingress-acl-set {
+                key "set-name type";
+                description
+                    "List of dynamic ingress ACL types on the interface";
+
+                leaf set-name {
+                    type leafref {
+                        path "../state/set-name";
+                    }
+                    description
+                        "Reference to dynamic ACL set applied at ingress";
+                }
+
+                leaf type {
+                    type leafref {
+                        path "../state/type";
+                    }
+                    description
+                        "Reference to the ACL set type applied dynamically on ingress";
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data of dynamic ingress ACL types on the interface";
+
+                    leaf set-name {
+                        type string;
+                        description
+                            "Dynamic ACL set applied at ingress";
+                    }
+
+                    leaf type {
+                        type identityref {
+                            base oc-acl:ACL_TYPE;
+                        }
+                        description
+                           "Reference to the ACL set type applied dynamically at ingress";
+                    }
+
+                    uses acl-ext-access-list-entries-state;
+                    uses acl-ext-acl-state;
+                    uses acl-ext-acl-source-state;
+                }
+                uses acl-ext-interface-dynamic-ingress-acl-entries-top;
+            }
+        }
+    }
+
+    grouping acl-ext-interface-redirect-ingress-acl-top {
+        description
+            "Top-level grouping for per-interface redirect ingress ACL type data";
+
+        container redirect-ingress-acl-sets {
+            config false;
+
+            description
+                "Enclosing container the list of redirect ingress ACLs type on the
+                 interface";
+
+            list redirect-ingress-acl-set {
+                key "set-name type";
+                description
+                    "List of redirect ingress ACL types on the interface";
+
+                leaf set-name {
+                    type leafref {
+                        path "../state/set-name";
+                    }
+                    description
+                        "Reference to redirect ACL set applied at ingress";
+                }
+
+                leaf type {
+                    type leafref {
+                        path "../state/type";
+                    }
+                    description
+                        "Reference to the ACL set type applied dynamically on ingress";
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data of redirect ingress ACL types on the interface";
+
+                    leaf set-name {
+                        type string;
+                        description
+                            "Dynamic ACL set applied at ingress";
+                    }
+
+                    leaf type {
+                        type identityref {
+                            base oc-acl:ACL_TYPE;
+                        }
+                        description
+                           "Reference to the ACL set type applied dynamically at ingress";
+                    }
+
+                    uses acl-ext-access-list-entries-state;
+                    uses acl-ext-acl-state;
+                    uses acl-ext-acl-source-state;
+                }
+                uses acl-ext-interface-dynamic-ingress-acl-entries-top;
+            }
+        }
+    }
+
+    grouping acl-ext-dynamic-access-list-entry-state {
+        description
+            "Dynamically created Access List entry state.";
+
+        leaf sequence-id {
+            type uint32;
+            description
+                "The sequence id determines the order in which ACL entries
+                 are applied.  The sequence id must be unique for each entry
+                 in an ACL set.  Target devices should apply the ACL entry
+                 rules in ascending order determined by sequence id (low to
+                 high), rather than the relying only on order in the list.";
+        }
+
+        leaf description {
+            type string;
+            description
+                "A user-defined description, or comment, for this Access List
+                 Entry.";
+        }
+
+        uses oc-acl:acl-counters-state;
+    }
+
+    grouping acl-ext-action-state {
+        description
+            "Top level grouping container of Dynamically created ACL action type.";
+
+        container actions {
+            description
+                "Enclosing container for list of ACL actions associated
+                 with a dynamically created ACL entry";
+
+            container state {
+                description
+                    "State information for Dynamically created ACL actions";
+
+                uses oc-acl:action-config;
+            }
+        }
+    }
+
+    grouping acl-ext-ethernet-header-state {
+        description
+            "Top level grouping container for fields in Ethernet header.";
+
+        container l2 {
+            description
+                "Ethernet header fields";
+
+            container state {
+                description
+                    "Operational state data for fields in Ethernet header.";
+
+                uses oc-match:ethernet-header-config;
+                uses acl-ext-ethernet-header-config;
+            }
+        }
+    }
+
+    grouping acl-ext-ipv4-protocol-fields-state {
+        description
+            "Top level grouping container for IPv4 match fields.";
+
+        container ipv4 {
+            description
+                "IPv4 protocol match fields";
+
+            container state {
+                description
+                    "Operational state data for IPv4 match fields.";
+
+                uses oc-match:ipv4-protocol-fields-config;
+            }
+        }
+    }
+
+    grouping acl-ext-ipv6-protocol-fields-state {
+        description
+            "Top level grouping container for IPv6 match fields.";
+
+        container ipv6 {
+            description
+                "IPv6 protocol match fields";
+
+            container state {
+                description
+                    "Operational state data for IPv6 protocol match fields.";
+
+                uses oc-match:ipv6-protocol-fields-config;
+            }
+        }
+    }
+
+    grouping acl-ext-transport-fields-state {
+        description
+            "Top level grouping container for transport-layer packet fields.";
+
+        container transport {
+            description
+                "Transport fields container";
+
+            container state {
+                description
+                    "Operational state data for Transport-layer packet fields";
+
+                uses oc-match:transport-fields-config;
+                uses acl-ext-transport-fields-config;
+            }
+        }
+    }
+
+    grouping acl-ext-dynamic-access-list-entries-top {
+        description
+            "Dynamic Access list entries to level container";
+
+        container acl-entries {
+            description
+                "Dynamic Access list entries container";
+
+            list acl-entry {
+                key "sequence-id";
+
+                description
+                    "List of dynamically created ACL entries comprising on ACL set";
+
+                leaf sequence-id {
+                    type leafref {
+                        path "../state/sequence-id";
+                    }
+                    description
+                        "Reference to ACL entry key ";
+                }
+
+                container state {
+                    config false;
+                    description
+                        "State information for dynamically created ACL entries";
+
+                    uses acl-ext-dynamic-access-list-entry-state;
+                }
+
+                uses acl-ext-ipv4-protocol-fields-state {
+                    when "../../state/type='ACL_IPV4'" {
+                        description
+                            "IPv4-layer fields are valid when the ACL type is
+                             IPv4";
+                    }
+                }
+
+                uses acl-ext-ipv6-protocol-fields-state {
+                    when "../../state/type='ACL_IPV6'" {
+                        description
+                            "IPv6-layer fields are valid when the ACL type is
+                             IPv6";
+                    }
+                }
+
+                uses acl-ext-transport-fields-state {
+                    when "../../state/type='ACL_IPV6' or " +
+                         "../../state/type='ACL_IPV4'" {
+                        description
+                            "Transport-layer fields are valid when specifying
+                             L3 ACL types";
+                    }
+                }
+                uses acl-ext-action-state;
+            }
+        }
+    }
+
+    grouping acl-ext-dynamic-acl-set-top {
+        description
+            "Top-level grouping for Dynamic Access list entries";
+
+        container dynamic-acl-sets {
+            config false;
+
+            description
+                "Enclosing container the list of dynamic ACL type";
+
+            list dynamic-acl-set {
+                config false;
+                key "name type";
+                description
+                    "List of dynamic ACL types";
+
+                leaf name {
+                    type leafref {
+                        path "../state/name";
+                    }
+                    description
+                        "Reference to the dynamic ACL name";
+                }
+                leaf type {
+                    type leafref {
+                        path "../state/type";
+                    }
+                    description
+                        "Reference to the dynamic ACL type";
+                }
+
+                container state {
+                    config false;
+
+                    description
+                        "Operational state data of dynamic ACL types";
+
+                    leaf name {
+                        type string;
+                        description
+                            "ACL name created dynamically";
+                    }
+
+                    leaf type {
+                        type identityref {
+                            base oc-acl:ACL_TYPE;
+                        }
+                        description
+                           "Reference to the ACL type";
+                    }
+                }
+                uses acl-ext-dynamic-access-list-entries-top;
+            }
+        }
+    }
+
+    augment /oc-acl:acl {
+        description
+            "Augmentation to add support for Global and Control plane ACLs";
+
+        container global {
+            description
+                "Global ACL application related configuration and operational state";
+
+            uses acl-ext-global-acl-top;
+        }
+
+        container control-plane {
+            description
+                "Control plane ACL related configuration and operational state";
+
+            uses acl-ext-ctrl-plane-acl-top;
+        }
+    }
+
+    augment "/oc-acl:acl/oc-acl:interfaces/oc-acl:interface/oc-acl:ingress-acl-sets/oc-acl:ingress-acl-set/oc-acl:state" {
+        description
+            "Augmentation to support state of priority and source ip object group associated to ACL.";
+
+        uses acl-ext-acl-state;
+    }
+
+    augment "/oc-acl:acl/oc-acl:interfaces/oc-acl:interface/oc-acl:egress-acl-sets/oc-acl:egress-acl-set/oc-acl:state" {
+        description
+            "Augmentation to support state of priority and source ip object group associated to ACL.";
+
+        uses acl-ext-acl-state;
+    }
+
+    augment "/oc-acl:acl/oc-acl:interfaces/oc-acl:interface" {
+        description
+            "Augmentation to support dynamic ingress ACLs associated to an interface.";
+
+        uses acl-ext-interface-dynamic-ingress-acl-top;
+        uses acl-ext-interface-redirect-ingress-acl-top;
+    }
+
+    augment "/oc-acl:acl" {
+        description
+            "Augmentation to support dynamically created ACLs";
+
+        uses acl-ext-dynamic-acl-set-top;
+    }
+}
+

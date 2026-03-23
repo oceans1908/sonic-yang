@@ -1,0 +1,110 @@
+module openconfig-checkpoints {
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/openconfig-checkpoints";
+
+  prefix "oc-chkpt";
+
+  import openconfig-system { prefix oc-sys; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-types { prefix oc-types; }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module defines extensions for system state data for the
+    config checkpoints feature.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2022-10-04" {
+    description
+      "Initial revision";
+    reference "0.1.0";
+  }
+
+
+  grouping checkpoint-state {
+    description "Operational state data for configuration checkpoints";
+
+    leaf id {
+      type string;
+      description "System assigned checkpoint id";
+    }
+
+    leaf label {
+      type string;
+      description "User defined checkpoint label";
+    }
+
+    leaf username {
+      type string;
+      description "User who created this checkpoint";
+    }
+
+    leaf origin {
+      type enumeration {
+        enum COMMIT {
+          description
+            "Checkpoint created by commiting candidate config";
+        }
+
+        enum SNAPSHOT {
+          description
+            "Checkpoint created by saving config snapshot";
+        }
+      }
+      description "How this checkpoint got created";
+    }
+
+    leaf timestamp {
+      type oc-types:timeticks64;
+      description "Time when this checkpoint got created. Values are
+      expressed as number of nanoseconds elapsed since the unix epoch
+      (Jan 1, 1970 00:00:00 UTC)";
+    }
+
+    leaf dump-file {
+      type string;
+      description "File path of config DB dump";
+    }
+  }
+
+  grouping checkpoint-top {
+    description "Top level configuration checkpoints grouping";
+
+    list checkpoint {
+      key "id";
+      description "List of configuration checkpoints";
+
+      leaf id {
+        type leafref {
+          path "../state/id";
+        }
+        description "Reference to checkpoint id";
+      }
+
+      container state {
+        description "Configuration checkpoint state data";
+
+        uses checkpoint-state;
+      }
+    }
+  }
+
+  augment /oc-sys:system {
+    description "Augment to system operational data";
+
+    container checkpoints {
+      config false;
+      description "Top level configuration checkpoints container";
+
+      uses checkpoint-top;
+    }
+  }
+}

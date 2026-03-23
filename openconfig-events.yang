@@ -1,0 +1,237 @@
+module openconfig-events {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/events/extension";
+
+  prefix "oc-events";
+
+  // import some basic types
+  import openconfig-alarm-types { prefix oc-alarm-types; }
+  import openconfig-types { prefix oc-types; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-system { prefix oc-sys; }
+  import ietf-yang-types { prefix yang; }
+
+  // meta
+  organization "SONiC";
+
+  contact "SONIC";
+
+  description
+  "This module defines operational state data for device events.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2023-10-26" {
+    description
+    "Add deprecated enum action NOTIFY.";
+    reference "0.2.0";
+  }
+
+  revision "2021-01-15" {
+    description
+    "Initial draft revision.";
+    reference "0.1.0";
+  }
+
+
+  typedef severity-type {
+    type enumeration {
+      enum CRITICAL {
+        description "Event severity critical.";
+      }
+      enum MAJOR {
+        description "Event severity major.";
+      }
+      enum MINOR {
+        description "Event severity minor.";
+      }
+      enum WARNING {
+        description "Event severity warning.";
+      }
+      enum INFORMATIONAL {
+        description "Informational event.";
+      }      
+    }
+    description
+        "This type defines the severity for events.";
+  }
+
+
+
+  typedef action-type {
+    type enumeration {
+      enum RAISE {
+        description "Event with raise alarm action.";
+      }
+      enum CLEAR {
+        description "Event with clear alarm action.";
+      }
+      enum ACKNOWLEDGE {
+        description "Event with ack alarm action.";
+      }
+      enum UNACKNOWLEDGE {
+        description "Event with unacknowledge alarm action.";
+      }
+      //deprecated
+      enum NOTIFY {
+        description "Event as notification.";
+
+      }
+    }
+    description
+        "This type defines the actions associated with an event notification.";
+  }
+
+
+  // grouping statements
+
+  grouping events-state {
+    description
+    "Operational state data for device events";
+
+    leaf id {
+      type string;
+      description
+      "Unique ID for the event -- this will not be a
+      configurable parameter on many implementations";
+    }
+
+    leaf resource {
+      type string;
+      description
+      "The item that is raised this event within the device. The
+      resource may be a reference to an item which is
+      defined elsewhere in the model. For example, it
+      may be a platform/component, interfaces/interface,
+      terminal-device/logical-channels/channel, etc. In this
+      case the system should match the name of the referenced
+      item exactly. The referenced item could alternatively be
+      the path of the item within the model.";
+    }
+
+    leaf text {
+      type string;
+      description
+      "The string used to inform operators about the event. This
+      MUST contain enough information for an operator to be able
+      to understand the problem. If this string contains structure,
+      this format should be clearly documented for programs to be
+      able to parse that information";
+    }
+
+    leaf time-created {
+      type oc-types:timeticks64;
+      description
+      "The time at which the event was raised by the system.
+      This value is expressed as nanoseconds since the Unix Epoch";
+    }
+
+    leaf severity {
+      type severity-type;
+      description
+      "The severity level indicating the criticality and impact
+      of the event";
+    }
+
+    leaf type-id {
+      type union {
+        type string;
+        type identityref {
+          base oc-alarm-types:OPENCONFIG_ALARM_TYPE_ID;
+        }
+      }
+      description
+      "The abbreviated name of the event, for example LOS,
+      EQPT, or OTS. Also referred to in different systems as
+      condition type, alarm identifier, or alarm mnemonic. It
+      is recommended to use the OPENCONFIG_ALARM_TYPE_ID
+      identities where possible and only use the string type
+      when the desired identityref is not yet defined";
+    }
+
+    leaf action {
+      type action-type;
+      description
+      "This denotes the action associated with the event.";
+    }
+  }
+
+  grouping events-top {
+    description
+    "Top-level grouping for device events.";
+
+    container events {
+
+      description
+      "Top-level container for device events.";
+
+      list event {
+        key "id";
+        config false;
+        description
+        "List of events, keyed by a unique id.";
+
+        leaf id {
+          type leafref {
+            path "../state/id";
+          }
+
+          description
+          "References the unique event id.";
+        }
+
+        container state {
+
+          description
+          "Operational state data for a device event.";
+
+          uses events-state;
+        }
+      }
+    }
+
+    container event-stats {
+        description
+        " Top container for events-stats.";
+
+        container state {
+          config false;
+          description
+          "State container for event-stats.";
+
+          leaf events {
+            type yang:zero-based-counter64;  
+            description
+            "Total number of events in the system store.";
+          }
+
+          leaf raised  {
+            type yang:zero-based-counter64;  
+            description
+            "Total number of events for alarm raise operation in system store.";
+          }
+
+          leaf acked {
+            type yang:zero-based-counter64;  
+            description
+            "Total number of events for alarm ack operation in system store.";
+          }
+
+          leaf cleared {
+            type yang:zero-based-counter64;  
+            description
+            "Total number of events for clear alarm operation in system store.";
+          }
+        }
+    }
+  }
+
+  augment /oc-sys:system {
+    description
+    "System events.";
+    uses events-top;
+  }  
+}

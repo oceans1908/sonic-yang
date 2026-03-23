@@ -1,0 +1,309 @@
+module openconfig-bgp-policy-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/bgp-policy/extension";
+
+  prefix "oc-bgp-pol-ext";
+
+  import openconfig-routing-policy {prefix oc-rpol; }
+  import openconfig-bgp-policy { prefix oc-bgp-pol; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-routing-policy-ext {prefix oc-rpol-ext;}
+
+  organization
+      "SONiC";
+
+  contact
+      "SONiC";
+
+  description
+    "This module describes a deviation for BGP routing policy 
+     configuration extensions.";
+
+  oc-ext:openconfig-version "0.1.3";
+
+  revision "2022-07-01" {
+    description
+      "Added the sequence number for as-path.";
+    reference "0.1.3";
+  }
+
+  revision "2020-08-01" {
+    description
+      "Added the action for as-path, community and ext-community.";
+    reference "0.1.2";
+  }
+
+  revision "2020-04-08" {
+    description
+      "Added the attributes for IPv6 next hop.";
+    reference "0.1.1";
+  }
+
+  revision "2019-11-13" {
+    description
+      "BGP Routing Policy extensions.";
+    reference "0.1.0";
+  }
+
+  identity EVPN_ADVERTISE_ROUTE_TYPE {
+    description
+        "Different types of routes in payload carried by BGP EVPN address-family";
+  }
+
+  identity EAD {
+    base "EVPN_ADVERTISE_ROUTE_TYPE";
+    description
+        "advertise only Ethernet AD routes (e.g. EVPN type-1 prefix)";
+  }
+
+  identity MACIP {
+    base "EVPN_ADVERTISE_ROUTE_TYPE";
+    description
+        "advertise only mac-ip routes (e.g. EVPN type-2 prefix)";
+  }
+
+  identity MULTICAST {
+    base "EVPN_ADVERTISE_ROUTE_TYPE";
+    description
+        "advertise only multicast routes (e.g. EVPN type-3 prefix)";
+  }
+
+  identity ES {
+    base "EVPN_ADVERTISE_ROUTE_TYPE";
+    description
+        "Advertise only Ethernet Segment routes (e.g. EVPN type-4 prefix)";
+  }
+
+  identity PREFIX {
+    base "EVPN_ADVERTISE_ROUTE_TYPE";
+    description
+        "Advertise only IP routes (e.g. EVPN type-5 prefix)";
+  }
+
+  grouping bgp-policy-ext-match-evpn-config {
+    description
+        "Configuration data for match conditions on BGP EVPN set";
+
+      leaf vni-number {
+          type uint32;
+          description
+              "VNI-Id of the L3 VPN configured for BGP EVPN";
+      }
+
+      leaf default-type5-route {
+          type boolean;
+          description
+              "Allow EVPN to advertise default route as type-5 prefix";
+      }
+
+      leaf route-type {
+          type identityref {
+              base "EVPN_ADVERTISE_ROUTE_TYPE";
+          }
+          description
+              "Allow EVPN to advertise only a specific route-type (e.g. type-5 only for prefix match)";
+      }
+  }
+
+  grouping bgp-policy-ext-match-evpn-top {
+    description
+        "Top-level grouping for match conditions on BGP EVPN address-family";
+
+      container match-evpn-set {
+        description
+            "Match a referenced EVPN set according to the logic
+             defined in the match-set-options leaf";
+
+        container config {
+          description
+              "Configuration data for match conditions on BGP EVPN set";
+
+            uses bgp-policy-ext-match-evpn-config;
+        }
+
+        container state {
+          config false;
+            description
+                "Operational state data for match conditions on BGP
+                 EVPN set";
+
+                uses bgp-policy-ext-match-evpn-config;
+        }
+      }
+  }
+  grouping bgp-policy-ext-action-next-hop-set-config {
+    description
+        "Configuration data for IP nexthop under BGP policy conditions";
+      leaf next-hop-set {
+          type leafref {
+              path "/oc-rpol:routing-policy/oc-rpol:defined-sets/oc-rpol:prefix-sets/oc-rpol:prefix-set/oc-rpol:config/oc-rpol:name";
+          }
+          description "References a defined prefix set";
+      }
+  }
+
+  grouping bgp-policy-ext-as-path-set-config {
+    description
+        "Configuration data for order sequence for AS path sets";
+
+    leaf sequence-number {
+        type uint32 {
+            range "1..4294967295";
+        }
+        description
+            "The sequence number determines the order in which as-path entries are applied. It must be unique
+             for each AS path in a AS path set. Target devices should apply the AS path in ascending order determined
+             by sequence number (low to high), rather than relying only on order in the list.";
+    }
+
+    leaf-list as-path-set-member {
+      // TODO: need to refine typedef for AS path expressions
+      type string;
+      description
+          "AS path expression -- list of ASes in the set";
+    }
+    uses oc-rpol-ext:routing-policy-ext-action-config;
+  }
+
+  grouping bgp-policy-ext-as-path-set-top {
+    description
+      "Extended grouping for AS path sets";
+
+    container extended-as-path-sets {
+      description
+        "Enclosing container for list of define AS path sets";
+
+      list extended-as-path-set {
+        key "sequence-number";
+        description
+          "Extended list of defined AS path sets";
+
+        leaf sequence-number {
+            type leafref {
+                 path "../config/sequence-number";
+            }
+            description
+                 "Reference to the sequence-number.";
+        }
+
+        container config {
+          description
+            "Configuration data for AS path sets";
+
+          uses bgp-policy-ext-as-path-set-config;
+        }
+
+        container state {
+
+          config false;
+
+          description
+            "Operational state data for AS path sets";
+
+          uses bgp-policy-ext-as-path-set-config;
+        }
+      }
+    }
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:conditions/oc-bgp-pol:bgp-conditions/oc-bgp-pol:config {
+    description
+        "Policy definition extensions for BGP conditions";
+      uses bgp-policy-ext-action-next-hop-set-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:conditions/oc-bgp-pol:bgp-conditions/oc-bgp-pol:state {
+    description
+        "Policy definition extensions for BGP conditions";
+      uses bgp-policy-ext-action-next-hop-set-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:as-path-sets/oc-bgp-pol:as-path-set {
+    description
+        "BGP as-path set extensions";
+      uses bgp-policy-ext-as-path-set-top;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:as-path-sets/oc-bgp-pol:as-path-set/oc-bgp-pol:config {
+    description
+        "BGP as-path set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+      status deprecated;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:as-path-sets/oc-bgp-pol:as-path-set/oc-bgp-pol:state {
+    description
+        "BGP as-path set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+      status deprecated;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:community-sets/oc-bgp-pol:community-set/oc-bgp-pol:config {
+    description
+        "BGP community set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:community-sets/oc-bgp-pol:community-set/oc-bgp-pol:state {
+    description
+        "BGP community set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:ext-community-sets/oc-bgp-pol:ext-community-set/oc-bgp-pol:config {
+    description
+        "BGP ext-community set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:defined-sets/oc-bgp-pol:bgp-defined-sets/oc-bgp-pol:ext-community-sets/oc-bgp-pol:ext-community-set/oc-bgp-pol:state {
+    description
+        "BGP ext-community set extensions";
+      uses oc-rpol-ext:routing-policy-ext-action-config;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:conditions/oc-bgp-pol:bgp-conditions {
+    description
+        "BGP match EVPN set extensions";
+      uses bgp-policy-ext-match-evpn-top;
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:actions/oc-bgp-pol:bgp-actions/oc-bgp-pol:config {
+    description "Additional set attributes for route policy";
+      leaf set-next-hop-native {
+        type boolean;
+        description "Set the nexthop to a native or underlay IP address";
+      }
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:actions/oc-bgp-pol:bgp-actions/oc-bgp-pol:state {
+    description "Additional set attributes for route policy";
+      leaf set-next-hop-native {
+        type boolean;
+        description "Set the nexthop to a native or underlay IP address";
+      }
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:actions/oc-bgp-pol:bgp-actions/oc-bgp-pol:config {
+    description "Additional set attributes for route policy";
+      leaf set-ipv6-next-hop-native {
+        type boolean;
+        description "Set the IPv6 nexthop to a native or underlay IP address";
+      }
+  }
+
+  augment /oc-rpol:routing-policy/oc-rpol:policy-definitions/oc-rpol:policy-definition/oc-rpol:statements/oc-rpol:statement/oc-rpol:actions/oc-bgp-pol:bgp-actions/oc-bgp-pol:state {
+    description "Additional set attributes for route policy";
+      leaf set-ipv6-next-hop-native {
+        type boolean;
+        description "Set the IPv6 nexthop to a native or underlay IP address";
+      }
+  } 
+
+  // rpc statements
+
+  // notification statements
+}

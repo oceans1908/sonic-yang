@@ -1,0 +1,536 @@
+# Pre-validation file for Configure Replace and Rollback. 
+# This file defines entire set of table objects defined
+# in ConfigDB.
+# 
+# Prevalidation tests:
+# - objects, i.e. table names, defined without callpoint are 
+#   to be deemed as 'not supported'
+# - objects defined with callpoint are to be further evaluated
+#   by callbacks which can return either 'pass'(supported) or 'fail'
+# - callpoint set to callback can be grouped or ungropued 
+#   as needed to evaluate key/field level. The callback is to be 
+#   invoked only once by changes of any permuation on different objects
+#
+#   e.g. grouped callpoint "preValidate_xyz" is triggered only once 
+#   by changes of any permutations on different objects -  {port}, {VLAN}, 
+#   {VLAMEMBER}, {PORT, VLAN} etc. 
+#   PORT: 
+#     callpoint: preValidate_xyz 
+#   VLAN: 
+#     callpoint: preValidate_xyz
+#   VLAN_MEMBER : 
+#     callpoint: preValidate_xyz
+#
+# - multiple callpoints allowed per object to parition the pre-validation logic
+#   eg, Cp1, Cp2 callback defined on callpoints like below.
+#   PORT:
+#     callpoint: Cp1 Cp2
+#   PORTCHANNEL:
+#     callpoint: Cp1
+#   VLAN:
+#     callpoint: Cp2
+#
+#   any changes on the PORT will trigger the callbacks Cp1 and Cp2.
+#   each callback continue to be invoked only once.
+#   error will be immediately reported as a callback evaluate to be false.
+#
+# - return PreValidatePass if a change is supported, else retun PreValidateFail
+#   e.g.
+#   err := errors.New("local asn change is not supported")
+#   return PreValidateFail{Err: err}
+#
+# - function signature:
+#    func PreValidate_xyz (
+#       diffMap map[Operation]map[string]map[string]db.Value,
+#       curConfig map[string]map[string]db.Value,
+#       newConfig map[string]map[string]db.Value) PrevalidateStatus {}
+#  
+#   ,where
+#    - diffMap is multi-dimension map keyed by operation, table name,
+#    keys and db.value, i.e. fields, after diffing between curConfig
+#    and newConfig
+#    - curConfig coniatns the current contents of ConfigDB, keyed by
+#    table name, keys and db.Value.
+#    - newConfig coniatns the contents of user supplied json file,
+#    keyed by table name, keys and db.Value
+#
+#    the callback can have a logic to validate certain changes
+#    e.g. mtu on a portchannel and its member ports
+#
+#    it would be useful especially in case requiring look-ahead
+#    capability
+#
+
+
+system: '4.1'
+database: '2_0_4'
+
+## Objects for ConfigDB
+## cat allyangs.tree | grep "^     +--rw " | sed 's/     +--rw //' | sed 's/$/:/g' | sort
+objects:
+  AAA:
+    callpoint: Pass
+  ACL_RULE:
+    callpoint: Pass
+  ACL_TABLE:
+    callpoint: Pass
+  ALARM:
+  ALARM_STATS:
+  ARS_PROFILE:
+    callpoint: Pass
+  ARS_SWITCH_BIND:
+    callpoint: Pass
+  ARS_PORT_PROFILE:
+    callpoint: Pass
+  ARS_PORT_BIND:
+    callpoint: Pass
+  ARS_OBJECT:
+    callpoint: Pass
+  AS_PATH:
+    callpoint: Pass
+  AS_PATH_SET:
+    callpoint: Pass
+  ATTACHED_HOST_INTERFACE:
+    callpoint: Pass
+  AUDITD_SYSTEM:
+    callpoint: PreValidateAuditdRules
+  BANNER_MESSAGE:
+    callpoint: Pass
+  BFD_PEER_MULTI_HOP:
+    callpoint: Pass
+  BFD_PEER_SINGLE_HOP:
+    callpoint: Pass
+  BFD_PROFILE:
+    callpoint: Pass
+  BGP_GLOBALS:
+    callpoint: Pass
+  BGP_GLOBALS_AF:
+    callpoint: Pass
+  BGP_GLOBALS_AF_AGGREGATE_ADDR:
+    callpoint: Pass
+  BGP_GLOBALS_AF_NETWORK:
+    callpoint: Pass
+  BGP_GLOBALS_EVPN_RT:
+  BGP_GLOBALS_EVPN_VNI:
+    callpoint: Pass
+  BGP_GLOBALS_EVPN_VNI_RT:
+  BGP_GLOBALS_LISTEN_PREFIX:
+    callpoint: Pass
+  BGP_GLOBALS_ROUTE_ADVERTISE:
+    callpoint: Pass
+  BGP_NEIGHBOR:
+    callpoint: PreValidateBGPNeighbor
+  BGP_NEIGHBOR_AF:
+    callpoint: Pass
+  BGP_PEER_GROUP:
+    callpoint: PreValidateBGPPeerGroup
+  BGP_PEER_GROUP_AF:
+    callpoint: Pass
+  BREAKOUT_CFG:
+    callpoint: PreValidate_DPB
+  BREAKOUT_PORTS:
+    callpoint: Pass
+  BUFFER_PG:
+    callpoint: Pass
+  BUFFER_POOL:
+    callpoint: Pass
+  BUFFER_PROFILE:
+    callpoint: Pass
+  BUFFER_QUEUE:
+    callpoint: Pass
+  CAC_PIV:
+    callpoint: PreValidateCacPivConfig
+  CABLE_LENGTH:
+    callpoint: Pass
+  CFG_L2MC_MROUTER_TABLE:
+  CFG_L2MC_STATIC_GROUP_TABLE:
+  CFG_L2MC_STATIC_MEMBER_TABLE:
+  CFG_L2MC_TABLE:
+  CLASSIFIER_TABLE:
+  CLOCK:
+    callpoint: Pass
+  COMMUNITY_SET:
+    callpoint: PreValidateCommunityList
+  COPP_GROUP:
+  COPP_TRAP:
+  COPP_TRAP_EXCLUDE:
+    callpoint: Pass
+  COREDUMP:
+    callpoint: Pass
+  COUNTERS_IP_HELPER:
+  CRM:
+    callpoint: Pass
+  DAS_CLIENT_CONFIG_TABLE:
+  DAS_GLOBAL_CONFIG_TABLE:
+  DCBX:
+    callpoint: Pass
+  DCBX_INTERFACE:
+    callpoint: Pass
+  DEBUG_COUNTER:
+    callpoint: Pass
+  DEBUG_COUNTER_DROP_REASON:
+    callpoint: Pass
+  DEVICE_METADATA:
+     callpoint: ValidateDeviceMetaData
+  DHCP_SNOOPING:
+    callpoint: Pass
+  DHCP_SNOOPING_STATIC_BINDING:
+    callpoint: Pass
+  DIALOUT_DESTINATION:
+  DIALOUT_DESTINATION_GROUP:
+  DIALOUT_PERSISTENT_SUBSCRIPTION:
+  DIALOUT_SENSOR_GROUP:
+  DIALOUT_SENSOR_PATH:
+  DIALOUT_SUBSCR_DESTINATION_GROUP:
+  DIALOUT_SUBSCR_SENSOR_PROFILE:
+  DNS:
+    callpoint: Pass
+  DNS_SERVER:
+    callpoint: Pass
+  DOT1P_TO_TC_MAP:
+    callpoint: Pass
+  DSCP_TO_TC_MAP:
+    callpoint: Pass
+  ECMP_LOADSHARE_TABLE_IPV4:
+    callpoint: Pass
+  ECMP_LOADSHARE_TABLE_IPV6:
+    callpoint: Pass
+  ECMP_LOADSHARE_TABLE_SEED:
+    callpoint: Pass
+  ERRDISABLE:
+  EVENT:
+  EVENT_STATS:
+  EVPN_ETHERNET_SEGMENT:
+    callpoint: Pass
+  EVPN_MH_GLOBAL:
+    callpoint: Pass
+  EVPN_NVO:
+    callpoint: Pass
+  EXPORT:
+    callpoint: Pass
+  EXTENDED_COMMUNITY_SET:
+    callpoint: PreValidateCommunityList
+  FDB:
+    callpoint: Pass
+  FIPS:
+    callpoint: PreValidateFipsConfig
+  FLEX_COUNTER_TABLE:
+  HARDWARE:
+  HARDWARE_ALLOCATION:
+  HOSTAPD_GLOBAL_CONFIG_TABLE:
+  IGMP_INTERFACE:
+  IGMP_INTERFACE_QUERY:
+  IMAGE_GLOBAL:
+  IMAGE_TABLE:
+  INTERFACE:
+    callpoint: PreValidateInterface ValidateIntfBindWithMgmtVrf 
+  INTF_TRACKING:
+  IP_SLA:
+  KDUMP:
+    callpoint: Pass
+  LDAP:
+    callpoint: PreValidateProtocolPasswords
+  LDAP_MAP:
+  LDAP_SERVER:
+  LLDP:
+  LLDP_PORT:
+  LOGIN_ATTRIBUTES:
+    callpoint: Pass
+  GAI_ATTRIBUTES:
+    callpoint: Pass
+  LOOPBACK:
+    callpoint: Pass
+  LOOPBACK_INTERFACE:
+    callpoint: PreValidateInterface ValidateIntfBindWithMgmtVrf
+  MAB_GLOBAL_CONFIG_TABLE:
+  MAB_PORT_CONFIG_TABLE:
+  MAC_DAMPENING:
+  MAP_PFC_PRIORITY_TO_QUEUE:
+    callpoint: Pass
+  MCLAG_DOMAIN:
+    callpoint: Pass
+  MCLAG_GW_MAC:
+  MCLAG_INTERFACE:
+    callpoint: Pass
+  MCLAG_PEER_GATEWAY:
+  MCLAG_UNIQUE_IP:
+    callpoint: Pass
+  MFA:
+    callpoint: PreValidateMfaConfig
+  MGMT_INTERFACE:
+    callpoint: PreValidateInterface
+  MGMT_PORT:
+    callpoint: Pass
+  MGMT_VRF_CONFIG:
+    callpoint: ValidateMgmtVrfConsistency ValidateIntfBindWithMgmtVrf
+  MIRROR_SESSION:
+    callpoint: Pass
+  MLD_INTERFACE:
+  MLD_INTERFACE_QUERY:
+  NAT_BINDINGS:
+    callpoint: Pass
+  NAT_GLOBAL:
+    callpoint: Pass
+  NAT_POOL:
+    callpoint: Pass
+  ND_CFG_MSG:
+    callpoint: Pass
+  ND_DNSSL:
+    callpoint: Pass
+  ND_PREFIX:
+    callpoint: Pass
+  ND_RDNSS:
+    callpoint: Pass
+  NEIGH:
+    callpoint: Pass
+  NEIGH_GLOBAL:
+    callpoint: Pass
+  NETWORK_POLICY_APP:
+  NETWORK_POLICY_PROFILE:
+  NHT_VRF_AF:
+  NTP:
+    callpoint: PreValidateProtocolPasswords
+  NTP_AUTHENTICATION_KEY:
+    callpoint: PreValidateProtocolPasswords
+  NTP_SERVER:
+    callpoint: PreValidateProtocolPasswords
+  OSPFV2_INTERFACE:
+  OSPFV2_INTERFACE_MD_AUTHENTICATION:
+  OSPFV2_ROUTER:
+  OSPFV2_ROUTER_AREA:
+  OSPFV2_ROUTER_AREA_NETWORK:
+  OSPFV2_ROUTER_AREA_POLICY_ADDRESS_RANGE:
+  OSPFV2_ROUTER_AREA_VIRTUAL_LINK:
+  OSPFV2_ROUTER_AREA_VLMD_AUTHENTICATION:
+  OSPFV2_ROUTER_DISTRIBUTE_ROUTE:
+  OSPFV2_ROUTER_GR_NEIGHBOUR_HELPER:
+  OSPFV2_ROUTER_PASSIVE_INTERFACE:
+  OSPFV3_ROUTER:
+  OSPFV3_ROUTER_AREA:
+  OSPFV3_ROUTER_AREA_POLICY_ADDRESS_RANGE:
+  OSPFV3_ROUTER_AREA_NSSA_ADDRESS_RANGE:
+  OSPFV3_ROUTER_DISTRIBUTE_ROUTE:
+  OSPFV3_ROUTER_GR_NEIGHBOUR_HELPER:
+  OSPFV3_INTERFACE:
+  PAC_GLOBAL_CONFIG_TABLE:
+  PAC_PORT_CONFIG_TABLE:
+  PBF_NEXTHOP_GROUP:
+  PBF_REPLICATION_GROUP:
+  PFC_WD:
+    callpoint: Pass
+  PIM_GLOBALS:
+    callpoint: PreValidatePimGlobals
+  PIM_GLOBALS_RENDEZVOUS_POINT:
+  PIM_INTERFACE:
+    callpoint: PreValidatePimInterface
+  PMS_PORT:
+  POE:
+    callpoint: Pass
+  POE_CARD:
+    callpoint: Pass
+  POE_PORT:
+    callpoint: Pass
+  POE_PORT_COUNTERS:
+    callpoint: Pass
+  POE_PORT_MISC:
+    callpoint: Pass
+  POLICY_BINDING_TABLE:
+  POLICY_SECTIONS_TABLE:
+  POLICY_TABLE:
+  PORT:
+    callpoint: PreValidate_mtu PreValidateVlan PreValidate_PORT
+  PORTCHANNEL:
+    callpoint: PreValidate_mtu PreValidateVlan
+  PORTCHANNEL_GLOBAL:
+    callpoint: Pass
+  PORTCHANNEL_INTERFACE:
+    callpoint: PreValidateInterface ValidateIntfBindWithMgmtVrf
+  PORTCHANNEL_MEMBER:
+    callpoint: PreValidate_mtu
+  PORT_ERR_DISABLE_TABLE:
+  PORT_GROUP:
+    callpoint: Pass
+  PORT_QOS_MAP:
+    callpoint: Pass
+  PORT_STORM_CONTROL:
+  PREFIX:
+    callpoint: Pass
+  PREFIX_SET:
+    callpoint: Pass
+  PRIMARY_ENCRYPTION_KEY:
+  PTP_CLOCK:
+    callpoint: Pass
+  PTP_CURRENTDS:
+  PTP_INSTANCE:
+    callpoint: Pass
+  PTP_PARENTDS:
+  PTP_PORT:
+    callpoint: Pass
+  PTP_TIMEPROPDS:
+  QUEUE:
+    callpoint: Pass
+  RADIUS:
+    callpoint: PreValidateProtocolPasswords
+  RADIUS_SERVER:
+    callpoint: PreValidateProtocolPasswords
+  RADVDAEMON:
+  RESERVED_VLAN:
+  REST_SERVER:
+  ROUTE_MAP:
+    callpoint: Pass
+  ROUTE_MAP_SET:
+    callpoint: Pass
+  ROUTE_REDISTRIBUTE:
+    callpoint: Pass
+  RSA:
+    callpoint: PreValidateRsaGlobalConfig
+  RSA_SERVER:
+    callpoint: PreValidateRsaConfig
+  SAG:
+    callpoint: Pass
+  SAG_GLOBAL:
+    callpoint: Pass
+  SCHEDULER:
+    callpoint: Pass
+  SECURITY_PROFILES:
+    callpoint: Pass
+  SFLOW:
+    callpoint: Pass
+  SFLOW_COLLECTOR:
+    callpoint: Pass
+  SFLOW_SESSION:
+    callpoint: Pass
+  SNAPSHOT_TABLE:
+  SNMP_AGENT_ADDRESS_CONFIG:
+    callpoint: Pass
+  SNMP_SERVER:
+    callpoint: Pass
+  SNMP_SERVER_COMMUNITY:
+    callpoint: Pass
+  SNMP_SERVER_ENGINE:
+    callpoint: Pass
+  SNMP_SERVER_GROUP:
+    callpoint: Pass
+  SNMP_SERVER_GROUP_ACCESS:
+    callpoint: Pass
+  SNMP_SERVER_GROUP_MEMBER:
+    callpoint: Pass
+  SNMP_SERVER_PARAMS:
+    callpoint: Pass
+  SNMP_SERVER_TARGET:
+    callpoint: Pass
+  SNMP_SERVER_USER:
+    callpoint: PreValidateSnmpProtocolPasswords
+  SNMP_SERVER_VIEW:
+    callpoint: Pass
+  SSH_SERVER_VRF:
+    callpoint: Pass
+  SSHC_CONFIG:
+    callpoint: Pass
+  SSHD_COMMON:
+    callpoint: Pass
+  STATIC_NAPT:
+    callpoint: Pass
+  STATIC_NAT:
+    callpoint: Pass
+  STATIC_ROUTE:
+    callpoint: Pass
+  STP:
+    callpoint: Pass
+  STP_MST:
+    callpoint: Pass
+  STP_MST_INST:
+    callpoint: Pass
+  STP_MST_PORT:
+    callpoint: Pass
+  STP_PORT:
+    callpoint: Pass
+  STP_VLAN:
+    callpoint: Pass
+  STP_VLAN_PORT:
+    callpoint: Pass
+  SUPPRESS_VLAN_NEIGH:
+    callpoint: Pass
+  SWITCH:
+    callpoint: Pass
+  SWITCH_RESOURCE_TABLE:
+  SYSLOG:
+    callpoint: Pass
+  SYSLOG_SERVER:
+    callpoint: Pass
+  TACPLUS:
+    callpoint: Pass
+  TACPLUS_SERVER:
+    callpoint: Pass
+  TAM_COLLECTORS_TABLE:
+  TAM_DROPMONITOR_SESSIONS_TABLE:
+  TAM_DROPMONITOR_TABLE:
+  TAM_FEATURES_TABLE:
+  TAM_FLOWGROUP_TABLE:
+  TAM_IFA_SESSIONS_TABLE:
+  TAM_SAMPLINGRATE_TABLE:
+  TAM_SWITCH_TABLE:
+  TAM_TAILSTAMPING_SESSIONS_TABLE:
+  TC_TO_DOT1P_MAP:
+    callpoint: Pass
+  TC_TO_DSCP_MAP:
+    callpoint: Pass
+  TC_TO_PRIORITY_GROUP_MAP:
+    callpoint: Pass
+  TC_TO_QUEUE_MAP:
+    callpoint: Pass
+  TELEMETRY:
+    callpoint: Pass
+  THRESHOLD_BUFFERPOOL_INTERFACE_TABLE:
+  THRESHOLD_BUFFERPOOL_TABLE:
+  THRESHOLD_DEVICE_TABLE:
+  THRESHOLD_TABLE:
+  TRANSCEIVER_DIAG:
+    callpoint: Pass
+  TRANSCEIVER_INFO:
+  TRUST_STORES:
+    callpoint: Pass
+  UDLD:
+  UDLD_PORT:
+  UDP_BROADCAST_FORWARDING:
+    callpoint: Pass
+  USB:
+    callpoint: Pass
+  USB_DEVICE:
+  USB_PARTS:
+  USER:
+  USER_TABLE:
+  VERSIONS:
+  VLAN:
+    callpoint: PreValidateVlan
+  VLAN_INTERFACE:
+    callpoint: PreValidateInterface ValidateIntfBindWithMgmtVrf
+  VLAN_MEMBER:
+    callpoint: PreValidateVlan
+  VLAN_STACKING:
+    callpoint: PreValidateVlan PreValidateVlanMapping
+  VLAN_SUB_INTERFACE:
+    callpoint: Pass
+  VLAN_TRANSLATION:
+    callpoint: PreValidateVlan PreValidateVlanMapping
+  VRF:
+    callpoint: Pass
+  VRRP:
+  VRRP6:
+  VRRP6_TRACK:
+  VRRP_TRACK:
+  VXLAN_DOWNSTREAM_VNI:
+    callpoint: Pass
+  VXLAN_EVPN_NVO:
+    callpoint: Pass
+  VXLAN_TUNNEL:
+    callpoint: Pass
+  VXLAN_TUNNEL_MAP:
+    callpoint: Pass
+  WARM_RESTART:
+  WARM_RESTART_ENABLE:
+  WATERMARK_TABLE:
+  WRED_PROFILE:
+    callpoint: Pass
+  ZTP:
+    callpoint: Pass

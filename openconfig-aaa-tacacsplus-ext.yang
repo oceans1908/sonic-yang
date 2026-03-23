@@ -1,0 +1,96 @@
+module openconfig-aaa-tacacsplus-ext {
+
+  yang-version "1.1";
+
+  namespace "http://openconfig.net/yang/aaa/tacacsplus/extension";
+
+  prefix "oc-aaa-tacacsplus-ext";
+
+  // import some basic types
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-aaa { prefix oc-aaa; }
+  import openconfig-aaa-types { prefix oc-aaa-types; }
+  import openconfig-system { prefix oc-sys; }  
+
+  // meta
+  organization "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module defines configuration and operational state data
+    related to the TACACS+ for command authorization.";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2022-07-14" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+
+  // extension statements
+
+  // feature statements
+
+  // identity statements
+
+  // grouping statements
+
+  grouping aaa-ext-authorization-tacacsplus-config {
+    description
+      "Configuration data for AAA commands authorization";
+
+    uses oc-aaa:aaa-authorization-methods-config;
+  }
+
+  grouping aaa-ext-authorization-tacacsplus-state {
+    description
+      "Operational state data for AAA commands authorization";
+  }
+
+  grouping aaa-ext-authorization-tacacsplus-top {
+    description
+      "Top-level grouping for AAA authorization Extensions";
+
+    container commands {
+      description
+        "Top-level container for AAA commands authorization configuration
+         and operational state data";
+
+      container config {
+        description
+          "Configuration data for commands authorization based on AAA";
+
+        uses aaa-ext-authorization-tacacsplus-config;
+      }
+
+      container state {
+        config false;
+
+        description
+          "Operational state data for commands authorization based on AAA";
+
+        uses aaa-ext-authorization-tacacsplus-config;
+        uses aaa-ext-authorization-tacacsplus-state;
+      }
+    }
+  }
+
+  // data definition statements
+
+  // augment statements
+
+  augment "/oc-sys:system/oc-sys:aaa/oc-sys:authorization" {
+    description
+      "Adds top level container for commands authorization.";
+
+    uses aaa-ext-authorization-tacacsplus-top;
+  }
+
+  // rpc statements
+
+  // notification statements
+
+}

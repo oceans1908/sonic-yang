@@ -1,0 +1,962 @@
+module openconfig-adaptive-routing-switching {
+
+  yang-version "1.1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/system/adaptive-routing-switching/extension";
+
+  prefix "oc-ars";
+
+  // import some basic types
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-interfaces { prefix "oc-if"; }
+
+  organization
+    "OCP SONiC Subproject";
+
+  contact
+    "OCP SONiC Subproject Working Group";
+
+  description
+    "An OpenConfig model for Adaptive Routing and Switching (ARS)
+    also termed as Dynamic Load Balancing (DLB)";
+
+  oc-ext:openconfig-version "0.1.1";
+
+  revision "2023-11-09" {
+    description
+      "Add ARS yang for SONiC config and show";
+    reference
+      "0.1.1";
+  }
+
+  typedef ars-algo-type {
+    type enumeration {
+      enum EWMA {
+        description "Exponential weighted moving average";
+      }
+    }
+    default EWMA;
+    description
+      "ARS alorithm type definitions";
+  }
+
+ grouping ars-profile-config {
+    description
+      "profile configuration for ARS";
+
+    leaf name {
+      type string;
+       description
+         "unique name for ARS profile";
+    }
+
+    leaf algo {
+      type oc-ars:ars-algo-type;
+      default EWMA;
+      description
+        "ARS algorithm used for quality computation";
+    }
+
+    leaf sampling-interval {
+      type uint8 {
+        range "1..255";
+      }
+      default 16;
+      description
+        "Sampling interval in microseconds of data for quality 
+         measure computation.";
+    }
+
+    leaf random-seed {
+      type uint32 {
+        range "0..16777214";
+      }
+      default 10;
+      description
+        "Random seed for adaptive routing and switching.";
+    }
+
+    leaf port-load-past {
+      type boolean;
+      default true;
+      description
+        "Enable past port load as the quality parameter. 
+         This is the average egress bytes measured on a port";
+    }
+
+    leaf port-load-past-weight {
+      type uint8 {
+        range "1..16";
+      }
+      default 2;
+      description
+        "Weight attribute is used in EWMA calculations.Large weight 
+         lowers the significance of instantaneous measure on the overall average.";
+    }
+
+    leaf port-load-future {
+      type boolean;
+      default true;
+      description
+        "Enable future port load as the quality parameter. 
+         This is the average queued bytes measured on a port.";
+    }
+
+    leaf port-load-future-weight {
+      type uint8 {
+        range "1..16";
+      }
+      default 2;
+      description
+        "Weight attribute is used in EWMA calculations. Large weight 
+         lowers the significance of instantaneous measure on the overall average.";
+    }
+
+    leaf port-load-current {
+      type boolean;
+      default false;
+      description
+        "Set port loading value to current sampled value, 
+         when sampled value is less than the average.";
+    }
+
+    leaf port-load-exponent {
+      type uint8 {
+        range "1..16";
+      }
+      default 2;
+      description
+        "EWMA exponent used in port loading computation. Larger the exponent, 
+         larger is the weight to previously computed port loading value.";
+    }
+
+    leaf quant-band-0-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 0.";
+    }
+
+    leaf quant-band-0-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 0.";
+    }
+
+    leaf quant-band-1-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 1.";
+    }
+
+    leaf quant-band-1-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 1.";
+    }
+
+    leaf quant-band-2-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 2.";
+    }
+
+    leaf quant-band-2-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 2.";
+    }
+
+    leaf quant-band-3-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 3.";
+    }
+
+    leaf quant-band-3-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 3.";
+    }
+
+    leaf quant-band-4-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 4.";
+    }
+
+    leaf quant-band-4-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 4.";
+    }
+
+    leaf quant-band-5-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 5.";
+    }
+
+    leaf quant-band-5-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 5.";
+    }
+
+    leaf quant-band-6-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 6.";
+    }
+
+    leaf quant-band-6-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 6.";
+    }
+
+    leaf quant-band-7-min {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Minimum threshold used for quantization process in Mbps for band 7.";
+    }
+
+    leaf quant-band-7-max {
+      type uint16 {
+        range "0..10000";
+      }
+      default 0;
+      description
+        "Maximum threshold used for quantization process in Mbps for band 7.";
+    }
+
+    leaf load-past-min-val {
+      type uint32 {
+        range "0..10000";
+      }
+      default 3000;
+      description
+        "Minimum past load threshold value for the quantization process.";
+    }
+
+    leaf load-past-max-val {
+      type uint32 {
+        range "0..10000";
+      }      default 6000;
+      description
+        "Maximum past load threshold value for the quantization process.";
+    }
+
+    leaf load-future-min-val {
+      type uint32 {
+        range "0..266338303";
+      }
+      default 2097152;
+      description
+        "Minimum future load threshold value for the quantization process.";
+    }
+
+    leaf load-future-max-val {
+      type uint32 {
+        range "0..266338303";
+      }
+      default 12582912;
+      description
+        "Maximum future load threshold value for the quantization process.";
+    }
+
+    leaf load-current-min-val {
+      type uint32 {
+        range "0..133169151";
+      }
+      default 1048576;
+      description
+        "Minimum current load threshold value for the quantization process.";
+    }
+
+    leaf load-current-max-val {
+      type uint32 {
+        range "0..133169151";
+      }
+      default 6291456;
+      description
+        "Maximum current load threshold value for the quantization process.";
+    }
+
+  }
+
+ grouping ars-profile-state {
+    description
+      "profile state for ARS";
+
+    leaf quant-band-count {
+      type uint8;
+      description
+        "Number of quantization bands support for quality map.";
+    }
+
+    leaf lag-max-members {
+      type uint32;
+      description
+        "Maximum number of members per LAG ARS group.";
+    }
+
+    leaf lag-max-groups {
+      type uint32;
+      description
+        "Maximum number of LAG ARS groups.";
+    }
+
+    leaf ecmp-max-members {
+      type uint32;
+      description
+        "Maximum number of members per ECMP ARS group.";
+    }
+
+    leaf ecmp-max-groups {
+      type uint32;
+      description
+        "Maximum number of ECMP ARS groups.";
+    }
+ }
+
+  grouping ars-profile-top {
+    description
+      "ARS profile related config and state info";
+
+    container ars-profile {
+        description
+          "Configuration and State parameters relating to the ARS
+          switch level params.";
+        
+        list profile {
+          key "name";
+          description
+            "Profile Name.";
+
+          leaf name {
+            type leafref {
+              path "../config/name";
+            }
+            description
+              "Key name";
+          }
+
+          container config {
+              description
+                "Configuration parameters relating to setting the ARS
+                 switch level params.";
+              uses ars-profile-config;
+          }
+
+          container state {
+              config false;
+              description
+                "Operational state parameters relating to ARS
+                 switch level params.";
+              uses ars-profile-config;
+          }
+        }
+    }
+  }
+
+  typedef ars-bind-info {
+    type enumeration {
+      enum SWITCH {
+        description "switch type for bind";
+      }
+    }
+    description
+      "ARS profile binding key info.";    
+  }
+
+  grouping ars-switch-bind-config {
+    description
+      "Switch bind configurations for ARS";
+
+    leaf name {
+      type oc-ars:ars-bind-info;
+       description
+         "unique name for ARS profile bind";
+    }
+
+    leaf profile {
+      type string;
+       description
+         "unique name for ARS profile to bind to switch";
+    }
+
+  }
+
+  grouping ars-switch-bind-top {
+    description
+      "ARS switch bind related config and state info";
+
+    container ars-switch-bind {
+        description
+          "Configuration and State parameters relating to the ARS
+          switch bind params.";
+        
+        list switchbind {
+          key "name";
+          description
+            "Switch Name.";
+
+          leaf name {
+            type leafref {
+              path "../config/name";
+            }
+            description
+              "Key name";
+          }
+
+          container config {
+              description
+                "Configuration parameters relating to setting the ARS
+                 switch bind params.";
+              uses ars-switch-bind-config;
+          }
+
+          container state {
+              config false;
+              description
+                "Operational state parameters relating to ARS
+                 switch bind params.";
+              uses ars-switch-bind-config;
+          }
+        }
+    }
+  }
+
+  typedef ars-port-load-factor {
+    type enumeration {
+      enum 0 {
+        description "Port load factor calculated internally";
+      }
+      enum 1 {
+        description "Port load factor for port speed 10G";
+      }
+      enum 2.5 {
+        description "Port load factor for port speed 25G";
+      }
+      enum 4 {
+        description "Port load factor for port speed 40G";
+      }
+      enum 5 {
+        description "Port load factor for port speed 50G";
+      }
+      enum 10 {
+        description "Port load factor for port speed 100G";
+      }
+      enum 20 {
+        description "Port load factor for port speed 200G";
+      }
+      enum 40 {
+        description "Port load factor for port speed 400G";
+      }
+      enum 80 {
+        description "Port load factor for port speed 800G";
+      }      
+    }
+    default 0;
+    description
+      "ARS port load factor is the portspeed divided by value 10.";
+  }
+
+  grouping ars-port-profile-config {
+    description
+      "Port profile configuration for ARS";
+
+    leaf name {
+      type string;
+       description
+         "unique name for ARS port profile";
+    }
+
+    leaf enable {
+      type boolean;
+      default false;
+      description
+        "Enable ARS for the port";
+    }
+
+    leaf load-scaling-factor {
+      type oc-ars:ars-port-load-factor;
+      default 0;
+      description
+        "Configure port load scaling factor.";
+    }
+
+    leaf load-past-enable {
+      type boolean;
+      default false;
+      description
+        "Enable historical or past port load quality measure in switch pipeline.";
+    }
+
+    leaf load-future-enable {
+      type boolean;
+      default false;
+      description
+        "Enable future load quality measure in switch pipeline.";
+    }
+
+    leaf alt-path {
+      type boolean;
+      default false;
+      description
+        "Port is part of alternate path set if true, else part of primary path set.";
+    }
+
+    leaf load-past-weight {
+      type uint8 {
+        range "0..100";
+      }
+      default 80;
+      description
+        "Assign weight in percent to past port load quality measure in switch pipeline.";
+    }
+
+    leaf load-future-weight {
+      type uint8 {
+        range "0..100";
+      }
+      default 10;
+      description
+        "Assign weight in percent to future port load quality measure in switch pipeline.";
+    }
+
+  }
+
+  grouping ars-port-profile-top {
+    description
+      "ARS Port profile related config and state info";
+
+    container ars-port-profile {
+        description
+          "Configuration and State parameters relating to the ARS
+          port level params.";
+        list portprofile {
+          key "name";
+          description
+            "Port profile Name.";
+
+          leaf name {
+            type leafref {
+              path "../config/name";
+            }
+            description
+              "Key name";
+          }
+
+          container config {
+            description
+              "Configuration parameters relating to setting the ARS
+               port level params.";
+            uses ars-port-profile-config;
+          }
+
+          container state {
+            config false;
+            description
+              "Operational state parameters relating to ARS
+               port level params.";
+            uses ars-port-profile-config;
+          }
+       }
+    }
+  }
+
+  grouping ars-port-bind-config {
+    description
+      "Port bind with port profile configurations for ARS";
+
+    leaf name {
+      type oc-if:base-interface-ref;
+       description
+         "The name of the port";
+    }
+
+    leaf profile {
+      type string;
+       description
+         "unique name for ARS port profile to bind to port";
+    }
+
+  }
+
+  grouping ars-port-bind-top {
+    description
+      "ARS switch port bind related config and state info";
+
+    container ars-port-bind {
+        description
+          "Configuration and State parameters relating to the ARS
+          port bind params.";
+        
+        list portbind {
+          key "name";
+          description
+            "Port Name.";
+
+          leaf name {
+            type leafref {
+              path "../config/name";
+            }
+            description
+              "Key name";
+          }
+
+          container config {
+              description
+                "Configuration parameters relating to setting the ARS
+                 port bind params.";
+              uses ars-port-bind-config;
+          }
+
+          container state {
+              config false;
+              description
+                "Operational state parameters relating to ARS
+                 port bind params.";
+              uses ars-port-bind-config;
+          }
+        }
+    }
+  }
+
+  typedef ars-nhg-mode-types {
+    type enumeration {
+      enum ARS_MODE_FLOWLET_QUALITY {
+        description "Per flow-let quality based path (re)assignment";
+      }
+      enum ARS_MODE_FLOWLET_RANDOM {
+        description "Per flow-let random path (re)assignment";
+      }
+      enum ARS_MODE_PER_PACKET_RANDOM {
+        description "Per packet random path (re)assignment";
+      }
+      enum ARS_MODE_PER_PACKET_QUALITY {
+        description "Per packet quality based path (re)assignment";
+      }
+      enum ARS_MODE_FIXED {
+        description "Fixed path assignment";
+      }
+    }
+    default ARS_MODE_FLOWLET_QUALITY;
+    description
+      "ARS NHG mode types.";
+  }
+   
+ 	grouping ars-object-config {
+    description
+      "Next Hop Group, NHG object configuration for ARS";
+
+    leaf name {
+      type string;
+       description
+         "unique name for ARS NHG object";
+    }
+
+    leaf idle-time {
+      type uint16 {
+        range "16..32767";
+      }
+      default 80;
+      description
+        "Idle duration in microseconds. 
+         This duration is to classify a flow-let in a macro flow.";
+    }
+
+    leaf max-flows {
+      type uint16 {
+        range "1..32768";
+      }
+      default 256;
+      description
+        "Maximum number of flow, states, that can be maintained 
+         per this ARS object.";
+    }
+
+    leaf mode {
+      type oc-ars:ars-nhg-mode-types;
+      default ARS_MODE_FLOWLET_QUALITY;
+      description
+        "ARS path (re)assignment mode.";
+    }
+
+    leaf mon-enable {
+      type boolean;
+      default false;
+      description
+        "Enable ARS monitoring";
+    }
+
+    leaf sample-packet {
+      type boolean;
+      default false;
+      description
+        "Enable/Disable ARS Samplepacket session.";
+    } 
+
+    leaf primary-path-quality-threshold {
+      type uint32;
+      default 16;
+      description
+        "Quality threshold for least cost ARS paths. Crossing down the 
+         threshold will result in using the non least cost sub optimal path.";
+    }
+
+    leaf alt-path {
+      type boolean;
+      default false;
+      description
+        "Next hop group member is part of alternate path set if enabled.";
+    }
+
+    leaf alt-path-cost {
+      type uint32;
+      default 0;
+      description
+        "Cost of switching over to non least cost ARS paths.";
+    }
+
+    leaf alt-path-bias {
+      type uint32;
+      default 0;
+      description
+        "Indicates the bias in favor of alternate path.";
+    }
+
+    leaf max-primary-members {
+      type uint32;
+      default 16;
+      description
+        "Maximum number of primary members per adaptive routing group.";
+    }
+
+    leaf max-alt-members {
+      type uint32;
+      default 16;
+      description
+        "Maximum number of alternate members per adaptive routing group.";
+    }
+
+  }
+
+  grouping ars-object-top {
+    description
+      "ARS NHG object related config and state info";
+
+    container ars-object {
+        description
+          "Configuration and State parameters relating to the ARS
+          nhg level params.";
+        
+        list arsobject {
+          key "name";
+          description
+            "NHG object Name.";  
+          
+          leaf name {
+            type leafref {
+              path "../config/name";
+            }
+            description
+              "Key name";
+          }
+          
+          container config {
+              description
+                "Configuration parameters relating to setting the ARS
+                 nhg level params.";
+              uses ars-object-config;
+          }
+
+          container state {
+              config false;
+              description
+                "Operational state parameters relating to ARS
+                 nhg level params.";
+              uses ars-object-config;
+          }
+        }
+    }
+  }
+
+  grouping ars-nhg-statistics-info {
+    description
+      "Next Hop Group, NHG statistics for ARS";
+
+    leaf name {
+      type uint32;
+       description
+         "unique name for ARS NHG object";
+    }
+
+    leaf packet-drops {
+      type uint64;
+      description
+        "Number of packets dropped by ARS mechanism.";
+    }
+
+    leaf next-hop-reassignments {
+      type uint64;
+      description
+        "Number of ARS next hop reassignments done.";
+    }
+
+    leaf port-reassignments {
+      type uint64;
+      description
+        "Number of ARS port reassignments done.";
+    }
+  }
+
+  grouping ars-nhg-statistics-top {
+    description
+      "ARS NHG related statistics info";
+
+    container ars-nhg-statistics {
+        config false;
+        description
+          "Statistics relating to the ARS
+          nhg level.";
+
+          list arsstatistics {
+            key "name";
+            description
+              "NHG object Name.";  
+          
+            leaf name {
+              type leafref {
+                path "../state/name";
+              }
+              description
+                "Key name";
+            }
+        
+            container state {
+                config false;
+                description
+                  "Statistical parameters relating to ARS
+                  nhg level.";
+                uses ars-nhg-statistics-info;
+            }
+          }
+    }
+  }
+
+  grouping ars-port-quality-info {
+    description
+      "ARS port quality info";
+
+    leaf name {
+      type leafref {
+        path "/oc-if:interfaces/oc-if:interface/oc-if:config/oc-if:name";
+      }
+      description
+         "unique name for Port";
+    }
+
+    leaf quality {
+      type string;
+      description
+        "DLB Quality range on egress ports.";
+    }
+  }
+
+  grouping ars-port-quality-top {
+    description
+      "ARS port quality info";
+
+    container ars-port-quality {
+        config false;
+        description
+          "DLB Quality on egress ports.";
+
+          list arsportquality {
+            key "name";
+            description
+              "Port Name.";  
+          
+            leaf name {
+              type leafref {
+                path "../state/name";
+              }
+              description
+                "Key name";
+            }
+        
+            container state {
+                config false;
+                description
+                  "DLB Quality on egress ports.";
+                uses ars-port-quality-info;
+            }
+          }
+    }
+  }
+
+  grouping ars-top {
+    description
+      "ARS related config and state info";
+
+    container adaptive-routing-switching {
+        description
+          "Configuration and State parameters relating to the ARS.";
+        uses ars-profile-top;
+        uses ars-switch-bind-top;
+        uses ars-port-profile-top;
+        uses ars-port-bind-top;
+        uses ars-object-top;
+        uses ars-nhg-statistics-top;
+        uses ars-port-quality-top;
+    }
+  }
+}

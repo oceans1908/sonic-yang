@@ -1,0 +1,70 @@
+module openconfig-dcbx-rpc {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/dcbx-rpc/extension";
+
+  prefix "oc-dcbx-rpc"; 
+
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-interfaces { prefix oc-intf; }
+  
+  // meta
+  organization
+    "OCP SONiC Subproject";
+
+  contact
+    "OCP SONiC Subproject Working Group
+     https://github.com/Azure/SONiC";
+
+  description
+    "This module defines RPCs for DCBx";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2024-07-09" {
+    description
+      "Initial revision";
+    reference "0.1.0";
+  }
+
+  typedef status {
+      type enumeration {
+          enum "SUCCESS" {
+              description
+                  "Indicates successful RPC call.";
+          }
+          enum ERROR {
+              description
+                  "Indicates error in RPC call execution.";
+          }
+      }
+      description
+          "Indicates 0 for SUCCESS and 1 for ERROR cases.";
+  }
+
+  rpc clear-dcbx-statistics {
+    description "Clear statistics for a given Interface.";
+    input {
+      leaf interface {
+        type leafref {
+          path "/oc-intf:interfaces/oc-intf:interface/oc-intf:name";
+        }
+        description "Interface name.";
+      }
+    }
+    output {
+      leaf status {
+        type status;
+        description
+          "Status code return by the RPC. 0 for SUCCESS and 1 for ERROR.";
+      }
+      leaf status-detail {
+        type string;
+        description
+          "Detailed status of operation execution request";
+      }
+    }
+  }
+}

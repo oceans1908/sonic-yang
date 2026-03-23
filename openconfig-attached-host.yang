@@ -1,0 +1,148 @@
+submodule openconfig-attached-host {
+
+  belongs-to openconfig-network-instance-deviation {
+    prefix "oc-netinst-deviation";
+  }
+
+  yang-version "1";
+
+  // import some basic types/interfaces
+
+  import openconfig-network-instance { prefix oc-netinst; }
+  import openconfig-interfaces { prefix oc-if; }
+  import openconfig-types { prefix "oc-types"; }
+  import openconfig-extensions { prefix "oc-ext"; }
+
+  // meta
+  organization
+    "Broadcom Inc";
+
+  contact
+    "Broadcom Inc
+    www.broadcom.com";
+
+  description
+    "This submodule contains the data model for attached host protocol.
+    This protocol allows arp/nd learnt hosts to be converted to routes
+    and redistributed in routing protocols";
+
+  oc-ext:openconfig-version "0.1.0";
+
+  revision "2024-08-30" {
+    description
+      "Initial revision.";
+    reference "0.1.0";
+  }
+
+  // OpenConfig specific extensions for module metadata.
+  oc-ext:regexp-posix;
+  oc-ext:catalog-organization "openconfig";
+  oc-ext:origin "openconfig";
+
+  grouping attached-host-interface-address-family-config {
+    description
+      "Configuration data for attached-host protocol on a 
+      per-interface per-address-family basis";
+
+    leaf admin-distance {
+      type uint16 {
+        range "0..250" {
+          error-message "Invalid admin-distance value";
+        }
+      }
+      default 250;
+      description
+        "Value of admin distance to be associated with the routes generated
+        for the hosts. Default is 250.";
+    }
+  }
+
+  grouping attached-host-interface-config {
+    description
+      "Configuration data for attached-host on each interface.";
+
+    leaf interface-id {
+      type oc-if:interface-id;
+      description
+        "Reference to an interface/subinterface on which attached-host is enabled.";
+    }
+
+    leaf address-family {
+      type identityref {
+        base oc-types:ADDRESS_FAMILY;
+      }
+      description
+        "The address family (IPv4, IPv6) of the table's entries";
+    }
+
+    uses attached-host-interface-address-family-config;
+  }
+
+  grouping attached-host-interfaces-top {
+    description
+      "Reusable grouping for attached host data model for an interface.";
+
+    container interfaces {
+      description
+        "Configuration and State data for attached host on an interface.";
+
+      list interface {
+        key "interface-id address-family";
+        description
+          "List of interfaces with attached host enabled.";
+
+        leaf interface-id {
+          type leafref {
+            path "../config/interface-id";
+          }
+          description
+            "Reference to an interface/subinterface on which attached-host is enabled.";
+        }
+
+        leaf address-family {
+          type leafref {
+            path "../config/address-family";
+          }
+          description
+            "A reference to the address-family that the
+            table represents";
+        }
+
+        container config {
+          description
+            "Configurable values for attached host enabled interface.";
+
+          uses attached-host-interface-config;
+        }
+
+        container state {
+          config false;
+          description
+            "State information for attached host enabled interface.";
+
+          uses attached-host-interface-config;
+        }
+      }
+    }
+  }
+
+  grouping attached-host-top {
+    description
+      "Top-level grouping for Attached host protocol.";
+
+    container attached-host {
+      description
+        "Top-level Attached host protocol configuration and operational state.";
+
+      uses attached-host-interfaces-top;
+    }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol {
+      description
+           "Add attached host protocol data model to protocol hierarchy";
+      uses attached-host-top;
+  }
+
+  // data definition statements
+}

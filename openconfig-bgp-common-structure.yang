@@ -1,0 +1,394 @@
+submodule openconfig-bgp-common-structure {
+
+  belongs-to openconfig-bgp {
+    prefix "oc-bgp";
+  }
+
+  import openconfig-extensions { prefix oc-ext; }
+
+  include openconfig-bgp-common-multiprotocol;
+  include openconfig-bgp-common;
+
+  // meta
+  organization
+    "OpenConfig working group";
+
+  contact
+    "OpenConfig working group
+    netopenconfig@googlegroups.com";
+
+  description
+    "This sub-module contains groupings that are common across multiple BGP
+    contexts and provide structure around other primitive groupings.";
+
+  oc-ext:openconfig-version "7.0.0";
+
+  revision "2021-05-27" {
+    description
+      "Enhance BGP modules for additional features.";
+    reference "7.0.0";
+  }
+
+  revision "2019-07-10" {
+    description
+      "Normalise timestamp units to nanoseconds.";
+    reference "6.0.0";
+  }
+
+
+  revision "2019-05-28" {
+    description
+      "Clarify prefix counter descriptions, add received-pre-policy
+      counter.";
+    reference "5.2.0";
+  }
+
+  revision "2019-04-16" {
+    description
+      "Add BGP RIB to the top-level BGP container";
+    reference "5.1.0";
+  }
+
+  revision "2018-11-21" {
+    description
+      "Add OpenConfig module metadata extensions.";
+    reference "5.0.2";
+  }
+
+  revision "2018-08-20" {
+    description
+      "Correct description of AFI-SAFI enabled leaf.";
+    reference "5.0.1";
+  }
+
+  revision "2018-04-11" {
+    description
+      "Correct naming of BGP maximum prefix warning percentage leaf.";
+    reference "5.0.0";
+  }
+
+  revision "2018-03-20" {
+    description
+      "Added SR-TE policy SAFI";
+    reference "4.1.0";
+  }
+
+  revision "2017-07-30" {
+    description
+      "Clarification of add-paths send-max leaf";
+    reference "4.0.1";
+  }
+
+  revision "2017-07-10" {
+    description
+      "Add error notifications; moved add-paths config; add AS
+      prepend policy features; removed unneeded config leaves";
+    reference "4.0.0";
+  }
+
+  revision "2017-02-02" {
+    description
+      "Bugfix to remove remaining global-level policy data";
+    reference "3.0.1";
+  }
+
+  revision "2017-01-26" {
+    description
+      "Add dynamic neighbor support, migrate to OpenConfig types";
+    reference "3.0.0";
+  }
+
+  revision "2016-06-21" {
+    description
+      "OpenConfig BGP refactor";
+    reference "2.1.1";
+  }
+
+  grouping bgp-common-structure-global-neighbor-group-logging-options {
+    description
+      "Structural grouping used to include error handling configuration and
+      state for BGP global, neighbors and groups";
+
+    container logging-options {
+      description
+        "Logging options for events related to the BGP global or neighbor or
+        group";
+      container config {
+        description
+          "Configuration parameters enabling or modifying logging
+          for events relating to the BGP global or neighbor or group";
+        uses bgp-common-neighbor-group-logging-options-config;
+      }
+      container state {
+        config false;
+        description
+          "State information relating to logging for the BGP global
+          or neighbor or group";
+        uses bgp-common-neighbor-group-logging-options-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-ebgp-multihop {
+    description
+      "Structural grouping used to include eBGP multihop configuration and
+      state for both BGP neighbors and peer groups";
+
+    container ebgp-multihop {
+      description
+        "eBGP multi-hop parameters for the BGPgroup";
+      container config {
+        description
+          "Configuration parameters relating to eBGP multihop for the
+          BGP group";
+        uses bgp-common-neighbor-group-multihop-config;
+      }
+      container state {
+        config false;
+        description
+          "State information for eBGP multihop, for the BGP neighbor
+          or group";
+        uses bgp-common-neighbor-group-multihop-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-route-reflector {
+    description
+      "Structural grouping used to include route reflector configuration and
+      state for both BGP neighbors and peer groups";
+
+    container route-reflector {
+      description
+        "Route reflector parameters for the BGPgroup";
+      container config {
+        description
+          "Configuraton parameters relating to route reflection
+          for the BGPgroup";
+        uses bgp-common-neighbor-group-route-reflector-config;
+      }
+      container state {
+        config false;
+        description
+          "State information relating to route reflection for the
+          BGPgroup";
+        uses bgp-common-neighbor-group-route-reflector-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-as-path-options {
+    description
+      "Structural grouping used to include AS_PATH manipulation configuration
+      and state for both BGP neighbors and peer groups";
+
+    container as-path-options {
+      description
+        "AS_PATH manipulation parameters for the BGP neighbor or
+        group";
+      container config {
+        description
+          "Configuration parameters relating to AS_PATH manipulation
+          for the BGP peer or group";
+        uses bgp-common-neighbor-group-as-path-options-config;
+      }
+      container state {
+        config false;
+        description
+          "State information relating to the AS_PATH manipulation
+          mechanisms for the BGP peer or group";
+        uses bgp-common-neighbor-group-as-path-options-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-add-paths {
+    description
+      "Structural grouping used to include ADD-PATHs configuration and state
+      for both BGP neighbors and peer groups";
+
+    container add-paths {
+      description
+        "Parameters relating to the advertisement and receipt of
+        multiple paths for a single NLRI (add-paths)";
+      container config {
+        description
+          "Configuration parameters relating to ADD_PATHS";
+        uses bgp-common-neighbor-group-add-paths-config;
+      }
+      container state {
+        config false;
+        description
+          "State information associated with ADD_PATHS";
+        uses bgp-common-neighbor-group-add-paths-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-auth-password {
+    description
+      "Structural grouping used to include authentication password configuration and
+      state for both BGP neighbors and peer groups";
+
+    container auth-password {
+      description
+        "Parameters relating to BGP authentication password";
+      container config {
+        description
+          "Configuration information for BGP neighbor group authentication.";
+        uses bgp-common-neighbor-group-auth-password-config;
+      }
+      container state {
+        config false;
+        description
+          "State information for BGP neighbor group authentication.";
+        uses bgp-common-neighbor-group-auth-password-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-allow-own-as {
+    description
+      "This enables BGP to accept as-path update with local AS.";
+    container allow-own-as {
+      description
+        "This enables BGP to accept as-path update with local AS.";
+      container config {
+        description
+          "Configuration parameters relating to accept as-path update with local AS";
+        uses bgp-common-neighbor-group-allow-own-as-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to accept as-path update with local AS";
+        uses bgp-common-neighbor-group-allow-own-as-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-attribute-unchanged {
+    description
+      "Configuration data for propagating BGP attribute unchanged to the neighbor";
+    container attribute-unchanged {
+      description
+        "BGP attribute is propagated unchanged to the neighbor.";
+      container config {
+        description
+          "Configuration parameters relating to propagate BGP attribute unchanged to the neighbor";
+        uses bgp-common-neighbor-group-attribute-unchanged-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to propagate BGP attribute unchanged to the neighbor";
+        uses bgp-common-neighbor-group-attribute-unchanged-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-filter-list {
+    description
+      "Configuration data for AS-path filter list.";
+
+    container filter-list {
+      description
+        "Apply AS-path filter list.";
+      container config {
+        description
+          "Configuration parameters relating to AS-Path filter list";
+        uses bgp-common-neighbor-group-filter-list-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to AS-Path filter list";
+        uses bgp-common-neighbor-group-filter-list-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-next-hop-self {
+    description
+      "Configuration data for disabling the next hop calculation for the neighbor group.";
+
+    container next-hop-self {
+      description
+        "Disable the next hop calculation for the neighbor group";
+      container config {
+        description
+          "Configuration parameters relating to disable the next hop calculation for the neighbor group";
+        uses bgp-common-neighbor-group-next-hop-self-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to disable the next hop calculation for the neighbor group";
+        uses bgp-common-neighbor-group-next-hop-self-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-prefix-list {
+    description
+      "Configuration data for prefix list filter";
+
+    container prefix-list {
+      description
+        "Apply prefix filter list.";
+      container config {
+        description
+          "Configuration parameters relating to prefix filter list";
+        uses bgp-common-neighbor-group-prefix-list-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to prefix filter list";
+        uses bgp-common-neighbor-group-prefix-list-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-remove-private-as {
+    description
+      "Configuration data for removing private ASNs in outbound updates";
+
+    container remove-private-as {
+      description
+        "Remove private ASNs in outbound updates";
+      container config {
+        description
+          "Configuration parameters relating to remove private ASNs in outbound updates";
+        uses bgp-common-neighbor-group-remove-private-as-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to remove private ASNs in outbound updates";
+        uses bgp-common-neighbor-group-remove-private-as-config;
+      }
+    }
+  }
+
+  grouping bgp-common-structure-neighbor-group-capability-orf {
+    description
+      "Configuration data for advertising prefix-list outbound route filtering capability";
+    container capability-orf {
+      description
+        "Advertise prefix-list outbound route filtering capability to this neighbor.";
+      container config {
+        description
+          "Configuration parameters relating to advertise prefix-list outbound route filtering capability to this neighbor";
+        uses bgp-common-neighbor-group-capability-orf-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to advertise prefix-list outbound route filtering capability to this neighbor";
+        uses bgp-common-neighbor-group-capability-orf-config;
+      }
+    }
+  }
+
+}

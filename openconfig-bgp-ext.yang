@@ -1,0 +1,426 @@
+module openconfig-bgp-ext {
+
+  yang-version "1";
+
+  // namespace
+  namespace "http://openconfig.net/yang/bgp/extension";
+
+  prefix "oc-bgp-ext";
+
+  // import some basic types
+  import openconfig-inet-types { prefix oc-inet; }
+  import openconfig-yang-types { prefix oc-yang; }
+  import openconfig-network-instance { prefix oc-netinst; }
+  import openconfig-routing-policy {prefix oc-rpol; }
+  import openconfig-extensions { prefix oc-ext; }
+  import openconfig-rib-bgp { prefix oc-rib-bgp; }
+  import openconfig-rib-bgp-ext { prefix "oc-bgprib-ext"; }
+
+  organization
+    "SONiC";
+
+  contact
+    "SONiC";
+
+  description
+    "This module describes a YANG model for BGP protocol
+    configuration extensions.";
+
+  oc-ext:openconfig-version "0.4.0";
+
+  revision "2024-12-01" {
+    description
+      "BGP prefix limit extensions.";
+    reference "0.4.0";
+  }
+
+  revision "2021-12-14" {
+    description
+      "Add BGP neighbor v6only extension";
+    reference "0.3.0";
+  }
+
+  revision "2021-06-04" {
+    description
+      "Add BGP extensions for import network instance and prefix based loc-RIB lookup features.";
+    reference "0.2.0";
+  }
+
+  revision "2019-10-31" {
+    description
+      "BGP extensions.";
+    reference "0.1.0";
+  }
+
+  grouping bgp-ext-import-network-instance-config {
+    description
+      "Configuration data for import network instance";
+    leaf-list name {
+      type leafref {
+        path "/oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:config/oc-netinst:name";
+      }
+      description
+        "An operator-assigned unique name for the forwarding
+        instance";
+    }
+
+    leaf policy-name {
+      type leafref {
+        path "/oc-rpol:routing-policy/oc-rpol:policy-definitions/" +
+          "oc-rpol:policy-definition/oc-rpol:name";
+      }
+      description
+        "A reference to a routing policy which can be used to
+        restrict the prefixes import from particular network-instance.";
+    }
+  }
+
+  grouping bgp-ext-global-afi-safi-top {
+    description
+      "Configuration data for global address family";
+    container import-network-instance {
+      description
+        "Import routes to this address-family from network-instance.";
+
+      container config {
+        description
+          "Configuration parameters relating to route importing from network instance.";
+        uses bgp-ext-import-network-instance-config;
+      }
+      container state {
+        config false;
+        description
+          "Operational state parameters relating to route importing from network instance";
+        uses bgp-ext-import-network-instance-config;
+      }
+    }
+  }
+
+  grouping bgp-ext-prefix-paths-top {
+    description
+      "Top-level grouping for IPv4 routing tables for prefix";
+
+    container loc-rib-prefix-paths {
+      config false;
+      description
+        "Container for the IPv4 BGP LOC-RIB data for prefix";
+
+      container paths {
+        description
+          "Enclosing container for list of routes in the routing
+          table.";
+
+        list path {
+          key "origin path-id";
+
+          description
+            "List of routes in the table, keyed by the route
+            prefix, the route origin, and path-id.  The route
+            origin can be either the neighbor address from which
+            the route was learned, or the source protocol that
+            injected the route.  The path-id distinguishes routes
+            for the same prefix received from a neighbor (e.g.,
+                                                          if add-paths is eanbled).";
+
+          leaf origin {
+            type leafref {
+              path "../state/origin";
+            }
+            description
+              "Reference to the origin list key";
+          }
+
+          leaf path-id {
+            type leafref {
+              path "../state/path-id";
+            }
+            description
+              "Reference to the path-id list key";
+          }
+
+          container state {
+            description
+              "Operational state data for route entries in the
+              BGP LOC-RIB";
+
+            leaf remote-router-id {
+              type oc-yang:dotted-quad;
+              description
+                "A identifier for the remote network instance - typically
+                used within associated routing protocols or signalling
+                routing information in another network instance";
+            }
+
+            leaf best-path {
+              type boolean;
+              description
+                "Current path was selected as the best path.";
+            }
+
+            uses oc-rib-bgp:bgp-loc-rib-common-keys;
+            uses oc-rib-bgp:bgp-loc-rib-attr-state;
+            uses oc-rib-bgp:bgp-common-route-annotations-state;
+            uses oc-rib-bgp:bgp-loc-rib-route-annotations-state;
+            uses oc-bgprib-ext:rib-ext-route-annotations;
+          }
+          uses oc-rib-bgp:bgp-unknown-attr-top;
+        }
+      }
+    }
+  }
+
+  grouping bgp-ext-ipv4-loc-rib-prefix-top {
+    description
+      "Top-level grouping for IPv4 routing tables for prefix";
+
+    container loc-rib-prefix {
+      config false;
+      description
+        "Container for the IPv4 BGP LOC-RIB data for prefix";
+
+      uses oc-rib-bgp:bgp-common-table-attrs-top;
+
+      container routes {
+        description
+          "Enclosing container for list of routes in the routing
+          table.";
+
+        list route {
+          key "prefix";
+
+          description
+            "List of routes in the table, keyed by the route
+            prefix, the route origin, and path-id.  The route
+            origin can be either the neighbor address from which
+            the route was learned, or the source protocol that
+            injected the route.  The path-id distinguishes routes
+            for the same prefix received from a neighbor (e.g.,
+                                                          if add-paths is eanbled).";
+
+          leaf prefix {
+            type leafref {
+              path "../state/prefix";
+            }
+            description
+              "Reference to the prefix list key";
+          }
+
+          container state {
+            description
+              "Operational state data for route entries in the
+              BGP LOC-RIB";
+
+            leaf prefix {
+              type oc-inet:ipv4-prefix;
+              description
+                "The IPv4 prefix corresponding to the route";
+            }
+          }
+          uses bgp-ext-prefix-paths-top;
+        }
+      }
+    }
+  }
+
+  grouping bgp-ext-ipv6-loc-rib-prefix-top {
+    description
+      "Top-level grouping for IPv6 routing tables for prefix";
+
+    container loc-rib-prefix {
+      config false;
+      description
+        "Container for the IPv6 BGP LOC-RIB data for prefix";
+
+      uses oc-rib-bgp:bgp-common-table-attrs-top;
+
+      container routes {
+        description
+          "Enclosing container for list of routes in the routing
+          table.";
+
+        list route {
+          key "prefix";
+
+          description
+            "List of routes in the table, keyed by the route
+            prefix, the route origin, and path-id.  The route
+            origin can be either the neighbor address from which
+            the route was learned, or the source protocol that
+            injected the route.  The path-id distinguishes routes
+            for the same prefix received from a neighbor (e.g.,
+                                                          if add-paths is eanbled).";
+
+          leaf prefix {
+            type leafref {
+              path "../state/prefix";
+            }
+            description
+              "Reference to the prefix list key";
+          }
+
+          container state {
+            description
+              "Operational state data for route entries in the
+              BGP LOC-RIB";
+
+            leaf prefix {
+              type oc-inet:ipv6-prefix;
+              description
+                "The IPv6 prefix corresponding to the route";
+            }
+          }
+          uses bgp-ext-prefix-paths-top;
+        }
+      }
+    }
+  }
+
+  grouping bgp-ext-neighbor-v6only-config {
+      description 
+           "Configuration of v6only for BGP neighbor";
+      leaf v6only {
+          type boolean;
+          default false;
+          description "Enable BGP with v6 link-local only";
+      }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:global/oc-netinst:afi-safis/oc-netinst:afi-safi {
+    description
+      "BGP global extensions for address family";
+    uses bgp-ext-global-afi-safi-top;
+  }
+
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance/" +
+    "oc-netinst:protocols/oc-netinst:protocol/" +
+    "oc-netinst:bgp/oc-netinst:rib/oc-netinst:afi-safis/" +
+    "oc-netinst:afi-safi/oc-netinst:ipv4-unicast" {
+      description
+        "Add extended annotations for prefix based Loc-RIB for IPv4";
+
+      uses bgp-ext-ipv4-loc-rib-prefix-top;
+    }
+
+  augment "/oc-netinst:network-instances/oc-netinst:network-instance/" +
+    "oc-netinst:protocols/oc-netinst:protocol/" +
+    "oc-netinst:bgp/oc-netinst:rib/oc-netinst:afi-safis/" +
+    "oc-netinst:afi-safi/oc-netinst:ipv6-unicast" {
+      description
+        "Add extended annotations for prefix based Loc-RIB for IPv6";
+
+      uses bgp-ext-ipv6-loc-rib-prefix-top;
+    }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:config {
+      description
+           "BGP neighbor extension for v6only";
+      uses bgp-ext-neighbor-v6only-config;
+  }
+ 
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:state {
+      description
+           "BGP neighbor extension for v6only";
+      uses bgp-ext-neighbor-v6only-config;
+  }
+  
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv4-unicast/oc-netinst:prefix-limit/oc-netinst:config {
+      description
+           "BGP prefix limit extension for neighbor af ipv4_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  default false;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv4-unicast/oc-netinst:prefix-limit/oc-netinst:state {
+      description
+           "BGP prefix limit extension for neighbor af ipv4_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv6-unicast/oc-netinst:prefix-limit/oc-netinst:config {
+      description
+           "BGP prefix limit extension for neighbor af ipv6_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  default false;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:neighbors/oc-netinst:neighbor/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv6-unicast/oc-netinst:prefix-limit/oc-netinst:state {
+      description
+           "BGP prefix limit extension for neighbor af ipv6_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+  
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:peer-groups/oc-netinst:peer-group/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv4-unicast/oc-netinst:prefix-limit/oc-netinst:config {
+      description
+           "BGP prefix limit extension for peer-group af ipv4_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  default false;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:peer-groups/oc-netinst:peer-group/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv4-unicast/oc-netinst:prefix-limit/oc-netinst:state {
+      description
+           "BGP prefix limit extension for peer-group af ipv4_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:peer-groups/oc-netinst:peer-group/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv6-unicast/oc-netinst:prefix-limit/oc-netinst:config {
+      description
+           "BGP prefix limit extension for peer-group af ipv6_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  default false;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+  augment /oc-netinst:network-instances/oc-netinst:network-instance/oc-netinst:protocols/oc-netinst:protocol/oc-netinst:bgp/oc-netinst:peer-groups/oc-netinst:peer-group/oc-netinst:afi-safis/oc-netinst:afi-safi/oc-netinst:ipv6-unicast/oc-netinst:prefix-limit/oc-netinst:state {
+      description
+           "BGP prefix limit extension for peer-group af ipv6_unicast";
+	  leaf discard-extra {
+		  type boolean;
+		  description
+			  "Discard extra prefix when limit exceeds without tearing down the session.
+			   The default of this leaf is false, such that when it is not specified,
+			   the session is torn down.";
+	  }
+  }
+
+}
